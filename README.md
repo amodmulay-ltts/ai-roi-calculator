@@ -29,6 +29,8 @@ The app opens with an **example calculation**, marked "Example calculation · fi
 | Delivery model comparison | Directly under the headline results: all five models calculated on the same baseline and ranked by NPV, with payback, monthly saving, mature team size and investment. The verdict names the best model and how much the selected model gives up. Select a row to make that model active. |
 | Delivery model panel | Below the comparison: edit the selected model's offshore share and AI adoption, today's offshore share, and the offshore cost level. |
 | Team panel | Choose how headcount is costed: **Derived from AI productivity** (default) or **Staffing plan as entered**. |
+| Workload panel | The work the team does each month: volume × hours each, today versus mature. **Edit workload** to change volumes and hours, override hours per state, mark items as AI-assisted or as carrying review overhead, and add or remove items. |
+| Use-case templates | In setup, step "Team and workload": **Software testing**, **Software development** or **IT support / service desk**. Each sets roles and a matching workload (sized so the work equals the team). Adjust volumes and the average onshore cost to the customer. |
 
 Opening a file or loading the example asks for confirmation before replacing a customer scenario. Files are validated before use: a malformed file shows readable errors instead of being loaded.
 
@@ -81,8 +83,10 @@ Delivery model      profile = { bccShare, aiAdoption }      (editable per model)
                     applied to role FTE, AI-specific cost lines, AI-specific investment,
                     productivity factor, KPI overrides and AI overhead
 
-Effort              kpi_s        = override_s ?? baseline × factor_s
-                    totalEffort  = core + AI overhead + root-cause + verification
+Workload            hours_s(item) = volume × hoursEach_s,  hoursEach_s = override_s ?? hoursEach × factor_s
+                    core = items with review overhead;  other = the rest
+                    totalEffort  = core × (1 + (hitl + rework + dualRun) × aiAdoption) + other
+                    effort saving % = 1 − core_s / core_baseline
 Headcount           effort-derived (default): team_s = baselineTeam × totalEffort_s / totalEffort_B,
                     spread across roles by the staffing plan mix
                     staffing plan: role FTE as entered
@@ -141,7 +145,7 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 
 ## Tests
 
-`npm test` runs the engine suite: 53 tests. They cover:
+`npm test` runs the engine suite: 55 tests. They cover:
 
 - **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story
@@ -151,7 +155,7 @@ Server exports have been checked against a running server. **The UI has not yet 
 
 ## Known limitations
 
-- The effort model has testing-specific KPIs; development and support templates change roles only (planned).
+- Cross-functional roles added from a template are scaled with the workload like every other role, which slightly flatters the saving; the setup flags a team/workload gap above 10%.
 - Sensitivity analysis varies horizon and discount rate rather than the business drivers (planned).
 - The client-chargeable toggle and cost avoidance are not yet applied to ROI (planned).
 - FX rates and AI prices are static and editable, not live.

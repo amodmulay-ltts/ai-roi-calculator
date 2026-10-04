@@ -55,10 +55,10 @@ export function calculate(scenario: Scenario): Results {
 function calculateEffort(scenario: Scenario, ctx: DeliveryContext): EffortCalculation {
   const result: EffortCalculation = {
     kpi: {},
+    workloadHours: {},
     coreEffort: { baseline: 0, transition: 0, mature: 0 },
     aiOverheadHours: { baseline: 0, transition: 0, mature: 0 },
-    rcaEffort: { baseline: 0, transition: 0, mature: 0 },
-    verifyEffort: { baseline: 0, transition: 0, mature: 0 },
+    otherEffort: { baseline: 0, transition: 0, mature: 0 },
     totalEffort: { baseline: 0, transition: 0, mature: 0 },
     effortFte: { baseline: 0, transition: 0, mature: 0 },
     planFte: { baseline: 0, transition: 0, mature: 0 },
@@ -87,39 +87,26 @@ function calculateEffort(scenario: Scenario, ctx: DeliveryContext): EffortCalcul
     }
   }
 
-  // Core testing effort per release * releases per month (Section 5.1)
-  const testingEffortKpi = result.kpi['testing-effort-per-release'];
-  const releasesPerMonth = scenario.globalAssumptions.releasesPerMonth;
-
-  result.coreEffort.baseline = testingEffortKpi.baseline * releasesPerMonth;
-  result.coreEffort.transition = testingEffortKpi.transition * releasesPerMonth;
-  result.coreEffort.mature = testingEffortKpi.mature * releasesPerMonth;
+  // Workload (Section 5.1, generalised): hours = volume × hours per unit, per state
+  const states: State[] = ['baseline', 'transition', 'mature'];
+  for (const kpi of scenario.kpis) {
+    if (kpi.volumePerMonth === undefined) continue;
+    const hours = {
+      baseline: result.kpi[kpi.id]!.baseline * kpi.volumePerMonth,
+      transition: result.kpi[kpi.id]!.transition * kpi.volumePerMonth,
+      mature: result.kpi[kpi.id]!.mature * kpi.volumePerMonth,
+    };
+    result.workloadHours[kpi.id] = hours;
+    const bucket = kpi.reviewOverheadApplies ? result.coreEffort : result.otherEffort;
+    for (const state of states) bucket[state] += hours[state];
+  }
 
   // AI overhead = core effort × (HITL + rework + dual-run) - Section 5.1, F10
-  const states: State[] = ['baseline', 'transition', 'mature'];
   for (const state of states) {
     const overhead = scenario.aiOverheadPercent[state];
     const totalOverheadPercent = (overhead.hitl + overhead.rework + overhead.dualRun) * ctx.adoption[state];
     result.aiOverheadHours[state] = result.coreEffort[state] * totalOverheadPercent;
-  }
-
-  // RCA and verification effort
-  const defectsPerMonth = scenario.globalAssumptions.defectsPerMonth;
-  const rcaEffortKpi = result.kpi['defect-rca-effort'];
-  const verifyEffortKpi = result.kpi['defect-verification-effort'];
-
-  for (const state of states) {
-    result.rcaEffort[state] = rcaEffortKpi[state] * defectsPerMonth;
-    result.verifyEffort[state] = verifyEffortKpi[state] * defectsPerMonth;
-  }
-
-  // Total effort
-  for (const state of states) {
-    result.totalEffort[state] =
-      result.coreEffort[state] +
-      result.aiOverheadHours[state] +
-      result.rcaEffort[state] +
-      result.verifyEffort[state];
+    result.totalEffort[state] = result.coreEffort[state] + result.aiOverheadHours[state] + result.otherEffort[state];
   }
 
   // Effort FTE
@@ -165,10 +152,12 @@ function calculateEffort(scenario: Scenario, ctx: DeliveryContext): EffortCalcul
     result.fteGap[state] = result.staffingFte[state] - result.effortFte[state];
   }
 
-  // Effort saving % - Section 5.1, F4
-  // effortSaving% = 1 - (state testing effort / baseline testing effort)
+  // Effort saving % (F4): on the AI-assisted core work before review overhead; falls back to all workload
+  const savingBasis = result.coreEffort.baseline > 0
+    ? result.coreEffort
+    : { baseline: result.otherEffort.baseline, transition: result.otherEffort.transition, mature: result.otherEffort.mature };
   for (const state of states) {
-    result.effortSavingPercent[state] = 1 - testingEffortKpi[state] / testingEffortKpi.baseline;
+    result.effortSavingPercent[state] = savingBasis.baseline > 0 ? 1 - savingBasis[state] / savingBasis.baseline : 0;
   }
 
   return result;

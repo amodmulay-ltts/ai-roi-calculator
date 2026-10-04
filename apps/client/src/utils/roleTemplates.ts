@@ -1,4 +1,4 @@
-import type { Role, Currency } from '@ai-roi-calc/engine';
+import type { Role, Currency, KpiInput, Scenario } from '@ai-roi-calc/engine';
 import { fxFactor } from '@ai-roi-calc/engine';
 
 export const ROLE_TEMPLATES: Record<string, Role[]> = {
@@ -277,9 +277,75 @@ export const ROLE_TEMPLATES: Record<string, Role[]> = {
   ],
 };
 
+export type UseCase = 'testing' | 'development' | 'support';
+
+export const USE_CASES: Array<{ id: UseCase; label: string; description: string }> = [
+  { id: 'testing', label: 'Software testing', description: 'Releases tested, defects analysed and verified' },
+  { id: 'development', label: 'Software development', description: 'User stories, code reviews, bug fixes' },
+  { id: 'support', label: 'IT support / service desk', description: 'L1 tickets, L2 incidents, knowledge, problems' },
+];
+
+const item = (
+  id: string,
+  name: string,
+  volumeUnit: string,
+  volumePerMonth: number,
+  hoursPerUnit: number,
+  ai: { affected: boolean; review: boolean }
+): KpiInput => ({
+  id,
+  name,
+  unit: `hrs per ${volumeUnit.replace(/s$/, '')}`,
+  baseline: hoursPerUnit,
+  appliesToFactor: ai.affected,
+  isVelocity: false,
+  overrides: {},
+  volumePerMonth,
+  volumeUnit,
+  reviewOverheadApplies: ai.review,
+});
+
+const AI = { affected: true, review: true };
+const AI_NO_REVIEW = { affected: true, review: false };
+const MANUAL = { affected: false, review: false };
+
+/** Monthly workload per use case, sized to the matching role template's baseline team × 160 h. */
+export const WORKLOAD_TEMPLATES: Record<UseCase, KpiInput[]> = {
+  testing: [
+    item('testing-effort-per-release', 'Testing effort per release', 'releases', 2, 2_540, AI),
+    item('defect-rca-effort', 'Defect root-cause analysis', 'defects', 200, 1.0, AI_NO_REVIEW),
+    item('defect-verification-effort', 'Defect verification', 'defects', 200, 0.8, AI_NO_REVIEW),
+  ],
+  development: [
+    item('user-stories', 'User story delivery', 'stories', 50, 55, AI),
+    item('code-reviews', 'Code reviews', 'pull requests', 200, 1.5, AI),
+    item('bug-fixes', 'Bug fixing', 'bugs', 100, 6, AI),
+    item('dev-coordination', 'Planning and coordination', 'months', 1, 910, MANUAL),
+  ],
+  support: [
+    item('l1-tickets', 'L1 ticket handling', 'tickets', 9_000, 0.4, AI),
+    item('l2-incidents', 'L2 incident resolution', 'incidents', 1_200, 2.5, AI),
+    item('knowledge-articles', 'Knowledge articles', 'articles', 60, 3, AI),
+    item('problem-management', 'Problem management', 'problems', 20, 16, AI),
+    item('support-coordination', 'Shift coordination and reporting', 'months', 1, 420, MANUAL),
+  ],
+};
+
+export function detectUseCase(useCaseText: string): UseCase {
+  const t = useCaseText.toLowerCase();
+  if (t.includes('support') || t.includes('service') || t.includes('ticket') || t.includes('itsm')) return 'support';
+  if (t.includes('test') || t.includes('qa')) return 'testing';
+  if (t.includes('dev') || t.includes('engineer') || t.includes('build') || t.includes('code')) return 'development';
+  return 'testing';
+}
+
+export function workloadHours(kpis: KpiInput[]): number {
+  return kpis.reduce((sum, k) => sum + (k.volumePerMonth ?? 0) * k.baseline, 0);
+}
+
 // Template rates are authored in INR; convert them into the scenario currency.
 export function getRolesForUseCase(
-  useCase: string,
+  useCase: UseCase,
   includeAll: boolean,
   currency: Currency,
   fxRatesPerEur: Record<Currency, number>
@@ -292,22 +358,8 @@ export function getRolesForUseCase(
   }));
 }
 
-function selectRoles(useCase: string, includeAll: boolean): Role[] {
-  const lowerCase = useCase.toLowerCase();
-
-  let selectedRoles: Role[] = [];
-
-  // Detect use case and select template
-  if (lowerCase.includes('test') || lowerCase.includes('qa')) {
-    selectedRoles = [...ROLE_TEMPLATES.testing];
-  } else if (lowerCase.includes('dev') || lowerCase.includes('engineer') || lowerCase.includes('build')) {
-    selectedRoles = [...ROLE_TEMPLATES.development];
-  } else if (lowerCase.includes('support') || lowerCase.includes('service') || lowerCase.includes('customer')) {
-    selectedRoles = [...ROLE_TEMPLATES.support];
-  } else {
-    // Default to testing if unclear
-    selectedRoles = [...ROLE_TEMPLATES.testing];
-  }
+function selectRoles(useCase: UseCase, includeAll: boolean): Role[] {
+  let selectedRoles: Role[] = [...ROLE_TEMPLATES[useCase]!];
 
   // Add cross-functional roles if requested
   if (includeAll) {
@@ -339,4 +391,12 @@ export function rescaleRolesToAverage(roles: Role[], target: number): Role[] {
     costPerFte: Math.round(r.costPerFte * k),
     billRatePerFte: Math.round(r.billRatePerFte * k),
   }));
+}
+
+/** Roles and workload for a use case; replaces both in the scenario. */
+export function applyUseCaseTemplate(scenario: Scenario, useCase: UseCase, includeAll: boolean): Partial<Scenario> {
+  return {
+    roles: getRolesForUseCase(useCase, includeAll, scenario.baseCurrency, scenario.fxRatesPerEur),
+    kpis: structuredClone(WORKLOAD_TEMPLATES[useCase]),
+  };
 }

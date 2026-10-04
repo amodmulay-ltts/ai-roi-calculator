@@ -31,7 +31,6 @@ function useExampleFigures() {
     const scenario = createExampleScenario();
     const r = calculate(scenario);
     const g = scenario.globalAssumptions;
-    const kpi = (id: string) => scenario.kpis.find(k => k.id === id)!.baseline;
     const factor = scenario.productivityFactor.mode === 'direct-factor' ? scenario.productivityFactor : null;
     const matureOverhead = scenario.aiOverheadPercent.mature;
 
@@ -57,8 +56,7 @@ function useExampleFigures() {
       scenario,
       r,
       g,
-      releaseHrs: kpi('testing-effort-per-release'),
-      defectHrs: kpi('defect-rca-effort') + kpi('defect-verification-effort'),
+      workload: scenario.kpis.filter(k => k.volumePerMonth !== undefined),
       matureFactor: factor?.mature ?? 1,
       transitionFactor: factor?.transition ?? 1,
       matureOverhead: matureOverhead.hitl + matureOverhead.rework + matureOverhead.dualRun,
@@ -218,7 +216,14 @@ export default function HelpPresentation({ open, onClose, onStartNew }: HelpPres
             ]}
           />
           <Quiet>
-            <p>Workload: {g.releasesPerMonth} releases × {num(f.releaseHrs)} h + {num(g.defectsPerMonth)} defects × {num(f.defectHrs, 1)} h = {num(r.effort.totalEffort.baseline)} h, which is exactly {num(r.effort.staffingFte.baseline)} people × {g.workingHrsPerFtePerMonth} h.</p>
+            <p>
+              Workload:{' '}
+              {f.workload
+                .map(k => `${num(k.volumePerMonth ?? 0)} ${k.volumeUnit ?? ''} × ${num(k.baseline, k.baseline % 1 ? 1 : 0)} h (${k.name.toLowerCase()})`)
+                .join(' + ')}{' '}
+              = {num(r.effort.totalEffort.baseline)} h, which is exactly {num(r.effort.staffingFte.baseline)} people ×{' '}
+              {g.workingHrsPerFtePerMonth} h.
+            </p>
             <p>Cost: people {eur(r.cost.peopleCost.baseline, false)} + tools {eur(r.cost.directOpex.baseline - r.cost.peopleCost.baseline, false)}, plus {pct(f.overheadAndRisk)} for overhead and risk reserve.</p>
           </Quiet>
         </Slide>

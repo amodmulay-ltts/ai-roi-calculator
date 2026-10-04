@@ -316,6 +316,37 @@ describe('Example scenario', () => {
   });
 });
 
+describe('Generic workload', () => {
+  it('computes effort from any set of volume × hours items', () => {
+    const s = createExampleScenario();
+    s.kpis = [
+      { id: 'tickets', name: 'Tickets', unit: 'hrs/ticket', baseline: 0.5, appliesToFactor: true, isVelocity: false, overrides: {}, volumePerMonth: 4_000, volumeUnit: 'tickets', reviewOverheadApplies: true },
+      { id: 'meetings', name: 'Coordination', unit: 'hrs/month', baseline: 960, appliesToFactor: false, isVelocity: false, overrides: {}, volumePerMonth: 1, reviewOverheadApplies: false },
+    ];
+    const r = calculate(s);
+    expect(r.effort.workloadHours['tickets']!.baseline).toBe(2_000);
+    expect(r.effort.totalEffort.baseline).toBe(2_960);
+    // tickets drop to 70% plus 7% review overhead; coordination is not AI-affected
+    expect(r.effort.totalEffort.mature).toBeCloseTo(2_000 * 0.7 * 1.07 + 960, 6);
+    expect(r.effort.effortSavingPercent.mature).toBeCloseTo(0.3, 6);
+  });
+
+  it('upgrades files saved with releases/defects per month to workload volumes', () => {
+    const legacy = referenceScenario() as any;
+    legacy.globalAssumptions.releasesPerMonth = 1;
+    legacy.globalAssumptions.defectsPerMonth = 300;
+    legacy.kpis.forEach((k: any) => {
+      delete k.volumePerMonth;
+      delete k.volumeUnit;
+      delete k.reviewOverheadApplies;
+    });
+    const loaded = parseScenario(legacy);
+    expect(loaded.ok).toBe(true);
+    if (!loaded.ok) return;
+    expect(calculate(loaded.scenario).financialMetrics.npv).toBeCloseTo(calculate(referenceScenario()).financialMetrics.npv, 4);
+  });
+});
+
 describe('Delivery model comparison', () => {
   it('calculates all five models against one baseline and ranks them by NPV', () => {
     const rows = compareDeliveryModels(createExampleScenario());
@@ -393,10 +424,12 @@ describe('Scenario save and load', () => {
     if (!result.ok) expect(result.errors[0]).toContain('timeValue.horizonMonths');
   });
 
-  it('rejects files missing KPIs the engine needs', () => {
+  it('rejects files without any workload item', () => {
     const s = edited();
-    s.kpis = s.kpis.filter(k => k.id !== 'testing-effort-per-release');
-    expect(parseScenario(s).ok).toBe(false);
+    s.kpis = [{ id: 'coverage', name: 'Automation coverage', unit: '%', baseline: 40, appliesToFactor: false, isVelocity: false, overrides: {} }];
+    const result = parseScenario(s);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors[0]).toContain('workload');
   });
 });
 

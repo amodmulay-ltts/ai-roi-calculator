@@ -43,9 +43,11 @@ export interface OneTimeInvestmentItem {
 }
 
 export interface GlobalAssumptions {
-  releasesPerMonth: number;
+  /** Legacy (pre-workload files): migrated to KPI volumes by normalizeScenario. */
+  releasesPerMonth?: number;
   workingHrsPerFtePerMonth: number;
-  defectsPerMonth: number;
+  /** Legacy (pre-workload files): migrated to KPI volumes by normalizeScenario. */
+  defectsPerMonth?: number;
   transitionLengthMonths: number;
   riskReservePercent: Record<State, number>;
   corporateOverheadPercent: Record<State, number>;
@@ -66,6 +68,12 @@ export interface KpiInput {
   appliesToFactor: boolean;
   isVelocity: boolean;
   overrides: Partial<Record<State, number>>;
+  /** Present = workload item: monthly hours = volumePerMonth × KPI value (hours per unit). */
+  volumePerMonth?: number;
+  /** What one unit of volume is, e.g. "releases", "tickets". */
+  volumeUnit?: string;
+  /** Whether AI review overhead (HITL, rework, dual run) is added on top of this item's hours. */
+  reviewOverheadApplies?: boolean;
 }
 
 export interface AiOverheadPercent {
@@ -160,10 +168,13 @@ export interface Scenario {
 
 export interface EffortCalculation {
   kpi: Record<string, Record<State, number>>;
+  /** Hours per workload item (KPI id) per state. */
+  workloadHours: Record<string, Record<State, number>>;
+  /** Hours of workload items that carry AI review overhead. */
   coreEffort: Record<State, number>;
   aiOverheadHours: Record<State, number>;
-  rcaEffort: Record<State, number>;
-  verifyEffort: Record<State, number>;
+  /** Hours of workload items without review overhead. */
+  otherEffort: Record<State, number>;
   totalEffort: Record<State, number>;
   effortFte: Record<State, number>;
   /** Staffing plan as entered (after delivery-model adoption scaling), regardless of people mode. */
