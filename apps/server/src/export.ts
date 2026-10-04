@@ -65,11 +65,13 @@ export function generatePdfHtml(scenario: Scenario, results: Results): string {
     .cover h1 { font-size: 48px; margin-bottom: 20px; }
     .cover p { font-size: 18px; color: #6b7280; margin: 10px 0; }
     .metadata { margin-top: 40px; color: #6b7280; }
+    .example-flag { position: fixed; top: 0; left: 0; right: 0; padding: 8px; text-align: center; font-size: 12px; font-weight: bold; letter-spacing: 0.08em; color: #1d4ed8; background: #eff6ff; border-bottom: 1px solid #bfdbfe; }
   </style>
 </head>
 <body>
 
 <!-- Cover Page -->
+${scenario.isExample ? '<div class="example-flag">EXAMPLE CALCULATION &middot; FICTIONAL DATA &middot; NOT FOR CUSTOMER DECISIONS</div>' : ''}
 <div class="page cover">
   <h1>${escapeHtml(scenario.name)}</h1>
   <p><strong>Client:</strong> ${escapeHtml(scenario.clientName)}</p>
@@ -202,7 +204,7 @@ export function generateExcelData(scenario: Scenario, results: Results) {
       {
         name: 'Summary',
         rows: [
-          ['AI ROI Calculator - Summary Report'],
+          [scenario.isExample ? 'EXAMPLE CALCULATION - fictional data, not for customer decisions' : 'AI ROI Calculator - Summary Report'],
           [''],
           ['Scenario Name', scenario.name],
           ['Client Name', scenario.clientName],

@@ -1,188 +1,152 @@
-# AI ROI Calculator
+# VALUEAI – AI ROI Calculator
 
-A production-quality web application for estimating the cost, savings, payback, and ROI of implementing AI into enterprise delivery functions.
+Web application for estimating the cost, savings, payback and ROI of introducing AI into an enterprise delivery function (first use case: software testing). Consultants use it with a customer to compare delivery models, from onshore to AI-first, against the customer's current team.
 
-## Project Status
+> **Status:** under active development and not yet customer-ready. Done and planned work is tracked in [TASK.md](TASK.md); the reasoning behind the fix order is in [REVIEW_Self_Assessment.md](REVIEW_Self_Assessment.md).
 
-### ✅ Completed
-- Monorepo structure with npm workspaces
-- Calculation engine (`packages/engine`) with TypeScript and Vitest
-- Default values pre-loaded from Excel model
-- Core calculation logic for effort, cost, and financial metrics
-- Golden tests (partial - some need adjustment)
-- Express server package scaffold
-- React + Vite client scaffold
+## Quick start
 
-### 🔄 In Progress
-- Engine calculation verification against golden tests
-- Server API implementation
-- Client UI scaffolding
+Prerequisites: Node.js 20 LTS, npm 10+.
 
-### ⏳ To Do
-- Complete server API endpoints
-- Build UI for inputs (Context, Team, KPIs, Costs, etc.)
-- Dashboard with charts and visualizations
-- Export functionality (PDF, Excel, JSON, CSV)
-- Sensitivity analysis
-- Full test coverage
-
-## Quick Start
-
-### Prerequisites
-- Node.js 20 LTS
-- npm 10+
-
-### Installation
 ```bash
 npm install
+npm run build -w packages/engine   # the client and server import the built engine
+npm run dev                        # client http://localhost:5173, server http://localhost:3001
+npm test                           # engine tests (Vitest, runs once)
+npm run build                      # production build of engine, server and client
 ```
 
-### Development
-```bash
-# Run tests
-npm test
+## Using the app
 
-# Run dev server (client + server)
-npm run dev
+The app opens with an **example calculation**, marked "Example calculation · fictional data" on screen and in every export. Use it to learn the tool; do not use its figures for a customer.
 
-# Build for production
-npm run build
+| Where | What |
+|---|---|
+| **Scenario** menu | **New scenario** (guided setup for a customer) · **Edit setup** (the same steps, prefilled; jump to any step and apply) · **Open file** (.yaml / .json) · **Load example** |
+| **Export** menu | **Save scenario (.yaml)** to reopen later · **PDF report** (HTML, print to PDF) · **Excel workbook** · **JSON** (scenario + results) |
+| Currency (header) | Choose **Convert** (multiply every amount by an editable FX rate) or **Relabel** (keep the numbers). Rates are indicative, not live. |
+| Delivery model panel | Pick Onshore, BCC only, Onshore + AI, AI + BCC or AI-first, and edit its offshore share and AI adoption. |
+| Team panel | Choose how headcount is costed: **Derived from AI productivity** (default) or **Staffing plan as entered**. |
+
+Opening a file or loading the example asks for confirmation before replacing a customer scenario. Files are validated before use: a malformed file shows readable errors instead of being loaded.
+
+## The example, step by step
+
+Northwind Insurance (fictional) has a 31-person onshore testing team. All amounts are monthly EUR unless stated. Every figure below is produced by the engine; `npm test` checks the key ones.
+
+**1. Today (baseline)**
+
+| | |
+|---|---|
+| Workload | 2 releases × 2,300 h + 200 defects × (1.0 h root-cause + 0.8 h verification) = **4,960 h** = 31 FTE × 160 h |
+| Team | 1 test manager (€11,000), 20 test analysts (€7,000), 8 automation engineers (€8,000), 2 SDETs (€9,000) |
+| Run cost | people €233,000 + existing tools €3,000 = €236,000 direct; +12% overhead, +5% risk reserve = **€276,120** |
+
+**2. With AI (mature state, after a 3-month transition)**
+
+| | |
+|---|---|
+| Productivity | AI cuts effort per release and per defect to 70% (transition: 85%) |
+| AI overhead | Human review and rework add 7% to core testing effort (transition: 20%, including dual running) |
+| Workload | 2 × 2,300 × 0.70 + 7% + 200 × 1.8 × 0.70 = **3,697 h** |
+| Team | 31 × 3,697 / 4,960 = **23.1 FTE**, spread by the staffing plan's mix (now including 1.5 AI engineers) |
+| Run cost | people + cost lines of €17,500 (existing tools €3,000, AI usage €5,000, AI tools €6,000, AI infrastructure €2,000, governance €1,500) = **€231,020** fully loaded |
+
+**3. Result**
+
+| Metric | Value | Meaning |
+|---|---|---|
+| Monthly saving (mature) | €45,100 | €276,120 − €231,020 |
+| One-off investment | €300,000 | Setup €200K, training €60K, contingency €40K |
+| Payback | Month 11 | First month where cumulative savings minus investment is ≥ 0. The transition months cost more than today. |
+| NPV (36 months, 10%) | €956K | All monthly cash flows discounted to today |
+| ROI (36 months) | 390% | (total savings − investment) ÷ investment, undiscounted |
+| IRR | 220% / year | Discount rate at which NPV = 0 |
+
+Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €3.7M (payback month 5) because offshore rates and AI savings combine.
+
+## How the calculation works
+
+States: **baseline** (today), **transition** (first N months, AI being introduced) and **mature** (steady state). Each delivery model is applied to transition and mature only; the baseline never changes.
+
 ```
+Delivery model      profile = { bccShare, aiAdoption }      (editable per model)
+  role rate         onshoreRate × (1 − bccShare + bccShare × bccCostFactor)
+                    (transition runs at today's location mix; the monthly ramp migrates it)
+  AI plan scaling   value_s = baseline + (planned_s − baseline) × aiAdoption
+                    applied to role FTE, AI-specific cost lines, AI-specific investment,
+                    productivity factor, KPI overrides and AI overhead
+
+Effort              kpi_s        = override_s ?? baseline × factor_s
+                    totalEffort  = core + AI overhead + root-cause + verification
+Headcount           effort-derived (default): team_s = baselineTeam × totalEffort_s / totalEffort_B,
+                    spread across roles by the staffing plan mix
+                    staffing plan: role FTE as entered
+Cost                direct = people + cost lines;  fully loaded = direct × (1 + overhead% + risk%)
+Monthly ramp        month k ≤ N: T + (M − T) × (k − 1) / N;  month > N: M
+Cash flow           saving_m = baseline − run cost;  net_m = saving_m − investment_m
+Metrics             payback = first month with cumulative net ≥ 0
+                    ROI = (Σ saving − Σ investment) / Σ investment
+                    NPV at monthly rate (1 + r)^(1/12) − 1;  IRR by bisection, annualised
+```
+
+Delivery model defaults:
+
+| Model | Offshore share | AI adoption |
+|---|---|---|
+| Onshore | 0% | 0% (status quo when today's team is onshore) |
+| BCC only | 80% | 0% |
+| Onshore + AI | 0% | 100% (the AI plan as entered) |
+| AI + BCC | 80% | 100% |
+| AI-first | 0% | 125% |
+
+BCC cost is 45% of onshore by default. Role rates are entered as onshore rates.
 
 ## Architecture
 
-### Monorepo Structure
 ```
-ai-roi-calculator/
-├── packages/
-│   └── engine/                    # Core calculation library
-│       ├── src/
-│       │   ├── types.ts          # TypeScript types
-│       │   ├── defaults.ts       # Default values from Excel
-│       │   ├── engine.ts         # Calculation logic
-│       │   └── index.ts          # Public API
-│       └── src/__tests__/
-│           └── golden.test.ts    # Golden tests
-├── apps/
-│   ├── server/                    # Express server
-│   │   └── src/
-│   │       └── index.ts
-│   └── client/                    # React + Vite frontend
-│       ├── src/
-│       │   ├── App.tsx
-│       │   └── index.tsx
-│       └── index.html
-├── package.json                   # Workspace root
-└── README.md
+packages/engine/        Pure TypeScript calculation library (no I/O), shared by client and server
+  src/engine.ts           calculate(scenario) → results
+  src/delivery.ts         delivery-model profiles and their effect on FTE, rates, costs
+  src/currency.ts         FX rates and scenario conversion
+  src/example.ts          the Northwind example
+  src/defaults.ts         reference scenario from the source Excel (INR), legacy-file normalisation
+  src/schema.ts           zod validation for any untrusted scenario (files, API)
+  src/serialize.ts        YAML save / YAML+JSON load
+  src/__tests__/          Vitest suite
+apps/server/            Express API: validation, HTML report, Excel export
+apps/client/            React + Vite + Tailwind dashboard
 ```
 
-## Key Features
+## API
 
-### Section 1: Core Calculations
-- **Effort Model** (Section 5.1): KPI baseline, overrides, AI overhead, FTE calculations
-- **Productivity Factor** (Section 5.2): Direct factor or evaluation-derived
-- **Cost Model** (Section 5.3): People costs, cost lines, overhead, risk
-- **Monthly Cash Flow** (Section 5.4): Ramp from transition to mature, investment phasing
-- **Benefit Ledger** (Section 5.5): Volume effect, mix effect, cost deltas
-- **Financial Metrics**: Payback, ROI, NPV, IRR
+All POST endpoints take a scenario as the JSON body and reject invalid scenarios with `400` and a list of reasons.
 
-### Section 2: Known Fixes
-- **F1**: One-time investment with phasing schedule
-- **F2**: Payback month from cumulative cash flow
-- **F3**: Per-state cost lines, not hardcoded
-- **F4**: Effort saving % computed, not input
-- **F5**: Overhead % with required rationale
-- **F6**: TCO vs client-chargeable cost tracking
-- **F7**: Benefit ledger with 3 themes
-- **F8**: All KPIs used in calculations
-- **F9**: Staffing plan vs effort-derived people mode
-- **F10**: AI overhead derived from HITL + rework + dual-run
-- **F11**: 12–60 month horizon with NPV/IRR
-- **F12**: KPI factor with override support
+| Method | Path | Returns |
+|---|---|---|
+| GET | `/api/health` | Health check |
+| GET | `/api/defaults` | Reference scenario |
+| GET | `/api/currencies` | Supported currencies and indicative FX rates |
+| POST | `/api/calculate` | Results |
+| POST | `/api/export/json` | Scenario + results as a download |
+| POST | `/api/export/pdf` | HTML report as a download (print to PDF) |
+| POST | `/api/export/xlsx` | Excel workbook |
 
-### Section 3: Default Values
-- **Baseline**: 72 FTE, ₹1.96 Cr monthly cost
-- **Transition** (3 months): 75.2 FTE, ₹2.24 Cr monthly cost, 15.5% AI overhead
-- **Mature**: 62 FTE, ₹1.74 Cr monthly cost, 7.1% AI overhead
-- **Investment**: ₹1 Cr total (₹70L setup, ₹20L training, ₹10L other)
-- **Default Horizon**: 36 months, 10% discount rate
+Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body limit, schema validation with bounds (e.g. horizon 12–60 months), HTML-escaped user text plus a script-blocking Content-Security-Policy in reports, and sanitised download file names.
 
-## Calculation Formulas
+## Tests
 
-### Effort Model (Section 5.1)
-```
-kpi_s(k) = override_s(k) ?? baseline(k) × factor_s
-aiOverhead_s = coreEffort_s × (hitl_s + rework_s + dualRun_s)
-totalEffort_s = core + aiOverhead + rca + verify
-effortFte_s = totalEffort_s / workingHrs_s
-```
+`npm test` runs the engine suite: 50 tests. They cover:
 
-### Cost Model (Section 5.3)
-```
-directOpex_s = peopleCost_s + Σ costLines_s
-fullyLoaded_s = directOpex_s + (directOpex_s × overhead%) + (directOpex_s × risk%)
-```
+- **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
+- **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story
+- **Files:** save/load round trips and rejection of invalid files
 
-### Monthly Ramp (Section 2)
-```
-Month k (1..N): cost = T + (M − T) × (k − 1) / N
-Month k > N: cost = M (mature)
-```
+Server exports have been checked against a running server. **The UI has not yet been tested systematically in a browser.**
 
-### Financial Metrics (Section 5.4)
-```
-Payback = first month where cumulative(saving - investment) ≥ 0
-ROI% = (total saving - total investment) / total investment × 100
-NPV = Σ(netCashFlow / (1 + r)^month)
-IRR = rate where NPV = 0
-```
+## Known limitations
 
-## API Endpoints
-
-- `GET /api/health` - Health check
-- `GET /api/defaults` - Default scenario
-- `GET /api/currencies` - Currency list with FX rates
-- `POST /api/calculate` - Calculate results from scenario
-- `POST /api/export/pdf` - Generate PDF report
-- `POST /api/export/xlsx` - Generate Excel workbook
-- (More endpoints in development)
-
-## Test Coverage
-
-### Golden Tests (Section 10)
-The engine must pass all golden tests with default values:
-- Baseline people cost: ₹1.96 Cr
-- Mature fully loaded: ₹2.20 Cr
-- Mature monthly saving: ₹1.58 L
-- Payback month: 13
-- ROI % (36 months): 370.87%
-- NPV (10% discount): ₹2.96 Cr
-- Baseline effort FTE: 71.13
-- Mature effort saving: 17.85%
-
-## Notes
-
-### Design Principles
-- Pure TypeScript calculation engine with no I/O
-- Shared schema (zod) between client and server
-- Immutable scenario snapshots for audit trail
-- All formulas section-referenced from build prompt
-
-### Security
-- Input validation with zod
-- No user HTML in PDF exports
-- Puppeteer sandboxed for PDF generation
-- Rate limiting on server
-
-### Performance
-- Client recalculates in <100ms for H=60
-- PDF generation in <5s
-- Test coverage ≥90%
-
-### Future Enhancements (Out of Scope v1)
-- Recalibration mode with monthly telemetry
-- Multiple AI use cases (not just testing)
-- Live FX feeds
-- Multi-user collaboration
-- SSO authentication
-- Database for scenario history
+- The effort model has testing-specific KPIs; development and support templates change roles only (planned).
+- Sensitivity analysis varies horizon and discount rate rather than the business drivers (planned).
+- The client-chargeable toggle and cost avoidance are not yet applied to ROI (planned).
+- FX rates and AI prices are static and editable, not live.

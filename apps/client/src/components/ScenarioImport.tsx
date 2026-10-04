@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { forwardRef, useState } from 'react';
 import type { Scenario } from '@ai-roi-calc/engine';
 import { parseScenarioText } from '@ai-roi-calc/engine';
 
@@ -8,8 +8,8 @@ interface ScenarioImportProps {
 
 const MAX_FILE_BYTES = 2_000_000;
 
-export default function ScenarioImport({ onImport }: ScenarioImportProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+/** Hidden file input for .yaml/.json scenarios. Trigger it with `ref.current.click()`. */
+const ScenarioImport = forwardRef<HTMLInputElement, ScenarioImportProps>(function ScenarioImport({ onImport }, ref) {
   const [errors, setErrors] = useState<string[]>([]);
 
   const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,25 +32,11 @@ export default function ScenarioImport({ onImport }: ScenarioImportProps) {
   };
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition"
-      >
-        Load Scenario
-      </button>
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".yaml,.yml,.json"
-        onChange={handleFile}
-        className="hidden"
-        aria-label="Scenario file"
-      />
+    <>
+      <input ref={ref} type="file" accept=".yaml,.yml,.json" onChange={handleFile} className="hidden" aria-label="Open scenario file" />
       {errors.length > 0 && (
-        <div role="alert" className="absolute left-0 top-full mt-2 w-96 z-30 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-sm">
-          <p className="font-medium text-gray-900 mb-1">This file could not be loaded</p>
+        <div role="alert" className="fixed right-6 top-20 w-96 z-50 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-sm">
+          <p className="font-medium text-gray-900 mb-1">This file could not be opened</p>
           <ul className="text-xs text-gray-600 space-y-0.5 mb-3">
             {errors.map(e => (
               <li key={e}>{e}</li>
@@ -61,6 +47,8 @@ export default function ScenarioImport({ onImport }: ScenarioImportProps) {
           </button>
         </div>
       )}
-    </div>
+    </>
   );
-}
+});
+
+export default ScenarioImport;

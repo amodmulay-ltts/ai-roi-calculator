@@ -11,7 +11,7 @@
 
 ## Current status
 
-Engine tests: **46/46 passing** (`npm test -w packages/engine`). Build clean.
+Engine tests: **50/50 passing** (`npm test -w packages/engine`). Build clean.
 Browser testing: **not yet done** for any of the fixes below.
 
 | # | Fix (from REVIEW_Self_Assessment.md) | Status |
@@ -28,7 +28,10 @@ Browser testing: **not yet done** for any of the fixes below.
 | 9 | Tornado drivers, IRR robustness, chargeable toggle, cost avoidance | Planned |
 | 10 | Layout restructure, autosave, browser testing | Planned |
 | – | Escape user text in server HTML report (XSS); validate all API input | Done, tested against running server |
-| – | Presentation-style scrolling view (see note at end of file) | Planned |
+| – | Example scenario (Northwind, fictional) loaded by default, labelled on screen and in exports | Done |
+| – | One scenario setup (new / edit) replaces Edit Context + wizard; Scenario and Export menus | Done, build-tested |
+| – | IRR no longer capped at 200% | Done, tested |
+| – | Help: presentation-style scrolling walkthrough of concept and example | Next |
 
 UI rule for all screens: one hero element, two supporting, everything else small and quiet.
 
