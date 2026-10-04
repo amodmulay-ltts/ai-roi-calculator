@@ -59,6 +59,7 @@ const scenarioFile = z.object({
   baseCurrency: currency,
   fxRatesPerEur: z.record(currency, z.number().finite().positive()).optional(),
   scenarioDate: text,
+  isExample: z.boolean().optional(),
   globalAssumptions: z.object({
     releasesPerMonth: z.number().finite().min(0).max(10_000),
     workingHrsPerFtePerMonth: z.number().finite().positive().max(744),

@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculate,
   createDefaultScenario,
+  createExampleScenario,
   convertScenarioCurrency,
   fxFactor,
   DEFAULT_FX_RATES_PER_EUR,
@@ -287,6 +288,42 @@ describe('Scenario import normalization', () => {
     expect(s.bccRateFactor).toBe(DEFAULT_BCC_RATE_FACTOR);
     expect(s.costLines.find(l => l.id === 'llm-tokens')!.aiSpecific).toBe(true);
     expect(() => calculate(s)).not.toThrow();
+  });
+});
+
+describe('Example scenario', () => {
+  const r = calculate(createExampleScenario());
+
+  it('is marked as an example and survives save/load with the flag', () => {
+    expect(r.scenario.isExample).toBe(true);
+    const loaded = parseScenarioText(scenarioToYaml(createExampleScenario()));
+    expect(loaded.ok && loaded.scenario.isExample).toBe(true);
+  });
+
+  it('tells a simple story: 31 FTE, 30% less effort, payback inside a year', () => {
+    expect(r.effort.staffingFte.baseline).toBe(31);
+    expect(r.effort.effortFte.baseline).toBeCloseTo(31, 6);
+    expect(r.effort.effortSavingPercent.mature).toBeCloseTo(0.3, 6);
+    expect(r.financialMetrics.totalInvestment).toBe(300_000);
+    expect(r.financialMetrics.paybackMonth).toBeLessThanOrEqual(12);
+    expect(r.financialMetrics.npv).toBeGreaterThan(0);
+  });
+
+  it('keeps the staffing plan within 5% of the derived team, so no warning shows', () => {
+    const gap = Math.abs(r.effort.planFte.mature - r.effort.staffingFte.mature) / r.effort.staffingFte.mature;
+    expect(gap).toBeLessThan(0.05);
+  });
+});
+
+describe('IRR', () => {
+  it('solves fast-payback cases above 200% instead of capping', () => {
+    const irr = calculate(createExampleScenario()).financialMetrics.irr!;
+    expect(irr).toBeGreaterThan(2);
+    // NPV at the solved annual rate is ~0
+    const flows = calculate(createExampleScenario()).monthlyForecast.map(m => m.netCashFlow);
+    const monthly = Math.pow(1 + irr, 1 / 12) - 1;
+    const npv = flows.reduce((sum, f, m) => sum + f / Math.pow(1 + monthly, m), 0);
+    expect(Math.abs(npv)).toBeLessThan(1);
   });
 });
 

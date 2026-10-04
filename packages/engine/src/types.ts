@@ -118,6 +118,8 @@ export interface Scenario {
   useCase: string;
   baseCurrency: Currency;
   fxRatesPerEur: Record<Currency, number>;
+  /** Illustrative example with fictional data; shown and exported with an "Example" label. */
+  isExample?: boolean;
   scenarioDate: string;
 
   // Global settings

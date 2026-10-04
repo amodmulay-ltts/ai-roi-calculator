@@ -25,6 +25,7 @@ export type {
 } from './types.js';
 
 export { createDefaultScenario, normalizeScenario } from './defaults.js';
+export { createExampleScenario } from './example.js';
 export { parseScenario, type ParseScenarioResult } from './schema.js';
 export { scenarioToYaml, parseScenarioText } from './serialize.js';
 export {

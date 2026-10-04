@@ -567,32 +567,24 @@ function solveIrr(monthlyForecast: MonthlyCashFlow[], horizonMonths: number): nu
     return null;
   }
 
-  // Bisection: search for rate where NPV = 0
+  const npvAt = (annualRate: number) => {
+    const monthlyRate = Math.pow(1 + annualRate, 1 / 12) - 1;
+    return flows.reduce((sum, f, m) => sum + f / Math.pow(1 + monthlyRate, m), 0);
+  };
+
+  // Bracket the root: NPV falls as the rate rises for invest-then-save flows. Widen the upper bound
+  // instead of capping it, so fast-payback cases are not reported at an arbitrary ceiling.
   let low = -0.99;
-  let high = 2.0;
-  let rate = 0;
+  let high = 1;
+  while (npvAt(high) > 0 && high < 1e6) high *= 2;
+  if (npvAt(low) < 0 || npvAt(high) > 0) return null;
 
-  for (let iteration = 0; iteration < 100; iteration++) {
-    rate = (low + high) / 2;
-    const monthlyRate = Math.pow(1 + rate, 1 / 12) - 1;
-
-    let npv = 0;
-    for (let m = 0; m < flows.length; m++) {
-      npv += flows[m] / Math.pow(1 + monthlyRate, m);
-    }
-
-    if (Math.abs(npv) < 0.01) {
-      break;
-    }
-
-    if (npv > 0) {
-      low = rate;
-    } else {
-      high = rate;
-    }
+  for (let iteration = 0; iteration < 200 && high - low > 1e-9; iteration++) {
+    const mid = (low + high) / 2;
+    if (npvAt(mid) > 0) low = mid;
+    else high = mid;
   }
-
-  return rate; // Annualized
+  return (low + high) / 2; // Annualized
 }
 
 export { calculateEffort, calculateCost, calculateMonthlyCashFlow, calculateBenefitLedger, calculateFinancialMetrics };
