@@ -147,3 +147,19 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Project-specific
+dist/
+build/
+.DS_Store
+.env.local
+.env.*.local
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+coverage/
+.nyc_output/
+.turbo/
+.claude/settings.local.json
