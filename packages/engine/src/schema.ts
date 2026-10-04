@@ -46,6 +46,9 @@ const kpi = z.object({
   appliesToFactor: z.boolean(),
   isVelocity: z.boolean(),
   overrides: z.object({ transition: z.number().finite(), mature: z.number().finite() }).partial(),
+  volumePerMonth: z.number().finite().min(0).max(1e8).optional(),
+  volumeUnit: text.optional(),
+  reviewOverheadApplies: z.boolean().optional(),
 });
 
 const overheadPct = z.object({ hitl: share, rework: share, dualRun: share });
@@ -61,9 +64,9 @@ const scenarioFile = z.object({
   scenarioDate: text,
   isExample: z.boolean().optional(),
   globalAssumptions: z.object({
-    releasesPerMonth: z.number().finite().min(0).max(10_000),
+    releasesPerMonth: z.number().finite().min(0).max(10_000).optional(),
     workingHrsPerFtePerMonth: z.number().finite().positive().max(744),
-    defectsPerMonth: z.number().finite().min(0).max(1e7),
+    defectsPerMonth: z.number().finite().min(0).max(1e7).optional(),
     transitionLengthMonths: z.number().int().min(1).max(24),
     riskReservePercent: perState(share),
     corporateOverheadPercent: perState(share),
@@ -96,8 +99,6 @@ const scenarioFile = z.object({
   costAvoidanceExtraScriptsPerMonth: z.number().finite().min(0).optional(),
 });
 
-const REQUIRED_KPIS = ['testing-effort-per-release', 'defect-rca-effort', 'defect-verification-effort'];
-
 export type ParseScenarioResult = { ok: true; scenario: Scenario } | { ok: false; errors: string[] };
 
 /** Validates untrusted scenario data (file import, API body). Accepts `{ scenario }` wrappers. */
@@ -111,9 +112,9 @@ export function parseScenario(data: unknown): ParseScenarioResult {
       errors: parsed.error.issues.slice(0, 5).map(i => `${i.path.join('.') || 'file'}: ${i.message}`),
     };
   }
-  const missing = REQUIRED_KPIS.filter(id => !parsed.data.kpis.some(k => k.id === id));
-  if (missing.length) {
-    return { ok: false, errors: [`kpis: missing required KPI ${missing.join(', ')}`] };
+  const scenario = normalizeScenario(parsed.data as unknown as Scenario);
+  if (!scenario.kpis.some(k => k.volumePerMonth !== undefined)) {
+    return { ok: false, errors: ['kpis: no workload items (inputs with a monthly volume), so effort cannot be calculated'] };
   }
-  return { ok: true, scenario: normalizeScenario(parsed.data as unknown as Scenario) };
+  return { ok: true, scenario };
 }

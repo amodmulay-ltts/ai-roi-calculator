@@ -6,7 +6,7 @@ import TeamSummary from './components/TeamSummary';
 import Header from './components/Header';
 import RolesGrid from './components/RolesGrid';
 import CostLinesGrid from './components/CostLinesGrid';
-import KpisGrid from './components/KpisGrid';
+import WorkloadGrid from './components/WorkloadGrid';
 import CumulativeCashFlowChart from './components/CumulativeCashFlowChart';
 import MonthlyOpexChart from './components/MonthlyOpexChart';
 import FtePyramidChart from './components/FtePyramidChart';
@@ -32,7 +32,6 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingRoles, setEditingRoles] = useState(false);
   const [editingCostLines, setEditingCostLines] = useState(false);
-  const [editingKpis, setEditingKpis] = useState(false);
   const [pendingCurrency, setPendingCurrency] = useState<Currency | null>(null);
 
   useEffect(() => {
@@ -625,43 +624,7 @@ export default function App() {
             )}
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">KPI Inputs</h3>
-              <button
-                onClick={() => setEditingKpis(!editingKpis)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-              >
-                {editingKpis ? 'Editing KPIs' : 'Edit KPIs'}
-              </button>
-            </div>
-            {editingKpis && scenario ? (
-              <KpisGrid
-                kpis={scenario.kpis}
-                onUpdate={(updatedKpis) => handleScenarioUpdate({ kpis: updatedKpis })}
-                isEditing={editingKpis}
-                onDone={() => setEditingKpis(false)}
-              />
-            ) : (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-4">KPI Inputs</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="text-gray-600">
-                    <span className="font-medium text-gray-700">Baseline KPIs</span>
-                    <span className="text-gray-500 ml-2">({scenario?.kpis.filter(k => !k.overrides || Object.keys(k.overrides).length === 0).length} defined)</span>
-                  </div>
-                  <div className="text-gray-600">
-                    <span className="font-medium text-gray-700">Transition Overrides</span>
-                    <span className="text-gray-500 ml-2">({scenario?.kpis.filter(k => k.overrides?.transition).length})</span>
-                  </div>
-                  <div className="text-gray-600">
-                    <span className="font-medium text-gray-700">Mature Overrides</span>
-                    <span className="text-gray-500 ml-2">({scenario?.kpis.filter(k => k.overrides?.mature).length})</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <WorkloadGrid scenario={scenario} results={results} onUpdate={kpis => handleScenarioUpdate({ kpis })} />
         </section>
 
         {/* Visualizations */}

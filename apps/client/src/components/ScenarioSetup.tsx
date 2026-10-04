@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
-import type { Scenario, Currency } from '@ai-roi-calc/engine';
+import type { Scenario, Currency, KpiInput } from '@ai-roi-calc/engine';
 import { createExampleScenario, convertScenarioCurrency, fxFactor, CURRENCIES } from '@ai-roi-calc/engine';
-import { getRolesForUseCase, averageCostPerFte, rescaleRolesToAverage } from '../utils/roleTemplates';
+import {
+  USE_CASES,
+  applyUseCaseTemplate,
+  averageCostPerFte,
+  detectUseCase,
+  rescaleRolesToAverage,
+  workloadHours,
+  type UseCase,
+} from '../utils/roleTemplates';
 import Tooltip from './Tooltip';
 import ModelSelector from './ModelSelector';
 
@@ -16,7 +24,7 @@ interface ScenarioSetupProps {
   onCancel: () => void;
 }
 
-const STEPS = ['Basics', 'Delivery model', 'Timeline', 'Team', 'Investment', 'Team preview', 'Review'];
+const STEPS = ['Basics', 'Delivery model', 'Timeline', 'Team and workload', 'Investment', 'Team preview', 'Review'];
 
 /** A new customer scenario starts from the example's realistic structure, without its identity. */
 function blankScenario(): Scenario {
@@ -32,14 +40,12 @@ function blankScenario(): Scenario {
 export default function ScenarioSetup({ mode, current, onApply, onCancel }: ScenarioSetupProps) {
   const [step, setStep] = useState(1);
   const [scenario, setScenario] = useState<Scenario>(current);
-  const [includeAllRoles, setIncludeAllRoles] = useState(false);
 
   // Re-initialise on every open so the form never shows stale values from a previous session
   useEffect(() => {
     if (!mode) return;
     setScenario(mode === 'new' ? blankScenario() : structuredClone(current));
     setStep(1);
-    setIncludeAllRoles(false);
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!mode) return null;
@@ -48,11 +54,6 @@ export default function ScenarioSetup({ mode, current, onApply, onCancel }: Scen
   const basicsComplete = scenario.name.trim() !== '' && scenario.clientName.trim() !== '';
 
   const updateScenario = (updates: Partial<Scenario>) => setScenario(prev => ({ ...prev, ...updates }));
-
-  const autoPopulateRoles = () =>
-    updateScenario({
-      roles: getRolesForUseCase(scenario.useCase, includeAllRoles, scenario.baseCurrency, scenario.fxRatesPerEur),
-    });
 
   return (
     <div
@@ -110,13 +111,7 @@ export default function ScenarioSetup({ mode, current, onApply, onCancel }: Scen
           {step === 2 && <Step2Model scenario={scenario} onUpdate={updateScenario} />}
           {step === 3 && <Step3Timeline scenario={scenario} onUpdate={updateScenario} />}
           {step === 4 && (
-            <Step4Roles
-              scenario={scenario}
-              onUpdate={updateScenario}
-              includeAllRoles={includeAllRoles}
-              onIncludeAllRolesChange={setIncludeAllRoles}
-              onAutoPopulate={autoPopulateRoles}
-            />
+            <Step4Roles scenario={scenario} onUpdate={updateScenario} />
           )}
           {step === 5 && <Step5Investment scenario={scenario} onUpdate={updateScenario} />}
           {step === 6 && <Step6TeamPreview scenario={scenario} />}
@@ -164,54 +159,126 @@ export default function ScenarioSetup({ mode, current, onApply, onCancel }: Scen
   );
 }
 
-function Step4Roles({ scenario, onUpdate, includeAllRoles, onIncludeAllRolesChange, onAutoPopulate }: any) {
+function Step4Roles({ scenario, onUpdate }: { scenario: Scenario; onUpdate: (u: Partial<Scenario>) => void }) {
+  const [useCase, setUseCase] = useState<UseCase>(() => detectUseCase(scenario.useCase));
+  const [includeAll, setIncludeAll] = useState(false);
+
+  const workload = scenario.kpis.filter(k => k.volumePerMonth !== undefined);
+  const hrsPerFte = scenario.globalAssumptions.workingHrsPerFtePerMonth;
+  const hours = workloadHours(workload);
+  const workloadFte = hours / hrsPerFte;
+  const teamFte = scenario.roles.reduce((sum, r) => sum + r.fte.baseline, 0);
+  const mismatch = teamFte > 0 ? Math.abs(workloadFte - teamFte) / teamFte : 0;
+
+  const updateItem = (id: string, changes: Partial<KpiInput>) =>
+    onUpdate({ kpis: scenario.kpis.map(k => (k.id === id ? { ...k, ...changes } : k)) });
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Team Composition</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Select which roles to include. Based on your use case, we can auto-populate the right team.
+        <h3 className="text-lg font-bold text-gray-900 mb-2">Team and workload</h3>
+        <p className="text-sm text-gray-600">
+          Today's team and the work it does each month. The AI productivity assumption reduces this work; the team
+          follows the work.
         </p>
       </div>
 
-      <div className="space-y-3">
-        <label className="flex items-center p-4 border-2 border-blue-300 bg-blue-50 rounded-lg cursor-pointer">
-          <input
-            type="radio"
-            checked={!includeAllRoles}
-            onChange={() => onIncludeAllRolesChange(false)}
-            className="w-4 h-4"
-          />
-          <div className="ml-3">
-            <div className="font-semibold text-gray-900">Role-Specific Template</div>
-            <div className="text-sm text-gray-600">
-              Based on your "{scenario.useCase}" use case, populate relevant roles only
-            </div>
-          </div>
-        </label>
+      {/* Quiet: template picker */}
+      <fieldset className="space-y-3">
+        <legend className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Start from a template</legend>
+        <div role="radiogroup" aria-label="Use case" className="flex flex-wrap gap-2">
+          {USE_CASES.map(u => (
+            <button
+              key={u.id}
+              type="button"
+              role="radio"
+              aria-checked={useCase === u.id}
+              title={u.description}
+              onClick={() => setUseCase(u.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                useCase === u.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {u.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input type="checkbox" checked={includeAll} onChange={e => setIncludeAll(e.target.checked)} />
+            Add cross-functional roles (product owner, programme manager, security, data architect)
+          </label>
+          <button
+            type="button"
+            onClick={() => onUpdate(applyUseCaseTemplate(scenario, useCase, includeAll))}
+            className="px-3 py-1.5 text-sm border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-50"
+          >
+            Apply template
+          </button>
+        </div>
+        <p className="text-xs text-gray-400">Applying replaces the roles and workload below.</p>
+      </fieldset>
 
-        <label className="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-gray-400">
-          <input
-            type="radio"
-            checked={includeAllRoles}
-            onChange={() => onIncludeAllRolesChange(true)}
-            className="w-4 h-4"
-          />
-          <div className="ml-3">
-            <div className="font-semibold text-gray-900">All Roles (Comprehensive)</div>
-            <div className="text-sm text-gray-600">
-              Include all tech roles (PO, Devs, QA, AI Engineers, Data, Security, etc.)
-            </div>
-          </div>
-        </label>
+      {/* Hero: does the work match the team? */}
+      <div>
+        <p className="text-3xl font-semibold text-gray-900">
+          {Math.round(hours).toLocaleString('en')} h of work a month
+        </p>
+        <p className={`text-sm mt-1 ${mismatch > 0.1 ? 'text-blue-800' : 'text-gray-500'}`}>
+          = {workloadFte.toFixed(1)} FTE at {hrsPerFte} h each · the team has {teamFte.toFixed(1)} FTE
+          {mismatch > 0.1 && ' — more than 10% apart; check volumes, hours per unit or the team'}
+        </p>
       </div>
 
-      <button
-        onClick={onAutoPopulate}
-        className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
-      >
-        {includeAllRoles ? 'Populate All Roles' : 'Auto-Populate Relevant Roles'}
-      </button>
+      {/* Supporting: workload table */}
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-xs text-gray-500 text-left">
+            <th className="font-normal pb-2">Work item</th>
+            <th className="font-normal pb-2 text-right">Volume / month</th>
+            <th className="font-normal pb-2 text-right">Hours each, today</th>
+            <th className="font-normal pb-2 text-right">Hours / month</th>
+          </tr>
+        </thead>
+        <tbody>
+          {workload.map(k => (
+            <tr key={k.id} className="border-t border-gray-100">
+              <td className="py-2 pr-2">
+                <span className="block text-gray-900">{k.name}</span>
+                <span className="block text-xs text-gray-400">
+                  {k.appliesToFactor ? 'AI-assisted' : 'Not affected by AI'}
+                  {k.reviewOverheadApplies ? ' · review overhead applies' : ''}
+                </span>
+              </td>
+              <td className="py-2 text-right">
+                <input
+                  type="number"
+                  min={0}
+                  aria-label={`${k.name}: ${k.volumeUnit ?? 'units'} per month`}
+                  value={k.volumePerMonth}
+                  onChange={e => updateItem(k.id, { volumePerMonth: Number(e.target.value) || 0 })}
+                  className="w-24 px-2 py-1 text-right border border-gray-300 rounded"
+                />
+                <span className="block text-xs text-gray-400">{k.volumeUnit}</span>
+              </td>
+              <td className="py-2 text-right">
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  aria-label={`${k.name}: hours per unit today`}
+                  value={k.baseline}
+                  onChange={e => updateItem(k.id, { baseline: Number(e.target.value) || 0 })}
+                  className="w-24 px-2 py-1 text-right border border-gray-300 rounded"
+                />
+              </td>
+              <td className="py-2 text-right text-gray-600">
+                {Math.round((k.volumePerMonth ?? 0) * k.baseline).toLocaleString('en')}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <div>
         <label htmlFor="avg-onshore" className="flex items-center text-sm font-semibold text-gray-900 mb-2">
@@ -224,22 +291,17 @@ function Step4Roles({ scenario, onUpdate, includeAllRoles, onIncludeAllRolesChan
           min={0}
           step={100}
           value={Math.round(averageCostPerFte(scenario.roles))}
-          onChange={(e) => onUpdate({ roles: rescaleRolesToAverage(scenario.roles, Number(e.target.value)) })}
+          onChange={e => onUpdate({ roles: rescaleRolesToAverage(scenario.roles, Number(e.target.value)) })}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p className="text-xs text-gray-500 mt-1">
-          Template rates come from an India-based reference team. Replace with the customer's onshore cost.
+          Template rates come from an India-based reference team. Replace them with the customer's onshore cost.
         </p>
       </div>
 
-      <div className="text-xs text-gray-500 space-y-1">
-        <p>
-          {includeAllRoles
-            ? `Roles for "${scenario.useCase}" plus cross-functional roles (PO, manager, data architect, security).`
-            : `Roles for "${scenario.useCase}" only.`}
-        </p>
-        <p>You can add, remove and edit roles on the dashboard afterwards.</p>
-      </div>
+      <p className="text-xs text-gray-500">
+        {scenario.roles.length} roles. Edit individual roles, and how each work item changes with AI, on the dashboard.
+      </p>
     </div>
   );
 }

@@ -7,6 +7,19 @@ import type { Scenario, Role, CostLine, KpiInput, AiOverheadPercent, Currency } 
 import { DEFAULT_FX_RATES_PER_EUR, convertScenarioCurrency, fxFactor } from './currency.js';
 import { DEFAULT_DELIVERY_PROFILES, DEFAULT_BCC_RATE_FACTOR, DELIVERY_MODELS } from './delivery.js';
 
+/** Files saved before generic workload: testing KPIs took their volumes from releases/defects per month. */
+function migrateLegacyWorkload(s: Scenario): Scenario['kpis'] {
+  if (s.kpis.some(k => k.volumePerMonth !== undefined)) return s.kpis;
+  const releases = s.globalAssumptions.releasesPerMonth ?? 1;
+  const defects = s.globalAssumptions.defectsPerMonth ?? 0;
+  const legacy: Record<string, Partial<Scenario['kpis'][number]>> = {
+    'testing-effort-per-release': { volumePerMonth: releases, volumeUnit: 'releases', reviewOverheadApplies: true },
+    'defect-rca-effort': { volumePerMonth: defects, volumeUnit: 'defects', reviewOverheadApplies: false },
+    'defect-verification-effort': { volumePerMonth: defects, volumeUnit: 'defects', reviewOverheadApplies: false },
+  };
+  return s.kpis.map(k => ({ ...k, ...legacy[k.id] }));
+}
+
 /** Fills fields missing from scenario files saved by older versions. Use at import boundaries. */
 export function normalizeScenario(input: Scenario): Scenario {
   const legacy = input as Partial<Scenario> & Scenario;
@@ -17,15 +30,14 @@ export function normalizeScenario(input: Scenario): Scenario {
     deliveryProfiles: { ...JSON.parse(JSON.stringify(DEFAULT_DELIVERY_PROFILES)), ...legacy.deliveryProfiles },
     bccRateFactor: legacy.bccRateFactor ?? DEFAULT_BCC_RATE_FACTOR,
     baselineBccShare: legacy.baselineBccShare ?? 0,
+    kpis: migrateLegacyWorkload(legacy),
     costLines: legacy.costLines.map(l => ({ ...l, aiSpecific: l.aiSpecific ?? l.category === 'AI' })),
     oneTimeInvestment: legacy.oneTimeInvestment.map(i => ({ ...i, aiSpecific: i.aiSpecific ?? true })),
   };
 }
 
 export const DEFAULT_GLOBAL_ASSUMPTIONS = {
-  releasesPerMonth: 1,
   workingHrsPerFtePerMonth: 172,
-  defectsPerMonth: 300,
   transitionLengthMonths: 3,
   riskReservePercent: {
     baseline: 0.08,
@@ -320,6 +332,9 @@ export const DEFAULT_KPIS: KpiInput[] = [
     id: 'testing-effort-per-release',
     name: 'Testing effort per release',
     unit: 'hrs',
+    volumePerMonth: 1,
+    volumeUnit: 'releases',
+    reviewOverheadApplies: true,
     baseline: 12_040,
     appliesToFactor: true,
     isVelocity: false,
@@ -332,6 +347,9 @@ export const DEFAULT_KPIS: KpiInput[] = [
     id: 'defect-rca-effort',
     name: 'Defect RCA effort',
     unit: 'hrs/defect',
+    volumePerMonth: 300,
+    volumeUnit: 'defects',
+    reviewOverheadApplies: false,
     baseline: 0.25,
     appliesToFactor: true,
     isVelocity: false,
@@ -341,6 +359,9 @@ export const DEFAULT_KPIS: KpiInput[] = [
     id: 'defect-verification-effort',
     name: 'Defect verification effort',
     unit: 'hrs/defect',
+    volumePerMonth: 300,
+    volumeUnit: 'defects',
+    reviewOverheadApplies: false,
     baseline: 0.4,
     appliesToFactor: true,
     isVelocity: false,

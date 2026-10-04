@@ -18,9 +18,7 @@ export function createExampleScenario(): Scenario {
     isExample: true,
 
     globalAssumptions: {
-      releasesPerMonth: 2,
       workingHrsPerFtePerMonth: 160,
-      defectsPerMonth: 200,
       transitionLengthMonths: 3,
       riskReservePercent: { baseline: 0.05, transition: 0.05, mature: 0.05 },
       corporateOverheadPercent: { baseline: 0.12, transition: 0.12, mature: 0.12 },
@@ -43,9 +41,9 @@ export function createExampleScenario(): Scenario {
     peopleMode: { mode: 'effort-derived' },
 
     kpis: [
-      { id: 'testing-effort-per-release', name: 'Testing effort per release', unit: 'hrs', baseline: 2_300, appliesToFactor: true, isVelocity: false, overrides: {} },
-      { id: 'defect-rca-effort', name: 'Defect root-cause analysis effort', unit: 'hrs/defect', baseline: 1.0, appliesToFactor: true, isVelocity: false, overrides: {} },
-      { id: 'defect-verification-effort', name: 'Defect verification effort', unit: 'hrs/defect', baseline: 0.8, appliesToFactor: true, isVelocity: false, overrides: {} },
+      { id: 'testing-effort-per-release', name: 'Testing effort per release', unit: 'hrs', baseline: 2_300, appliesToFactor: true, isVelocity: false, overrides: {}, volumePerMonth: 2, volumeUnit: 'releases', reviewOverheadApplies: true },
+      { id: 'defect-rca-effort', name: 'Defect root-cause analysis effort', unit: 'hrs/defect', baseline: 1.0, appliesToFactor: true, isVelocity: false, overrides: {}, volumePerMonth: 200, volumeUnit: 'defects', reviewOverheadApplies: false },
+      { id: 'defect-verification-effort', name: 'Defect verification effort', unit: 'hrs/defect', baseline: 0.8, appliesToFactor: true, isVelocity: false, overrides: {}, volumePerMonth: 200, volumeUnit: 'defects', reviewOverheadApplies: false },
     ],
 
     costLines: [
