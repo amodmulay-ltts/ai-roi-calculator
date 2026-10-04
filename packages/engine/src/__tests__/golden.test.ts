@@ -8,6 +8,7 @@ import {
   calculate,
   createDefaultScenario,
   createExampleScenario,
+  compareDeliveryModels,
   convertScenarioCurrency,
   fxFactor,
   DEFAULT_FX_RATES_PER_EUR,
@@ -312,6 +313,32 @@ describe('Example scenario', () => {
   it('keeps the staffing plan within 5% of the derived team, so no warning shows', () => {
     const gap = Math.abs(r.effort.planFte.mature - r.effort.staffingFte.mature) / r.effort.staffingFte.mature;
     expect(gap).toBeLessThan(0.05);
+  });
+});
+
+describe('Delivery model comparison', () => {
+  it('calculates all five models against one baseline and ranks them by NPV', () => {
+    const rows = compareDeliveryModels(createExampleScenario());
+    expect(rows.map(r => r.model)).toEqual(DELIVERY_MODELS);
+    const baseline = rows[0]!.results.cost.fullyLoaded.baseline;
+    rows.forEach(r => expect(r.results.cost.fullyLoaded.baseline).toBeCloseTo(baseline, 6));
+
+    const best = rows.find(r => r.rank === 1)!;
+    rows.forEach(r => expect(best.results.financialMetrics.npv).toBeGreaterThanOrEqual(r.results.financialMetrics.npv));
+    expect(new Set(rows.map(r => r.rank)).size).toBe(5);
+  });
+
+  it('matches calculating each model on its own and respects edited profiles', () => {
+    const s = createExampleScenario();
+    s.deliveryProfiles['ai-bcc'].bccShare = 0.3;
+    const row = compareDeliveryModels(s).find(r => r.model === 'ai-bcc')!;
+    expect(row.results.financialMetrics).toEqual(calculate({ ...s, primaryModel: 'ai-bcc' }).financialMetrics);
+  });
+
+  it('does not change the scenario passed in', () => {
+    const s = createExampleScenario();
+    compareDeliveryModels(s);
+    expect(s.primaryModel).toBe('onshore-ai');
   });
 });
 

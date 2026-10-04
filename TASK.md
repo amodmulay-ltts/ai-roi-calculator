@@ -11,7 +11,7 @@
 
 ## Current status
 
-Engine tests: **50/50 passing** (`npm test -w packages/engine`). Build clean.
+Engine tests: **53/53 passing** (`npm test -w packages/engine`). Build clean.
 Browser testing: **not yet done** for any of the fixes below.
 
 | # | Fix (from REVIEW_Self_Assessment.md) | Status |
@@ -21,8 +21,8 @@ Browser testing: **not yet done** for any of the fixes below.
 | 3 | Delivery models drive the engine (BCC share × AI adoption), baseline fixed | Done, engine-tested |
 | – | YAML/JSON save and load (full scenario, validated on import) | Done, engine-tested |
 | 4 | Effort-derived FTE as default (productivity drives cost) | Done, engine-tested |
-| 5 | Side-by-side delivery-model comparison | Next |
-| 6 | Per-use-case activity templates | Planned |
+| 5 | Side-by-side delivery-model comparison | Done, engine-tested + render-tested |
+| 6 | Per-use-case activity templates | Next |
 | 7 | Warnings panel + rule-based advice | Planned |
 | 8 | LLM usage × price model with dated, editable price table | Planned |
 | 9 | Tornado drivers, IRR robustness, chargeable toggle, cost avoidance | Planned |

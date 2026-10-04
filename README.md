@@ -26,7 +26,8 @@ The app opens with an **example calculation**, marked "Example calculation · fi
 | **Scenario** menu | **New scenario** (guided setup for a customer) · **Edit setup** (the same steps, prefilled; jump to any step and apply) · **Open file** (.yaml / .json) · **Load example** |
 | **Export** menu | **Save scenario (.yaml)** to reopen later · **PDF report** (HTML, print to PDF) · **Excel workbook** · **JSON** (scenario + results) |
 | Currency (header) | Choose **Convert** (multiply every amount by an editable FX rate) or **Relabel** (keep the numbers). Rates are indicative, not live. |
-| Delivery model panel | Pick Onshore, BCC only, Onshore + AI, AI + BCC or AI-first, and edit its offshore share and AI adoption. |
+| Delivery model comparison | Directly under the headline results: all five models calculated on the same baseline and ranked by NPV, with payback, monthly saving, mature team size and investment. The verdict names the best model and how much the selected model gives up. Select a row to make that model active. |
+| Delivery model panel | Below the comparison: edit the selected model's offshore share and AI adoption, today's offshore share, and the offshore cost level. |
 | Team panel | Choose how headcount is costed: **Derived from AI productivity** (default) or **Staffing plan as entered**. |
 
 Opening a file or loading the example asks for confirmation before replacing a customer scenario. Files are validated before use: a malformed file shows readable errors instead of being loaded.
@@ -111,6 +112,7 @@ BCC cost is 45% of onshore by default. Role rates are entered as onshore rates.
 packages/engine/        Pure TypeScript calculation library (no I/O), shared by client and server
   src/engine.ts           calculate(scenario) → results
   src/delivery.ts         delivery-model profiles and their effect on FTE, rates, costs
+  src/compare.ts          all delivery models on one baseline, ranked by NPV
   src/currency.ts         FX rates and scenario conversion
   src/example.ts          the Northwind example
   src/defaults.ts         reference scenario from the source Excel (INR), legacy-file normalisation
@@ -139,7 +141,7 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 
 ## Tests
 
-`npm test` runs the engine suite: 50 tests. They cover:
+`npm test` runs the engine suite: 53 tests. They cover:
 
 - **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story

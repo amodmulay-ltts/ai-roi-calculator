@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { ImplementationModel, Results } from '@ai-roi-calc/engine';
-import { calculate, createExampleScenario, DELIVERY_MODELS } from '@ai-roi-calc/engine';
+import type { Results } from '@ai-roi-calc/engine';
+import { calculate, compareDeliveryModels, createExampleScenario } from '@ai-roi-calc/engine';
 import { deliveryModelInfo } from '../utils/deliveryModels';
 
 interface HelpPresentationProps {
@@ -35,11 +35,11 @@ function useExampleFigures() {
     const factor = scenario.productivityFactor.mode === 'direct-factor' ? scenario.productivityFactor : null;
     const matureOverhead = scenario.aiOverheadPercent.mature;
 
-    const models = DELIVERY_MODELS.map(id => {
-      const s = createExampleScenario();
-      s.primaryModel = id as ImplementationModel;
-      return { id, label: deliveryModelInfo(id).label, results: calculate(s) };
-    });
+    const models = compareDeliveryModels(scenario).map(m => ({
+      id: m.model,
+      label: deliveryModelInfo(m.model).label,
+      results: m.results,
+    }));
 
     const sensitivity = [0.1, 0.15, 0.2, 0.3].map(cut => {
       const s = createExampleScenario();
