@@ -1,76 +1,109 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Scenario, Currency } from '@ai-roi-calc/engine';
-import { createDefaultScenario, convertScenarioCurrency, fxFactor, CURRENCIES } from '@ai-roi-calc/engine';
+import { createExampleScenario, convertScenarioCurrency, fxFactor, CURRENCIES } from '@ai-roi-calc/engine';
 import { getRolesForUseCase, averageCostPerFte, rescaleRolesToAverage } from '../utils/roleTemplates';
 import Tooltip from './Tooltip';
 import ModelSelector from './ModelSelector';
 
-interface ScenarioWizardProps {
-  isOpen: boolean;
-  onComplete: (scenario: Scenario) => void;
+export type SetupMode = 'new' | 'edit';
+
+interface ScenarioSetupProps {
+  /** null = closed */
+  mode: SetupMode | null;
+  /** The scenario being edited (edit mode). */
+  current: Scenario;
+  onApply: (scenario: Scenario) => void;
   onCancel: () => void;
 }
 
-export default function ScenarioWizard({ isOpen, onComplete, onCancel }: ScenarioWizardProps) {
+const STEPS = ['Basics', 'Delivery model', 'Timeline', 'Team', 'Investment', 'Team preview', 'Review'];
+
+/** A new customer scenario starts from the example's realistic structure, without its identity. */
+function blankScenario(): Scenario {
+  return {
+    ...createExampleScenario(),
+    id: `scenario-${Date.now()}`,
+    name: '',
+    clientName: '',
+    isExample: false,
+  };
+}
+
+export default function ScenarioSetup({ mode, current, onApply, onCancel }: ScenarioSetupProps) {
   const [step, setStep] = useState(1);
-  const [scenario, setScenario] = useState<Scenario>(createDefaultScenario());
+  const [scenario, setScenario] = useState<Scenario>(current);
   const [includeAllRoles, setIncludeAllRoles] = useState(false);
 
-  const handleNext = () => {
-    if (step < 7) setStep(step + 1);
-  };
+  // Re-initialise on every open so the form never shows stale values from a previous session
+  useEffect(() => {
+    if (!mode) return;
+    setScenario(mode === 'new' ? blankScenario() : structuredClone(current));
+    setStep(1);
+    setIncludeAllRoles(false);
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handlePrev = () => {
-    if (step > 1) setStep(step - 1);
-  };
+  if (!mode) return null;
 
-  const handleComplete = () => {
-    onComplete(scenario);
-  };
+  const isNew = mode === 'new';
+  const basicsComplete = scenario.name.trim() !== '' && scenario.clientName.trim() !== '';
 
-  const updateScenario = (updates: Partial<Scenario>) => {
-    setScenario(prev => ({ ...prev, ...updates }));
-  };
+  const updateScenario = (updates: Partial<Scenario>) => setScenario(prev => ({ ...prev, ...updates }));
 
-  const autoPopulateRoles = () => {
-    const roles = getRolesForUseCase(
-      scenario.useCase,
-      includeAllRoles,
-      scenario.baseCurrency,
-      scenario.fxRatesPerEur
-    );
-    updateScenario({ roles });
-  };
-
-  if (!isOpen) return null;
+  const autoPopulateRoles = () =>
+    updateScenario({
+      roles: getRolesForUseCase(scenario.useCase, includeAllRoles, scenario.baseCurrency, scenario.fxRatesPerEur),
+    });
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl my-8 mx-4">
-        {/* Header with Progress */}
-        <div className="bg-blue-600 text-white px-8 py-6">
-          <h2 className="text-2xl font-bold mb-2">Set Up Your Scenario</h2>
-          <div className="flex items-center gap-2">
-            <div className="text-sm">Step {step} of 7</div>
-            <div className="flex-1 bg-blue-400 rounded-full h-2">
-              <div
-                className="bg-white h-2 rounded-full transition-all"
-                style={{ width: `${(step / 7) * 100}%` }}
-              />
-            </div>
-          </div>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="setup-title"
+    >
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl my-8 mx-4">
+        <div className="px-8 pt-6 pb-4 border-b border-gray-200">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+            {isNew ? 'New scenario' : 'Edit setup'}
+          </p>
+          <h2 id="setup-title" className="text-2xl font-bold text-gray-900 mb-4">
+            {isNew ? 'Set up a customer scenario' : scenario.name || 'Untitled scenario'}
+          </h2>
+          {/* Guided in new mode (only completed steps reachable); freely clickable in edit mode */}
+          <ol className="flex flex-wrap gap-1">
+            {STEPS.map((label, i) => {
+              const n = i + 1;
+              const active = n === step;
+              const reachable = n === 1 || (basicsComplete && (!isNew || n <= step + 1));
+              return (
+                <li key={label}>
+                  <button
+                    type="button"
+                    disabled={!reachable}
+                    onClick={() => setStep(n)}
+                    aria-current={active ? 'step' : undefined}
+                    className={`px-2.5 py-1 rounded-md text-xs transition ${
+                      active
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-500 hover:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-transparent'
+                    }`}
+                  >
+                    {n}. {label}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         </div>
 
-        {/* Content */}
         <div className="px-8 py-6 min-h-96">
           {step === 1 && (
             <Step1Basic
               scenario={scenario}
+              isNew={isNew}
               onUpdate={updateScenario}
               onCurrencyChange={(to: Currency) =>
-                setScenario(prev =>
-                  convertScenarioCurrency(prev, to, fxFactor(prev.baseCurrency, to, prev.fxRatesPerEur))
-                )
+                setScenario(prev => convertScenarioCurrency(prev, to, fxFactor(prev.baseCurrency, to, prev.fxRatesPerEur)))
               }
             />
           )}
@@ -87,39 +120,41 @@ export default function ScenarioWizard({ isOpen, onComplete, onCancel }: Scenari
           )}
           {step === 5 && <Step5Investment scenario={scenario} onUpdate={updateScenario} />}
           {step === 6 && <Step6TeamPreview scenario={scenario} />}
-          {step === 7 && <Step7Review scenario={scenario} />}
+          {step === 7 && <Step7Review scenario={scenario} isNew={isNew} />}
         </div>
 
-        {/* Navigation */}
-        <div className="bg-gray-50 px-8 py-4 flex gap-3 justify-between border-t">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition"
-          >
+        <div className="bg-gray-50 px-8 py-4 flex gap-3 justify-between items-center border-t rounded-b-xl">
+          <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition">
             Cancel
           </button>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            {!basicsComplete && <span className="text-xs text-gray-500">Enter a scenario name and client to continue</span>}
             {step > 1 && (
               <button
-                onClick={handlePrev}
-                className="px-6 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                onClick={() => setStep(step - 1)}
+                className="px-4 py-2 text-sm border border-gray-300 text-gray-700 hover:bg-white rounded-lg transition"
               >
-                ← Back
+                Back
               </button>
             )}
-            {step < 7 ? (
+            {step < STEPS.length && (
               <button
-                onClick={handleNext}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                onClick={() => setStep(step + 1)}
+                disabled={!basicsComplete}
+                className={`px-4 py-2 text-sm rounded-lg transition disabled:opacity-40 ${
+                  isNew ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'border border-gray-300 text-gray-700 hover:bg-white'
+                }`}
               >
-                Next →
+                Next
               </button>
-            ) : (
+            )}
+            {(!isNew || step === STEPS.length) && (
               <button
-                onClick={handleComplete}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                onClick={() => onApply(scenario)}
+                disabled={!basicsComplete}
+                className="px-5 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg transition"
               >
-                Create Scenario
+                {isNew ? 'Create scenario' : 'Apply changes'}
               </button>
             )}
           </div>
@@ -203,13 +238,13 @@ function Step4Roles({ scenario, onUpdate, includeAllRoles, onIncludeAllRolesChan
             ? `Roles for "${scenario.useCase}" plus cross-functional roles (PO, manager, data architect, security).`
             : `Roles for "${scenario.useCase}" only.`}
         </p>
-        <p>You can add, remove and edit roles on the dashboard after the wizard.</p>
+        <p>You can add, remove and edit roles on the dashboard afterwards.</p>
       </div>
     </div>
   );
 }
 
-function Step1Basic({ scenario, onUpdate, onCurrencyChange }: any) {
+function Step1Basic({ scenario, isNew, onUpdate, onCurrencyChange }: any) {
   return (
     <div className="space-y-6">
       <div>
@@ -218,6 +253,21 @@ function Step1Basic({ scenario, onUpdate, onCurrencyChange }: any) {
           Start by naming your scenario and identifying the client. This information appears in all reports.
         </p>
       </div>
+
+      {scenario.isExample && (
+        <label className="flex items-start gap-2 text-sm text-gray-700 bg-blue-50 border-l-4 border-blue-600 px-4 py-3">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={scenario.isExample}
+            onChange={(e) => onUpdate({ isExample: e.target.checked })}
+          />
+          <span>
+            Marked as an example with fictional data. Untick when this becomes a real customer scenario, so reports
+            and exports are no longer labelled as an example.
+          </span>
+        </label>
+      )}
 
       <div>
         <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -263,17 +313,29 @@ function Step1Basic({ scenario, onUpdate, onCurrencyChange }: any) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">Currency</label>
-          <select
-            value={scenario.baseCurrency}
-            onChange={(e) => onCurrencyChange(e.target.value as Currency)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {CURRENCIES.map(c => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <p className="text-xs text-gray-500 mt-1">Enter all amounts in this currency. Default rates are converted for you.</p>
+          <label htmlFor="setup-currency" className="block text-sm font-semibold text-gray-900 mb-2">Currency</label>
+          {isNew ? (
+            <>
+              <select
+                id="setup-currency"
+                value={scenario.baseCurrency}
+                onChange={(e) => onCurrencyChange(e.target.value as Currency)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {CURRENCIES.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Enter all amounts in this currency. Starting rates are converted for you.</p>
+            </>
+          ) : (
+            <>
+              <p id="setup-currency" className="px-4 py-2 text-gray-900">{scenario.baseCurrency}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Change it from the currency menu in the header, where you choose to convert or relabel.
+              </p>
+            </>
+          )}
         </div>
 
         <div>
@@ -476,20 +538,20 @@ function Step6TeamPreview({ scenario }: any) {
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <p className="text-sm text-gray-900">
-          <strong>Next Step:</strong> After completing this wizard, click "Edit Roles" on the dashboard to fine-tune all staffing numbers.
+          <strong>Next Step:</strong> After setup, use "Edit Roles" on the dashboard to fine-tune all staffing numbers.
         </p>
       </div>
     </div>
   );
 }
 
-function Step7Review({ scenario }: any) {
+function Step7Review({ scenario, isNew }: any) {
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-bold text-gray-900 mb-4">Review & Confirm</h3>
         <p className="text-sm text-gray-600 mb-4">
-          Verify your scenario details before creating. You can edit everything after this.
+          Check the details below. You can reopen this setup at any time from the Scenario menu.
         </p>
       </div>
 
@@ -510,7 +572,11 @@ function Step7Review({ scenario }: any) {
 
         <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
           <p className="text-sm text-gray-900">
-            Your scenario is ready! Click <strong>"Create Scenario"</strong> to start.
+            {isNew ? (
+              <>Your scenario is ready. Select <strong>Create scenario</strong> to see the results.</>
+            ) : (
+              <>Select <strong>Apply changes</strong> to recalculate the dashboard.</>
+            )}
           </p>
           <p className="text-xs text-gray-600 mt-2">
             You'll then be able to edit team roles, costs, KPIs, and see real-time financial analysis.

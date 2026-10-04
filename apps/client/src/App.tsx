@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Scenario, Results, Currency } from '@ai-roi-calc/engine';
-import { calculate, createDefaultScenario, convertScenarioCurrency, scenarioToYaml } from '@ai-roi-calc/engine';
+import { calculate, createExampleScenario, convertScenarioCurrency, scenarioToYaml } from '@ai-roi-calc/engine';
 import CurrencyChangeDialog from './components/CurrencyChangeDialog';
 import TeamSummary from './components/TeamSummary';
 import Header from './components/Header';
-import ContextForm from './components/ContextForm';
 import RolesGrid from './components/RolesGrid';
 import CostLinesGrid from './components/CostLinesGrid';
 import KpisGrid from './components/KpisGrid';
@@ -14,7 +13,8 @@ import FtePyramidChart from './components/FtePyramidChart';
 import TornadoChart from './components/TornadoChart';
 import SensitivityGrid from './components/SensitivityGrid';
 import ModelSelector from './components/ModelSelector';
-import ScenarioWizard from './components/ScenarioWizard';
+import ScenarioSetup, { type SetupMode } from './components/ScenarioSetup';
+import ExampleBanner from './components/ExampleBanner';
 import ScenarioImport from './components/ScenarioImport';
 import Tooltip from './components/Tooltip';
 
@@ -25,18 +25,17 @@ export default function App() {
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [results, setResults] = useState<Results | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showContextForm, setShowContextForm] = useState(false);
-  const [showNewScenarioDialog, setShowNewScenarioDialog] = useState(false);
+  const [setupMode, setSetupMode] = useState<SetupMode | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingRoles, setEditingRoles] = useState(false);
   const [editingCostLines, setEditingCostLines] = useState(false);
   const [editingKpis, setEditingKpis] = useState(false);
   const [pendingCurrency, setPendingCurrency] = useState<Currency | null>(null);
 
   useEffect(() => {
-    const defaultScenario = createDefaultScenario();
-    setScenario(defaultScenario);
-    const calculatedResults = calculate(defaultScenario);
-    setResults(calculatedResults);
+    const example = createExampleScenario();
+    setScenario(example);
+    setResults(calculate(example));
     setLoading(false);
   }, []);
 
@@ -48,10 +47,23 @@ export default function App() {
     setResults(newResults);
   };
 
-  const handleResetToDefaults = () => {
-    const defaultScenario = createDefaultScenario();
-    setScenario(defaultScenario);
-    setResults(calculate(defaultScenario));
+  const replaceScenario = (next: Scenario) => {
+    setScenario(next);
+    setResults(calculate(next));
+  };
+
+  /** Replacing a customer scenario discards unsaved edits; the example can always be reloaded. */
+  const confirmReplace = () =>
+    !scenario ||
+    scenario.isExample ||
+    window.confirm(`Replace "${scenario.name}"? Unsaved changes will be lost. Use Export › Save scenario first to keep them.`);
+
+  const handleLoadExample = () => {
+    if (confirmReplace()) replaceScenario(createExampleScenario());
+  };
+
+  const handleOpenFile = () => {
+    if (confirmReplace()) fileInputRef.current?.click();
   };
 
   const handleExport = () => {
@@ -129,10 +141,7 @@ export default function App() {
     setPendingCurrency(null);
   };
 
-  const handleImportScenario = (importedScenario: Scenario) => {
-    setScenario(importedScenario);
-    setResults(calculate(importedScenario));
-  };
+  const handleImportScenario = (importedScenario: Scenario) => replaceScenario(importedScenario);
 
   const handleExportYaml = () => {
     if (!scenario) return;
@@ -375,41 +384,27 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
-        onEditContext={() => setShowContextForm(true)}
-        onReset={handleResetToDefaults}
-        onExport={handleExport}
+        currency={scenario.baseCurrency}
+        onCurrencyChange={handleCurrencyChange}
+        onNewScenario={() => setSetupMode('new')}
+        onEditSetup={() => setSetupMode('edit')}
+        onOpenFile={handleOpenFile}
+        onLoadExample={handleLoadExample}
+        onSaveYaml={handleExportYaml}
         onExportPdf={handleExportPdf}
         onExportExcel={handleExportExcel}
-        currency={scenario?.baseCurrency || 'EUR'}
-        onCurrencyChange={handleCurrencyChange}
+        onExportJson={handleExport}
       />
+      <ScenarioImport ref={fileInputRef} onImport={handleImportScenario} />
 
       <main className="max-w-7xl mx-auto px-6 py-12">
-        {/* Scenario Management Toolbar */}
-        <div className="mb-8 flex gap-3">
-          <button
-            onClick={() => setShowNewScenarioDialog(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
-          >
-            New Scenario
-          </button>
-          <ScenarioImport onImport={handleImportScenario} />
-          <button
-            onClick={handleExportYaml}
-            className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition"
-          >
-            Export YAML
-          </button>
-        </div>
-
-        <ScenarioWizard
-          isOpen={showNewScenarioDialog}
-          onCancel={() => setShowNewScenarioDialog(false)}
-          onComplete={(newScenario) => {
-            setScenario(newScenario);
-            const newResults = calculate(newScenario);
-            setResults(newResults);
-            setShowNewScenarioDialog(false);
+        <ScenarioSetup
+          mode={setupMode}
+          current={scenario}
+          onCancel={() => setSetupMode(null)}
+          onApply={next => {
+            replaceScenario(next);
+            setSetupMode(null);
           }}
         />
         <CurrencyChangeDialog
@@ -420,26 +415,24 @@ export default function App() {
           onCancel={() => setPendingCurrency(null)}
         />
 
-        {/* Context Form Modal */}
-        {scenario && (
-          <ContextForm
-            scenario={scenario}
-            onUpdate={handleScenarioUpdate}
-            isOpen={showContextForm}
-            onClose={() => setShowContextForm(false)}
-          />
-        )}
-
-        {/* Scenario Info */}
+        {/* Scenario identity */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">{scenario.name}</h2>
-          <div className="flex gap-6 text-sm text-gray-600">
-            <span>Client: <strong className="text-gray-900">{scenario.clientName}</strong></span>
-            <span>Use Case: <strong className="text-gray-900">{scenario.useCase}</strong></span>
-            <span>Currency: <strong className="text-gray-900">{scenario.baseCurrency}</strong></span>
-            <span>Horizon: <strong className="text-gray-900">{scenario.timeValue.horizonMonths} months</strong></span>
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-2">
+            <h2 className="text-3xl font-bold text-gray-900">{scenario.name}</h2>
+            <button onClick={() => setSetupMode('edit')} className="text-sm text-blue-700 hover:text-blue-900">
+              Edit setup
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
+            <span>Client: <span className="text-gray-700">{scenario.clientName}</span></span>
+            <span>Use case: <span className="text-gray-700">{scenario.useCase}</span></span>
+            <span>Horizon: <span className="text-gray-700">{scenario.timeValue.horizonMonths} months</span></span>
           </div>
         </div>
+
+        {scenario.isExample && (
+          <ExampleBanner results={results} formatCurrency={formatCurrency} onStartNew={() => setSetupMode('new')} />
+        )}
 
         {/* Key Metrics Grid */}
         <section className="mb-12">
