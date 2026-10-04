@@ -13,6 +13,7 @@ import FtePyramidChart from './components/FtePyramidChart';
 import TornadoChart from './components/TornadoChart';
 import SensitivityGrid from './components/SensitivityGrid';
 import ModelSelector from './components/ModelSelector';
+import ModelComparison from './components/ModelComparison';
 import ScenarioSetup, { type SetupMode } from './components/ScenarioSetup';
 import ExampleBanner from './components/ExampleBanner';
 import HelpPresentation from './components/HelpPresentation';
@@ -512,6 +513,16 @@ export default function App() {
           </dl>
         </section>
 
+        {/* Delivery model: which model, then its parameters */}
+        <section className="mb-12 space-y-6" aria-label="Delivery model">
+          <ModelComparison
+            scenario={scenario}
+            formatCurrency={formatCurrency}
+            onSelect={model => handleScenarioUpdate({ primaryModel: model })}
+          />
+          <ModelSelector scenario={scenario} onUpdate={handleScenarioUpdate} />
+        </section>
+
         {/* Cost Model */}
         <section className="mb-12">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-6">Cost Model</h3>
@@ -685,13 +696,6 @@ export default function App() {
               formatCurrency={formatCurrency}
             />
           </div>
-        </section>
-
-        {/* Implementation Model */}
-        <section className="mb-12">
-          {scenario && (
-            <ModelSelector scenario={scenario} onUpdate={handleScenarioUpdate} />
-          )}
         </section>
 
         {/* FTE Analysis */}

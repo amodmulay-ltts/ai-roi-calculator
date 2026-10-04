@@ -19,7 +19,6 @@ export const DEFAULT_DELIVERY_PROFILES: Record<ImplementationModel, DeliveryProf
 };
 
 export const DEFAULT_BCC_RATE_FACTOR = 0.45;
-
 export interface DeliveryContext {
   adoption: Record<State, number>;
   locationRateFactor: Record<State, number>;
