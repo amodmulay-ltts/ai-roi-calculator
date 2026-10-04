@@ -15,6 +15,7 @@ import SensitivityGrid from './components/SensitivityGrid';
 import ModelSelector from './components/ModelSelector';
 import ScenarioSetup, { type SetupMode } from './components/ScenarioSetup';
 import ExampleBanner from './components/ExampleBanner';
+import HelpPresentation from './components/HelpPresentation';
 import ScenarioImport from './components/ScenarioImport';
 import Tooltip from './components/Tooltip';
 
@@ -26,6 +27,7 @@ export default function App() {
   const [results, setResults] = useState<Results | null>(null);
   const [loading, setLoading] = useState(true);
   const [setupMode, setSetupMode] = useState<SetupMode | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingRoles, setEditingRoles] = useState(false);
   const [editingCostLines, setEditingCostLines] = useState(false);
@@ -394,7 +396,9 @@ export default function App() {
         onExportPdf={handleExportPdf}
         onExportExcel={handleExportExcel}
         onExportJson={handleExport}
+        onHelp={() => setShowHelp(true)}
       />
+      <HelpPresentation open={showHelp} onClose={() => setShowHelp(false)} onStartNew={() => setSetupMode('new')} />
       <ScenarioImport ref={fileInputRef} onImport={handleImportScenario} />
 
       <main className="max-w-7xl mx-auto px-6 py-12">
@@ -431,7 +435,12 @@ export default function App() {
         </div>
 
         {scenario.isExample && (
-          <ExampleBanner results={results} formatCurrency={formatCurrency} onStartNew={() => setSetupMode('new')} />
+          <ExampleBanner
+            results={results}
+            formatCurrency={formatCurrency}
+            onStartNew={() => setSetupMode('new')}
+            onHelp={() => setShowHelp(true)}
+          />
         )}
 
         {/* Key Metrics Grid */}
