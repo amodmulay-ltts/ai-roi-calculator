@@ -31,7 +31,7 @@ Browser testing: **not yet done** for any of the fixes below.
 | – | Example scenario (Northwind, fictional) loaded by default, labelled on screen and in exports | Done |
 | – | One scenario setup (new / edit) replaces Edit Context + wizard; Scenario and Export menus | Done, build-tested |
 | – | IRR no longer capped at 200% | Done, tested |
-| – | Help: presentation-style scrolling walkthrough of concept and example | Next |
+| – | Help: presentation-style scrolling walkthrough of concept and example | Done, render-tested (not in a browser) |
 
 UI rule for all screens: one hero element, two supporting, everything else small and quiet.
 

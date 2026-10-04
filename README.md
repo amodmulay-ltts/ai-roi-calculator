@@ -22,6 +22,7 @@ The app opens with an **example calculation**, marked "Example calculation · fi
 
 | Where | What |
 |---|---|
+| **How it works** (header) | Full-screen walkthrough you scroll screen by screen: the idea, the example step by step, when AI does *not* pay off, and which delivery model works best. All figures are calculated live from the example. Also opened from "How this is calculated" on the example banner. Esc closes it. |
 | **Scenario** menu | **New scenario** (guided setup for a customer) · **Edit setup** (the same steps, prefilled; jump to any step and apply) · **Open file** (.yaml / .json) · **Load example** |
 | **Export** menu | **Save scenario (.yaml)** to reopen later · **PDF report** (HTML, print to PDF) · **Excel workbook** · **JSON** (scenario + results) |
 | Currency (header) | Choose **Convert** (multiply every amount by an editable FX rate) or **Relabel** (keep the numbers). Rates are indicative, not live. |
@@ -64,6 +65,8 @@ Northwind Insurance (fictional) has a 31-person onshore testing team. All amount
 | IRR | 220% / year | Discount rate at which NPV = 0 |
 
 Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €3.7M (payback month 5) because offshore rates and AI savings combine.
+
+**What does not work:** the AI running costs and the investment have to be covered first. With the same example, an effort cut of 10% loses about €866K over 36 months, 15% roughly breaks even on monthly cost, 20% pays back only in month 29, and 30% pays back in month 11.
 
 ## How the calculation works
 
