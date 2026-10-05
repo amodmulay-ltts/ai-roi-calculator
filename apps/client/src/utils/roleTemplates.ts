@@ -1,5 +1,5 @@
 import type { Role, Currency, KpiInput, LlmUsage, Scenario } from '@ai-roi-calc/engine';
-import { createExampleScenario, fxFactor } from '@ai-roi-calc/engine';
+import { AUTOMOTIVE_TEMPLATE, fxFactor } from '@ai-roi-calc/engine';
 
 export const ROLE_TEMPLATES: Record<string, Role[]> = {
   testing: [
@@ -310,8 +310,8 @@ const AI = { affected: true, review: true };
 const AI_NO_REVIEW = { affected: true, review: false };
 const MANUAL = { affected: false, review: false };
 
-// The automotive template is the built-in example's team, workload and AI usage (authored in EUR)
-const AUTOMOTIVE = createExampleScenario();
+// Automotive is defined in the engine, where the built-in example is also created from it
+const AUTOMOTIVE = AUTOMOTIVE_TEMPLATE;
 
 /** Monthly workload per use case, sized to the matching role template's baseline team × 160 h. */
 export const WORKLOAD_TEMPLATES: Record<UseCase, KpiInput[]> = {
@@ -400,7 +400,7 @@ export function getRolesForUseCase(
   const fromInr = fxFactor('INR', currency, fxRatesPerEur);
   const primary =
     useCase === 'automotive'
-      ? convertRates(AUTOMOTIVE.roles, fxFactor('EUR', currency, fxRatesPerEur))
+      ? convertRates(AUTOMOTIVE.roles, fxFactor(AUTOMOTIVE.rateCurrency, currency, fxRatesPerEur))
       : convertRates(ROLE_TEMPLATES[useCase]!, fromInr);
 
   let extra = includeAll ? convertRates(ROLE_TEMPLATES.allRoles!, fromInr) : [];

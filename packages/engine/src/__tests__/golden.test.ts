@@ -8,6 +8,7 @@ import {
   calculate,
   createDefaultScenario,
   createExampleScenario,
+  AUTOMOTIVE_TEMPLATE,
   compareDeliveryModels,
   tornado,
   paybackGrid,
@@ -299,6 +300,17 @@ describe('Scenario import normalization', () => {
 
 describe('Example scenario', () => {
   const r = calculate(createExampleScenario());
+
+  it('is built from the automotive use-case template', () => {
+    const s = createExampleScenario();
+    expect(s.roles).toEqual(AUTOMOTIVE_TEMPLATE.roles);
+    expect(s.kpis).toEqual(AUTOMOTIVE_TEMPLATE.kpis);
+    expect(s.llmUsage).toEqual(AUTOMOTIVE_TEMPLATE.llmUsage);
+    expect(s.baseCurrency).toBe(AUTOMOTIVE_TEMPLATE.rateCurrency);
+    // Copies, so editing the example never changes the template
+    s.roles[0]!.costPerFte = 1;
+    expect(AUTOMOTIVE_TEMPLATE.roles[0]!.costPerFte).not.toBe(1);
+  });
 
   it('is marked as an example and survives save/load with the flag', () => {
     expect(r.scenario.isExample).toBe(true);

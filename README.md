@@ -41,9 +41,9 @@ The dashboard reads top to bottom in the order of a customer conversation, with 
 | Sensitivity panel | Which assumption the case depends on most. Each driver moves ±20% on its own and the NPV range is shown: AI effort reduction (share of the assumed reduction that materialises, costs kept), AI running costs (tools, infrastructure, model prices), role rates, overhead and risk %, transition length, one-off investment. A grid shows the payback month for AI effect (60–140%) × transition length. |
 | Cost basis (Cost Model) | **Total cost of ownership** (every cost line) or **Client-chargeable cost** (leaves out lines marked not chargeable). The choice drives savings, payback, ROI and NPV. |
 | Workload panel | The work the team does each month: volume × hours each, today versus mature. **Edit workload** to change volumes and hours, override hours per state, mark items as AI-assisted or as carrying review overhead, enter extra volume the AI-assisted team absorbs without hiring (cost avoidance), and add or remove items. Cost avoidance is shown separately and counted in ROI only when switched on. |
-| Use-case templates | In setup, step "Team and workload": **Automotive software (ECU / ADAS)**, **Software testing**, **Software development** or **IT support / service desk**. The automotive template is the Vantara Motors example's team (European onshore rates, converted to the scenario currency), workload and AI usage, and is preselected when the use case mentions automotive, ECU, ADAS, AUTOSAR, vehicle, ISO 26262 or ASPICE. Each sets roles, a matching workload (sized so the work equals the team) and typical AI model usage. Adjust volumes and the average onshore cost to the customer. |
+| Use-case templates | In setup, step "Team and workload": **Automotive software (ECU / ADAS)**, **Software testing**, **Software development** or **IT support / service desk**. The automotive template (defined in the engine, and the source the Vantara Motors example is built from) has a European onshore team, converted to the scenario currency, with its workload and AI usage, and is preselected when the use case mentions automotive, ECU, ADAS, AUTOSAR, vehicle, ISO 26262 or ASPICE. Each sets roles, a matching workload (sized so the work equals the team) and typical AI model usage. Adjust volumes and the average onshore cost to the customer. |
 
-The current scenario is **saved automatically in this browser** (local storage) and restored on the next visit, with a note saying so. Only one scenario is kept, and it stays on this computer: use **Export › Save scenario** to keep copies or move them elsewhere. A saved entry that fails validation is ignored and the example loads instead.
+The current scenario is **saved automatically in this browser** (local storage) and restored on the next visit, with a note saying so. Only one scenario is kept, and it stays on this computer: use **Export › Save scenario** to keep copies or move them elsewhere. A saved entry that fails validation is ignored and the example loads instead. A saved *example* is never restored: the app always starts from the current built-in example, so an old example kept in the browser cannot hide a newer one.
 
 Opening a file or loading the example asks for confirmation before replacing a customer scenario. Files are validated before use: a malformed file shows readable errors instead of being loaded.
 
@@ -171,7 +171,8 @@ packages/engine/        Pure TypeScript calculation library (no I/O), shared by 
   src/llm.ts              AI model usage cost and the default price table
   src/sensitivity.ts      tornado (±20% per driver) and payback grid
   src/currency.ts         FX rates and scenario conversion
-  src/example.ts          the Vantara Motors example (automotive software development)
+  src/templates.ts        automotive use-case template (team, workload, AI usage): single source for setup and the example
+  src/example.ts          the Vantara Motors example, built from the automotive template
   src/defaults.ts         reference scenario from the source Excel (INR), legacy-file normalisation
   src/schema.ts           zod validation for any untrusted scenario (files, API)
   src/serialize.ts        YAML save / YAML+JSON load
@@ -198,7 +199,7 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 
 ## Tests
 
-`npm test` runs the engine suite: 69 tests. They cover:
+`npm test` runs the engine suite: 70 tests. They cover:
 
 - **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story

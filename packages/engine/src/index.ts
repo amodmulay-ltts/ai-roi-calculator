@@ -29,6 +29,7 @@ export type {
 
 export { createDefaultScenario, normalizeScenario } from './defaults.js';
 export { createExampleScenario, EXAMPLE_CLIENT } from './example.js';
+export { AUTOMOTIVE_TEMPLATE, type UseCaseTemplate } from './templates.js';
 export { DEFAULT_LLM_PRICING, llmCosts } from './llm.js';
 export { compareDeliveryModels, type ModelComparison } from './compare.js';
 export { tornado, paybackGrid, type TornadoResult, type TornadoRow, type PaybackGrid } from './sensitivity.js';

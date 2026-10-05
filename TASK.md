@@ -11,7 +11,7 @@
 
 ## Current status
 
-Engine tests: **69/69 passing** (`npm test -w packages/engine`). Build clean.
+Engine tests: **70/70 passing** (`npm test -w packages/engine`). Build clean.
 Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, autosave. Other screens checked by rendering and screenshots.
 
 | # | Fix (from REVIEW_Self_Assessment.md) | Status |
@@ -32,7 +32,7 @@ Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, auto
 | – | Example scenario (Vantara Motors, automotive software development, fictional) loaded by default, labelled on screen and in exports | Done, browser-tested |
 | – | One scenario setup (new / edit) replaces Edit Context + wizard; Scenario and Export menus | Done, build-tested |
 | – | IRR no longer capped at 200% | Done, tested |
-| – | Automotive software (ECU / ADAS) use-case template, from the example | Done, browser-tested |
+| – | Automotive software (ECU / ADAS) use-case template; the default example is built from it; saved examples no longer restored | Done, browser-tested |
 | – | LTTS logo in header, help title screen, PDF report cover; L&T emblem favicon | Done, browser-tested |
 | – | Help: presentation-style scrolling walkthrough of concept and example | Done, render-tested (not in a browser) |
 

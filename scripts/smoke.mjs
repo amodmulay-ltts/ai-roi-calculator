@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
+import { createExampleScenario } from '../packages/engine/dist/index.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = path.join(root, '.smoke');
@@ -165,6 +166,17 @@ async function main() {
     check('autosave restores the scenario after reload', body.includes('Smoke Test Bank - AI testing'));
     check('restore notice is shown', body.includes('Restored the scenario saved in this browser'));
     await shot('04-restored');
+
+    // 4b. An example saved by an older version must not hide the current built-in example
+    const oldExample = { ...createExampleScenario(), name: 'Example: AI-augmented testing at Northwind Insurance', clientName: 'Northwind Insurance (fictional)' };
+    await page.evaluate(
+      saved => localStorage.setItem('valueai.currentScenario.v1', JSON.stringify(saved)),
+      { savedAt: '2026-10-01T10:00:00.000Z', scenario: oldExample }
+    );
+    await page.reload({ waitUntil: 'networkidle0' });
+    body = await text(page);
+    check('a saved old example is replaced by the current example', body.includes('Vantara Motors') && !body.includes('Northwind'));
+    check('no restore notice for a saved example', !body.includes('Restored the scenario saved in this browser'));
 
     // 5. Corrupt storage falls back to the example
     await page.evaluate(() => localStorage.setItem('valueai.currentScenario.v1', '{"scenario":{"name":1}}'));
