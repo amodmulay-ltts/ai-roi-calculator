@@ -11,8 +11,7 @@ import AiUsagePanel from './components/AiUsagePanel';
 import CumulativeCashFlowChart from './components/CumulativeCashFlowChart';
 import MonthlyOpexChart from './components/MonthlyOpexChart';
 import FtePyramidChart from './components/FtePyramidChart';
-import TornadoChart from './components/TornadoChart';
-import SensitivityGrid from './components/SensitivityGrid';
+import SensitivityPanel from './components/SensitivityPanel';
 import ModelSelector from './components/ModelSelector';
 import ModelComparison from './components/ModelComparison';
 import AdvicePanel from './components/AdvicePanel';
@@ -214,116 +213,6 @@ export default function App() {
     ];
   };
 
-  const generateTornadoData = () => {
-    if (!results || !scenario) return [];
-
-    const baseNpv = results.financialMetrics.npv;
-    const horizonMonths = scenario.timeValue.horizonMonths;
-    const discountRate = scenario.timeValue.discountRateAnnual;
-
-    const variables = [
-      {
-        name: 'Horizon',
-        variation: (v: Scenario) => ({ ...v, timeValue: { ...v.timeValue, horizonMonths: horizonMonths * 0.8 } }),
-        variation2: (v: Scenario) => ({ ...v, timeValue: { ...v.timeValue, horizonMonths: horizonMonths * 1.2 } }),
-      },
-      {
-        name: 'Discount Rate',
-        variation: (v: Scenario) => ({ ...v, timeValue: { ...v.timeValue, discountRateAnnual: Math.max(0, discountRate - 0.02) } }),
-        variation2: (v: Scenario) => ({ ...v, timeValue: { ...v.timeValue, discountRateAnnual: discountRate + 0.02 } }),
-      },
-      {
-        name: 'Transition Cost',
-        variation: (v: Scenario) => ({
-          ...v,
-          costLines: v.costLines.map(cl => ({
-            ...cl,
-            monthlyAmount: {
-              ...cl.monthlyAmount,
-              transition: cl.monthlyAmount.transition * 0.8,
-            },
-          })),
-        }),
-        variation2: (v: Scenario) => ({
-          ...v,
-          costLines: v.costLines.map(cl => ({
-            ...cl,
-            monthlyAmount: {
-              ...cl.monthlyAmount,
-              transition: cl.monthlyAmount.transition * 1.2,
-            },
-          })),
-        }),
-      },
-      {
-        name: 'Mature Savings',
-        variation: (v: Scenario) => ({
-          ...v,
-          costLines: v.costLines.map(cl => ({
-            ...cl,
-            monthlyAmount: {
-              ...cl.monthlyAmount,
-              mature: cl.monthlyAmount.mature * 1.2,
-            },
-          })),
-        }),
-        variation2: (v: Scenario) => ({
-          ...v,
-          costLines: v.costLines.map(cl => ({
-            ...cl,
-            monthlyAmount: {
-              ...cl.monthlyAmount,
-              mature: cl.monthlyAmount.mature * 0.8,
-            },
-          })),
-        }),
-      },
-    ];
-
-    return variables.map(v => {
-      const lowResults = calculate(v.variation(scenario));
-      const highResults = calculate(v.variation2(scenario));
-
-      return {
-        variable: v.name,
-        low: lowResults.financialMetrics.npv,
-        base: baseNpv,
-        high: highResults.financialMetrics.npv,
-        range: Math.abs(highResults.financialMetrics.npv - lowResults.financialMetrics.npv),
-      };
-    });
-  };
-
-  const generateSensitivityGrid = () => {
-    if (!results || !scenario) return {};
-
-    const horizonVariations = [0.8, 0.9, 1.0, 1.1, 1.2];
-    const discountVariations = [-0.04, -0.02, 0, 0.02, 0.04];
-
-    const grid: Record<string, Record<string, number>> = {};
-
-    horizonVariations.forEach(hVar => {
-      const horizonKey = `${(hVar * 100).toFixed(0)}%`;
-      grid[horizonKey] = {};
-
-      discountVariations.forEach(dVar => {
-        const discountKey = `${((scenario.timeValue.discountRateAnnual + dVar) * 100).toFixed(0)}%`;
-        const modScenario = {
-          ...scenario,
-          timeValue: {
-            ...scenario.timeValue,
-            horizonMonths: scenario.timeValue.horizonMonths * hVar,
-            discountRateAnnual: scenario.timeValue.discountRateAnnual + dVar,
-          },
-        };
-        const res = calculate(modScenario);
-        grid[horizonKey][discountKey] = res.financialMetrics.npv;
-      });
-    });
-
-    return grid;
-  };
-
   const formatCurrency = (value: number, currency = scenario?.baseCurrency || 'EUR') => {
     const symbols: Record<string, string> = {
       'EUR': '€',
@@ -384,6 +273,11 @@ export default function App() {
   }
 
   const { financialMetrics, cost, effort } = results;
+  const chargeableBasis = scenario.costChargeable === 'chargeable';
+  const signedDelta = (v: number) => (v > 0 ? '+' : '') + formatCurrency(v);
+  const basis = chargeableBasis
+    ? { direct: cost.chargeableDirectOpex, full: cost.chargeableFullyLoaded }
+    : { direct: cost.directOpex, full: cost.fullyLoaded };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -491,7 +385,7 @@ export default function App() {
           <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-3 text-sm">
             <div>
               <dt className="text-xs text-gray-500">Monthly saving (mature)</dt>
-              <dd className="text-gray-700 font-medium">{formatCurrency(cost.fullyLoaded.baseline - cost.fullyLoaded.mature)}</dd>
+              <dd className="text-gray-700 font-medium">{formatCurrency(basis.full.baseline - basis.full.mature)}</dd>
             </div>
             <div>
               <dt className="text-xs text-gray-500">Total investment</dt>
@@ -528,7 +422,31 @@ export default function App() {
 
         {/* Cost Model */}
         <section className="mb-12">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-6">Cost Model</h3>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Cost Model</h3>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-500">Business case on</span>
+              <div role="radiogroup" aria-label="Cost basis" className="inline-flex rounded-lg border border-gray-200 p-1">
+                {([
+                  ['tco', 'Total cost of ownership'],
+                  ['chargeable', 'Client-chargeable cost'],
+                ] as const).map(([id, label]) => (
+                  <button
+                    key={id}
+                    role="radio"
+                    aria-checked={scenario.costChargeable === id}
+                    onClick={() => handleScenarioUpdate({ costChargeable: id })}
+                    className={`px-3 py-1 rounded-md transition ${
+                      scenario.costChargeable === id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <Tooltip text="Total cost of ownership counts every cost line. Client-chargeable cost leaves out lines marked as not chargeable (for example internal capex amortisation). The choice drives savings, payback, ROI and NPV." />
+            </div>
+          </div>
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <table className="w-full">
               <thead>
@@ -544,23 +462,23 @@ export default function App() {
                 <tr className="border-b border-gray-100 hover:bg-gray-50 transition">
                   <td className="px-6 py-3 text-sm font-medium text-gray-900">Baseline</td>
                   <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(cost.peopleCost.baseline)}</td>
-                  <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(cost.directOpex.baseline)}</td>
-                  <td className="px-6 py-3 text-sm text-right font-semibold text-gray-900">{formatCurrency(cost.fullyLoaded.baseline)}</td>
+                  <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(basis.direct.baseline)}</td>
+                  <td className="px-6 py-3 text-sm text-right font-semibold text-gray-900">{formatCurrency(basis.full.baseline)}</td>
                   <td className="px-6 py-3 text-sm text-right text-gray-400">—</td>
                 </tr>
                 <tr className="border-b border-gray-100 hover:bg-gray-50 transition">
                   <td className="px-6 py-3 text-sm font-medium text-gray-900">Transition</td>
                   <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(cost.peopleCost.transition)}</td>
-                  <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(cost.directOpex.transition)}</td>
-                  <td className="px-6 py-3 text-sm text-right font-semibold text-gray-900">{formatCurrency(cost.fullyLoaded.transition)}</td>
-                  <td className="px-6 py-3 text-sm text-right text-red-600 font-medium">+{formatCurrency(cost.fullyLoaded.transition - cost.fullyLoaded.baseline)}</td>
+                  <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(basis.direct.transition)}</td>
+                  <td className="px-6 py-3 text-sm text-right font-semibold text-gray-900">{formatCurrency(basis.full.transition)}</td>
+                  <td className="px-6 py-3 text-sm text-right text-gray-700">{signedDelta(basis.full.transition - basis.full.baseline)}</td>
                 </tr>
                 <tr className="bg-blue-50 hover:bg-blue-100 transition">
                   <td className="px-6 py-3 text-sm font-semibold text-gray-900">Mature</td>
                   <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(cost.peopleCost.mature)}</td>
-                  <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(cost.directOpex.mature)}</td>
-                  <td className="px-6 py-3 text-sm text-right font-semibold text-gray-900">{formatCurrency(cost.fullyLoaded.mature)}</td>
-                  <td className="px-6 py-3 text-sm text-right text-green-600 font-semibold">−{formatCurrency(cost.fullyLoaded.baseline - cost.fullyLoaded.mature)}</td>
+                  <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(basis.direct.mature)}</td>
+                  <td className="px-6 py-3 text-sm text-right font-semibold text-gray-900">{formatCurrency(basis.full.mature)}</td>
+                  <td className={`px-6 py-3 text-sm text-right font-semibold ${basis.full.mature <= basis.full.baseline ? 'text-blue-700' : 'text-gray-900'}`}>{signedDelta(basis.full.mature - basis.full.baseline)}</td>
                 </tr>
               </tbody>
             </table>
@@ -628,7 +546,7 @@ export default function App() {
             )}
           </div>
 
-          <WorkloadGrid scenario={scenario} results={results} onUpdate={kpis => handleScenarioUpdate({ kpis })} />
+          <WorkloadGrid scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
           <div className="mt-8">
             <AiUsagePanel scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
           </div>
@@ -650,22 +568,9 @@ export default function App() {
           <FtePyramidChart data={generateFteData()} />
         </section>
 
-        {/* Sensitivity Analysis */}
+        {/* Sensitivity */}
         <section className="mb-12">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-6">Analysis</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <TornadoChart
-              data={generateTornadoData()}
-              formatCurrency={formatCurrency}
-              metric="npv"
-            />
-            <SensitivityGrid
-              data={generateSensitivityGrid()}
-              rowLabel="Horizon (%)"
-              colLabel="Discount Rate (%)"
-              formatCurrency={formatCurrency}
-            />
-          </div>
+          <SensitivityPanel scenario={scenario} formatCurrency={formatCurrency} />
         </section>
 
         {/* FTE Analysis */}

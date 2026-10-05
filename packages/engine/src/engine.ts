@@ -196,6 +196,7 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
     llmCost: { baseline: 0, transition: 0, mature: 0 },
     llmCostByUsage: {},
     llmRequestsPerMonth: {},
+    costAvoidance: { baseline: 0, transition: 0, mature: 0 },
     directOpex: { baseline: 0, transition: 0, mature: 0 },
     overhead: { baseline: 0, transition: 0, mature: 0 },
     risk: { baseline: 0, transition: 0, mature: 0 },
@@ -250,6 +251,8 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
       result.chargeableDirectOpex[state] + result.chargeableOverhead[state] + result.chargeableRisk[state];
   }
 
+  result.costAvoidance = calculateCostAvoidance(scenario, ctx, effort, result.peopleCost.baseline);
+
   return result;
 }
 
@@ -296,38 +299,29 @@ function calculateMonthlyCashFlow(scenario: Scenario, cost: CostCalculation, ctx
     } else {
       // Ramp between transition and mature (Section 2)
       const runCostFull = getRampedCost(m, transitionMonths, cost.fullyLoaded, wageEscalationAnnual);
-      const runCostChargeable = getRampedCost(
-        m,
-        transitionMonths,
-        scenario.costChargeable === 'tco' ? cost.fullyLoaded : cost.chargeableFullyLoaded,
-        wageEscalationAnnual
-      );
-
-      // Baseline cost with escalation
-      const peopleCostBaseline = cost.peopleCost.baseline;
+      const runCostChargeable = getRampedCost(m, transitionMonths, cost.chargeableFullyLoaded, wageEscalationAnnual);
       const escalationFactor = Math.pow(1 + wageEscalationAnnual, Math.floor((m - 1) / 12));
-      const baselineFullyLoadedWithEscalation = cost.fullyLoaded.baseline * escalationFactor;
 
       month.runCostFull = runCostFull;
-      month.baselineCostFull = baselineFullyLoadedWithEscalation;
+      month.baselineCostFull = cost.fullyLoaded.baseline * escalationFactor;
       month.savingFull = month.baselineCostFull - month.runCostFull;
 
       month.runCostChargeable = runCostChargeable;
-      month.baselineCostChargeable = baselineFullyLoadedWithEscalation;
+      month.baselineCostChargeable = cost.chargeableFullyLoaded.baseline * escalationFactor;
       month.savingChargeable = month.baselineCostChargeable - month.runCostChargeable;
 
       month.investmentOutflow = investmentByMonth[m] || 0;
 
-      // Cost avoidance (optional, Section 5.5)
-      if (scenario.costAvoidanceIncludedInRoi && (scenario.costAvoidanceExtraTestCasesPerMonth || 0) > 0) {
-        // Placeholder - implement if needed
-        month.costAvoidance = 0;
-      }
+      // Cost avoidance (F7): reported every month, counted in the cash flow only when opted in
+      month.costAvoidance =
+        (m <= transitionMonths ? cost.costAvoidance.transition : cost.costAvoidance.mature) * escalationFactor;
 
-      month.netCashFlow = month.savingFull + month.costAvoidance - month.investmentOutflow;
+      // F6: the user chooses whether TCO or client-chargeable cost drives the business case
+      const saving = scenario.costChargeable === 'chargeable' ? month.savingChargeable : month.savingFull;
+      const avoidance = scenario.costAvoidanceIncludedInRoi ? month.costAvoidance : 0;
+      month.netCashFlow = saving + avoidance - month.investmentOutflow;
 
-      // Track cumulative savings (for financial metrics without investment)
-      cumulativeSavingOnly += month.savingFull + month.costAvoidance;
+      cumulativeSavingOnly += saving + avoidance;
     }
 
     cumulativeCashFlow += month.netCashFlow;
@@ -433,6 +427,16 @@ function calculateBenefitLedger(
     ).toFixed(0)}%`,
   });
 
+  if (cost.costAvoidance.mature > 0) {
+    ledger.push({
+      category: 'costAvoidance',
+      amount: cost.costAvoidance.mature,
+      notes: scenario.costAvoidanceIncludedInRoi
+        ? 'Extra demand absorbed without hiring; included in ROI'
+        : 'Extra demand absorbed without hiring; excluded from ROI and from the reconciliation',
+    });
+  }
+
   const riskDelta =
     cost.risk.baseline -
     (cost.directOpex.mature * scenario.globalAssumptions.riskReservePercent.mature);
@@ -480,7 +484,7 @@ function calculateFinancialMetrics(
   // Find payback month - first month where cumulative cash flow >= 0
   for (const month of monthlyForecast) {
     if (month.month > 0) {
-      cumulativeSavings += month.savingFull;
+      cumulativeSavings += month.netCashFlow + month.investmentOutflow;
       cumulativeSavingsByMonth[month.month] = cumulativeSavings;
     }
 
@@ -519,7 +523,7 @@ function calculateFinancialMetrics(
     const month = monthlyForecast[m];
     metrics.totalInvestment += month.investmentOutflow;
     if (m > 0) {
-      metrics.totalSavingsOverHorizon += month.savingFull;
+      metrics.totalSavingsOverHorizon += month.netCashFlow + month.investmentOutflow;
     }
   }
 
@@ -532,8 +536,8 @@ function calculateFinancialMetrics(
   // Steady-state annual ROI = (12 × mature monthly saving - total invest) / total invest
   const matureMonthlyForecasts = monthlyForecast.filter(m => m.month > horizonMonths - 12 && m.month > 0);
   const matureMonthlySaving = matureMonthlyForecasts.length > 0
-    ? matureMonthlyForecasts.reduce((sum, m) => sum + m.savingFull, 0) / matureMonthlyForecasts.length
-    : monthlyForecast[horizonMonths]?.savingFull || 0;
+    ? matureMonthlyForecasts.reduce((sum, m) => sum + m.netCashFlow + m.investmentOutflow, 0) / matureMonthlyForecasts.length
+    : 0;
 
   if (metrics.totalInvestment > 0) {
     metrics.steadyStateAnnualRoi =
@@ -552,6 +556,34 @@ function calculateFinancialMetrics(
   metrics.irr = solveIrr(monthlyForecast, horizonMonths);
 
   return metrics;
+}
+
+/**
+ * F7 cost avoidance: extra volume × hours saved per unit (incl. review overhead) × baseline blended hourly rate.
+ */
+function calculateCostAvoidance(
+  scenario: Scenario,
+  ctx: DeliveryContext,
+  effort: EffortCalculation,
+  baselinePeopleCost: number
+): Record<State, number> {
+  const result: Record<State, number> = { baseline: 0, transition: 0, mature: 0 };
+  const baselineHours = effort.staffingFte.baseline * scenario.globalAssumptions.workingHrsPerFtePerMonth;
+  if (baselineHours <= 0) return result;
+  const hourlyRate = baselinePeopleCost / baselineHours;
+
+  for (const kpi of scenario.kpis) {
+    const extra = kpi.extraVolumePerMonth ?? 0;
+    if (extra <= 0 || kpi.volumePerMonth === undefined) continue;
+    const hours = effort.kpi[kpi.id]!;
+    for (const state of ['transition', 'mature'] as const) {
+      const o = scenario.aiOverheadPercent[state];
+      const overhead = kpi.reviewOverheadApplies ? (o.hitl + o.rework + o.dualRun) * ctx.adoption[state] : 0;
+      const savedPerUnit = hours.baseline - hours[state] * (1 + overhead);
+      result[state] += Math.max(0, extra * savedPerUnit * hourlyRate);
+    }
+  }
+  return result;
 }
 
 /**

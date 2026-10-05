@@ -31,7 +31,9 @@ The app opens with an **example calculation**, marked "Example calculation · fi
 | Delivery model panel | Below the comparison: edit the selected model's offshore share and AI adoption, today's offshore share, and the offshore cost level. |
 | Team panel | Choose how headcount is costed: **Derived from AI productivity** (default) or **Staffing plan as entered**. |
 | AI model usage panel | Token cost of the AI models: each usage item is linked to a work item, so requests follow the monthly volume (e.g. 15,000 requests per release). Cost = requests × (input tokens × input price + output tokens × output price). **Edit usage and prices** to change models, requests and tokens, and to edit the dated price table. |
-| Workload panel | The work the team does each month: volume × hours each, today versus mature. **Edit workload** to change volumes and hours, override hours per state, mark items as AI-assisted or as carrying review overhead, and add or remove items. |
+| Sensitivity panel | Which assumption the case depends on most. Each driver moves ±20% on its own and the NPV range is shown: AI effort reduction (share of the assumed reduction that materialises, costs kept), AI running costs (tools, infrastructure, model prices), role rates, overhead and risk %, transition length, one-off investment. A grid shows the payback month for AI effect (60–140%) × transition length. |
+| Cost basis (Cost Model) | **Total cost of ownership** (every cost line) or **Client-chargeable cost** (leaves out lines marked not chargeable). The choice drives savings, payback, ROI and NPV. |
+| Workload panel | The work the team does each month: volume × hours each, today versus mature. **Edit workload** to change volumes and hours, override hours per state, mark items as AI-assisted or as carrying review overhead, enter extra volume the AI-assisted team absorbs without hiring (cost avoidance), and add or remove items. Cost avoidance is shown separately and counted in ROI only when switched on. |
 | Use-case templates | In setup, step "Team and workload": **Software testing**, **Software development** or **IT support / service desk**. Each sets roles, a matching workload (sized so the work equals the team) and typical AI model usage. Adjust volumes and the average onshore cost to the customer. |
 
 Opening a file or loading the example asks for confirmation before replacing a customer scenario. Files are validated before use: a malformed file shows readable errors instead of being loaded.
@@ -126,7 +128,10 @@ Headcount           effort-derived (default): team_s = baselineTeam × totalEffo
                     staffing plan: role FTE as entered
 Cost                direct = people + cost lines;  fully loaded = direct × (1 + overhead% + risk%)
 Monthly ramp        month k ≤ N: T + (M − T) × (k − 1) / N;  month > N: M
-Cash flow           saving_m = baseline − run cost;  net_m = saving_m − investment_m
+Cash flow           saving_m = baseline − run cost   (TCO or client-chargeable basis)
+                    net_m = saving_m (+ cost avoidance_m if counted) − investment_m
+Cost avoidance      extra volume × (hours each today − hours each with AI incl. review overhead)
+                    × today's people cost per hour
 Metrics             payback = first month with cumulative net ≥ 0
                     ROI = (Σ saving − Σ investment) / Σ investment
                     NPV at monthly rate (1 + r)^(1/12) − 1;  IRR by bisection, annualised
@@ -153,6 +158,7 @@ packages/engine/        Pure TypeScript calculation library (no I/O), shared by 
   src/compare.ts          all delivery models on one baseline, ranked by NPV
   src/advice.ts           rule-based verdict and findings
   src/llm.ts              AI model usage cost and the default price table
+  src/sensitivity.ts      tornado (±20% per driver) and payback grid
   src/currency.ts         FX rates and scenario conversion
   src/example.ts          the Northwind example
   src/defaults.ts         reference scenario from the source Excel (INR), legacy-file normalisation
@@ -181,7 +187,7 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 
 ## Tests
 
-`npm test` runs the engine suite: 64 tests. They cover:
+`npm test` runs the engine suite: 69 tests. They cover:
 
 - **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story
@@ -192,6 +198,4 @@ Server exports have been checked against a running server. **The UI has not yet 
 ## Known limitations
 
 - Cross-functional roles added from a template are scaled with the workload like every other role, which slightly flatters the saving; the setup flags a team/workload gap above 10%.
-- Sensitivity analysis varies horizon and discount rate rather than the business drivers (planned).
-- The client-chargeable toggle and cost avoidance are not yet applied to ROI (planned).
 - FX rates and AI model prices are static and editable, not live (see AI model prices).

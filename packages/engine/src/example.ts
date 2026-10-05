@@ -77,7 +77,5 @@ export function createExampleScenario(): Scenario {
 
     costChargeable: 'tco',
     costAvoidanceIncludedInRoi: false,
-    costAvoidanceExtraTestCasesPerMonth: 0,
-    costAvoidanceExtraScriptsPerMonth: 0,
   };
 }

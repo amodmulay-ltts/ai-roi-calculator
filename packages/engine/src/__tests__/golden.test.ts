@@ -9,6 +9,8 @@ import {
   createDefaultScenario,
   createExampleScenario,
   compareDeliveryModels,
+  tornado,
+  paybackGrid,
   advise,
   breakEvenRealisation,
   withRealisedEffortReduction,
@@ -347,6 +349,69 @@ describe('Generic workload', () => {
     expect(loaded.ok).toBe(true);
     if (!loaded.ok) return;
     expect(calculate(loaded.scenario).financialMetrics.npv).toBeCloseTo(calculate(referenceScenario()).financialMetrics.npv, 4);
+  });
+});
+
+describe('TCO versus client-chargeable (F6)', () => {
+  it('drives savings and metrics from the chosen basis', () => {
+    const tco = calculate(referenceScenario());
+    const chargeableScenario = referenceScenario();
+    chargeableScenario.costChargeable = 'chargeable';
+    const chargeable = calculate(chargeableScenario);
+
+    // The reference has a non-chargeable capex line (100,000 a month in transition and mature)
+    expect(chargeable.financialMetrics.npv).not.toBeCloseTo(tco.financialMetrics.npv, 0);
+    const m = chargeable.monthlyForecast[12]!;
+    expect(m.netCashFlow).toBeCloseTo(m.savingChargeable, 6);
+    expect(m.baselineCostChargeable).toBeCloseTo(chargeable.cost.chargeableFullyLoaded.baseline, 6);
+    expect(chargeable.financialMetrics.totalSavingsOverHorizon).toBeGreaterThan(tco.financialMetrics.totalSavingsOverHorizon);
+  });
+});
+
+describe('Cost avoidance (F7)', () => {
+  const withExtra = (included: boolean) => {
+    const s = createExampleScenario();
+    s.kpis = s.kpis.map(k => (k.id === 'testing-effort-per-release' ? { ...k, extraVolumePerMonth: 1 } : k));
+    s.costAvoidanceIncludedInRoi = included;
+    return calculate(s);
+  };
+
+  it('values extra demand as hours saved per unit × baseline hourly rate', () => {
+    const r = withExtra(false);
+    const rate = 233_000 / (31 * 160);
+    const savedPerRelease = 2_300 - 2_300 * 0.7 * 1.07;
+    expect(r.cost.costAvoidance.mature).toBeCloseTo(savedPerRelease * rate, 4);
+    expect(r.benefitLedger.some(l => l.category === 'costAvoidance')).toBe(true);
+  });
+
+  it('is excluded from ROI unless switched on', () => {
+    const base = calculate(createExampleScenario()).financialMetrics.npv;
+    expect(withExtra(false).financialMetrics.npv).toBeCloseTo(base, 4);
+    expect(withExtra(true).financialMetrics.npv).toBeGreaterThan(base);
+  });
+});
+
+describe('Sensitivity (5.7)', () => {
+  it('ranks the six business drivers by their NPV swing', () => {
+    const s = createExampleScenario();
+    const t = tornado(s);
+    expect(t.baseNpv).toBeCloseTo(calculate(s).financialMetrics.npv, 6);
+    expect(t.rows.map(r => r.id).sort()).toEqual(['ai-costs', 'ai-effect', 'investment', 'overhead', 'rates', 'transition']);
+    for (let i = 1; i < t.rows.length; i++) expect(t.rows[i - 1]!.range).toBeGreaterThanOrEqual(t.rows[i]!.range);
+
+    const investment = t.rows.find(r => r.id === 'investment')!;
+    expect(investment.npvHigh).toBeLessThan(t.baseNpv);
+    const aiEffect = t.rows.find(r => r.id === 'ai-effect')!;
+    expect(aiEffect.npvHigh).toBeGreaterThan(aiEffect.npvLow);
+  });
+
+  it('shows payback for AI effect × transition length, with the base case in the grid', () => {
+    const s = createExampleScenario();
+    const g = paybackGrid(s);
+    expect(g.cells[g.base.row]![g.base.col]).toBe(calculate(s).financialMetrics.paybackMonth);
+    // More of the AI effect never delays payback
+    const col = g.cells.map(row => row[g.base.col] ?? Infinity);
+    for (let i = 1; i < col.length; i++) expect(col[i]!).toBeLessThanOrEqual(col[i - 1]!);
   });
 });
 

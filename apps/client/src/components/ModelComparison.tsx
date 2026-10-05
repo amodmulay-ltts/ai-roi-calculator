@@ -91,7 +91,11 @@ export default function ModelComparison({ scenario, formatCurrency, onSelect }: 
                 <span className="text-sm text-gray-700">{paybackText(results)}</span>
                 {/* Quiet details */}
                 <span className="hidden md:block text-right text-xs text-gray-500">
-                  {formatCurrency(results.cost.fullyLoaded.baseline - results.cost.fullyLoaded.mature)}
+                  {formatCurrency(
+                    scenario.costChargeable === 'chargeable'
+                      ? results.cost.chargeableFullyLoaded.baseline - results.cost.chargeableFullyLoaded.mature
+                      : results.cost.fullyLoaded.baseline - results.cost.fullyLoaded.mature
+                  )}
                 </span>
                 <span className="hidden md:block text-right text-xs text-gray-500">
                   {results.effort.staffingFte.mature.toFixed(1)} FTE

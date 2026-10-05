@@ -75,7 +75,8 @@ export function advise(scenario: Scenario, results: Results): Advice {
   const money = (v: number) => formatMoney(v, scenario.baseCurrency);
   const { financialMetrics: fm, cost, effort } = results;
   const horizon = scenario.timeValue.horizonMonths;
-  const saving = cost.fullyLoaded.baseline - cost.fullyLoaded.mature;
+  const runCost = scenario.costChargeable === 'chargeable' ? cost.chargeableFullyLoaded : cost.fullyLoaded;
+  const saving = runCost.baseline - runCost.mature;
   const derived = scenario.peopleMode.mode === 'effort-derived';
   const ctx = deliveryContext(scenario);
   const findings: Finding[] = [];
