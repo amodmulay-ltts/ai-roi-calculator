@@ -11,10 +11,11 @@ import AiUsagePanel from './components/AiUsagePanel';
 import SensitivityPanel from './components/SensitivityPanel';
 import CashFlowSection from './components/CashFlowSection';
 import CostsSummary from './components/CostsSummary';
+import AiEffectPanel from './components/AiEffectPanel';
 import ModelSelector from './components/ModelSelector';
 import ModelComparison from './components/ModelComparison';
 import AdvicePanel from './components/AdvicePanel';
-import ScenarioSetup, { type SetupMode } from './components/ScenarioSetup';
+import ScenarioSetup, { INVESTMENT_STEP, type SetupMode } from './components/ScenarioSetup';
 import ExampleBanner from './components/ExampleBanner';
 import HelpPresentation from './components/HelpPresentation';
 import { loadSavedScenario, saveScenario } from './utils/autosave';
@@ -24,8 +25,9 @@ import Tooltip from './components/Tooltip';
 const exportFileName = (scenario: Scenario, ext: string) =>
   `VALUEAI_${scenario.name.replace(/[^A-Za-z0-9.-]+/g, '_').slice(0, 80)}_${new Date().toISOString().split('T')[0]}.${ext}`;
 
-type AssumptionTab = 'team' | 'workload' | 'ai' | 'costs';
+type AssumptionTab = 'ai-effect' | 'team' | 'workload' | 'ai' | 'costs';
 const ASSUMPTION_TABS: Array<[AssumptionTab, string]> = [
+  ['ai-effect', 'AI effect'],
   ['team', 'Team'],
   ['workload', 'Workload'],
   ['ai', 'AI model usage'],
@@ -49,7 +51,7 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingRoles, setEditingRoles] = useState(false);
   const [editingCostLines, setEditingCostLines] = useState(false);
-  const [assumptionsTab, setAssumptionsTab] = useState<AssumptionTab>('team');
+  const [assumptionsTab, setAssumptionsTab] = useState<AssumptionTab>('ai-effect');
   const [setupStep, setSetupStep] = useState(1);
   const [pendingCurrency, setPendingCurrency] = useState<Currency | null>(null);
 
@@ -457,6 +459,7 @@ export default function App() {
             </div>
           </div>
           <div id="assumptions-panel" role="tabpanel" aria-labelledby={`tab-${assumptionsTab}`}>
+            {assumptionsTab === 'ai-effect' && <AiEffectPanel scenario={scenario} onUpdate={handleScenarioUpdate} />}
             {assumptionsTab === 'team' &&
               (editingRoles ? (
                 <RolesGrid
@@ -495,7 +498,7 @@ export default function App() {
                   formatCurrency={formatCurrency}
                   onEditLines={() => setEditingCostLines(true)}
                   onEditInvestment={() => {
-                    setSetupStep(5);
+                    setSetupStep(INVESTMENT_STEP);
                     setSetupMode('edit');
                   }}
                 />

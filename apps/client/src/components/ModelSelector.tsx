@@ -1,47 +1,11 @@
 import type { ImplementationModel, Scenario } from '@ai-roi-calc/engine';
 import { DELIVERY_MODEL_INFO, deliveryModelInfo } from '../utils/deliveryModels';
 import Tooltip from './Tooltip';
+import PercentInput from './PercentInput';
 
 interface ModelSelectorProps {
   scenario: Scenario;
   onUpdate: (updates: Partial<Scenario>) => void;
-}
-
-function PercentInput({
-  id,
-  value,
-  max,
-  onChange,
-  size,
-}: {
-  id: string;
-  value: number;
-  max: number;
-  onChange: (fraction: number) => void;
-  size: 'md' | 'sm';
-}) {
-  const cls =
-    size === 'md'
-      ? 'w-24 text-3xl font-semibold text-gray-900 border-b-2 border-gray-200 focus:border-blue-600'
-      : 'w-16 text-sm text-gray-700 border-b border-gray-200 focus:border-blue-600';
-  return (
-    <span className="inline-flex items-baseline gap-1">
-      <input
-        id={id}
-        type="number"
-        min={0}
-        max={max}
-        step={5}
-        value={Math.round(value * 100)}
-        onChange={e => {
-          const pct = Math.min(max, Math.max(0, Number(e.target.value) || 0));
-          onChange(pct / 100);
-        }}
-        className={`${cls} bg-transparent focus:outline-none`}
-      />
-      <span className={size === 'md' ? 'text-xl text-gray-500' : 'text-sm text-gray-500'}>%</span>
-    </span>
-  );
 }
 
 export default function ModelSelector({ scenario, onUpdate }: ModelSelectorProps) {

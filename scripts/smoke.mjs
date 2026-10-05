@@ -81,7 +81,8 @@ async function main() {
     page.on('pageerror', e => errors.push(String(e)));
     page.on('console', m => m.type() === 'error' && errors.push(m.text()));
     page.on('dialog', d => d.accept());
-    const shot = name => page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage: true });
+    // Dialogs are fixed to the viewport, so capture those without fullPage
+    const shot = (name, fullPage = true) => page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage });
 
     // 1. First visit: the example
     await page.goto(URL, { waitUntil: 'networkidle0' });
@@ -133,6 +134,18 @@ async function main() {
     await clickByText(page, '[role="menuitem"]', 'EUR');
     await clickByText(page, '[role="dialog"] button', 'Convert all amounts');
 
+    // 1c2. AI effect: the central assumption is editable and drives the verdict
+    await clickByText(page, '[role="tab"]', 'AI effect');
+    const setCut = async value => {
+      const input = await page.$('#assumptions-panel #cut-mature');
+      await input.click({ clickCount: 3 });
+      await input.type(String(value));
+    };
+    await setCut(15);
+    check('a 15% effort cut turns the advice to "does not pay back"', (await text(page)).includes('Does not pay back within'));
+    await setCut(30);
+    check('restoring 30% restores the verdict', (await text(page)).includes('Pays back in month 15'));
+
     // 1d. Roles: hourly rates, working hours, add/remove, persisted on the scenario
     await clickByText(page, '[role="tab"]', 'Team');
     await clickByText(page, 'button', 'Edit roles, FTE and rates');
@@ -183,9 +196,12 @@ async function main() {
     );
     await clickByText(page, '[role="dialog"] button', 'Apply template');
     check('automotive template sets the workload', (await text(page)).includes('5,280 h of work a month'));
-    await shot('03a-setup-automotive-template');
+    await shot('03a-setup-automotive-template', false);
+    await clickByText(page, '[role="dialog"] button', 'Next');
+    check('setup has an AI effect step with the mature cut', (await page.$eval('#cut-mature', el => Number(el.value))) === 30);
+    await shot('03b-setup-ai-effect', false);
     for (let i = 0; i < 3; i++) await clickByText(page, '[role="dialog"] button', 'Next');
-    await shot('03-setup-review');
+    await shot('03-setup-review', false);
     await clickByText(page, '[role="dialog"] button', 'Create scenario');
     body = await text(page);
     check('setup creates a customer scenario', body.includes('Smoke Test Bank - AI testing') && !body.includes('EXAMPLE CALCULATION'));
