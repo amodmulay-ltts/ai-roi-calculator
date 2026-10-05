@@ -13,6 +13,7 @@ npm install
 npm run build -w packages/engine   # the client and server import the built engine
 npm run dev                        # client http://localhost:5173, server http://localhost:3001
 npm test                           # engine tests (Vitest, runs once)
+npm run smoke                      # browser smoke test on the built app (needs Chrome or Edge installed)
 npm run build                      # production build of engine, server and client
 ```
 
@@ -35,6 +36,8 @@ The app opens with an **example calculation**, marked "Example calculation · fi
 | Cost basis (Cost Model) | **Total cost of ownership** (every cost line) or **Client-chargeable cost** (leaves out lines marked not chargeable). The choice drives savings, payback, ROI and NPV. |
 | Workload panel | The work the team does each month: volume × hours each, today versus mature. **Edit workload** to change volumes and hours, override hours per state, mark items as AI-assisted or as carrying review overhead, enter extra volume the AI-assisted team absorbs without hiring (cost avoidance), and add or remove items. Cost avoidance is shown separately and counted in ROI only when switched on. |
 | Use-case templates | In setup, step "Team and workload": **Software testing**, **Software development** or **IT support / service desk**. Each sets roles, a matching workload (sized so the work equals the team) and typical AI model usage. Adjust volumes and the average onshore cost to the customer. |
+
+The current scenario is **saved automatically in this browser** (local storage) and restored on the next visit, with a note saying so. Only one scenario is kept, and it stays on this computer: use **Export › Save scenario** to keep copies or move them elsewhere. A saved entry that fails validation is ignored and the example loads instead.
 
 Opening a file or loading the example asks for confirmation before replacing a customer scenario. Files are validated before use: a malformed file shows readable errors instead of being loaded.
 
@@ -193,7 +196,7 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story
 - **Files:** save/load round trips and rejection of invalid files
 
-Server exports have been checked against a running server. **The UI has not yet been tested systematically in a browser.**
+`npm run smoke` serves the built client, drives an installed Chrome (or Edge; set `BROWSER_PATH` to choose) with a throwaway profile, checks the main flows (example, help, guided setup, autosave and restore, corrupt saved data), fails on any console error, and writes full-page screenshots to `.smoke/`. Server exports have been checked against a running server.
 
 ## Known limitations
 

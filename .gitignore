@@ -163,3 +163,6 @@ coverage/
 .nyc_output/
 .turbo/
 .claude/settings.local.json
+
+# Browser smoke test screenshots
+.smoke/

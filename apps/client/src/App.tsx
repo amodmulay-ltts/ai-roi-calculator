@@ -18,6 +18,7 @@ import AdvicePanel from './components/AdvicePanel';
 import ScenarioSetup, { type SetupMode } from './components/ScenarioSetup';
 import ExampleBanner from './components/ExampleBanner';
 import HelpPresentation from './components/HelpPresentation';
+import { loadSavedScenario, saveScenario } from './utils/autosave';
 import ScenarioImport from './components/ScenarioImport';
 import Tooltip from './components/Tooltip';
 
@@ -35,12 +36,23 @@ export default function App() {
   const [editingCostLines, setEditingCostLines] = useState(false);
   const [pendingCurrency, setPendingCurrency] = useState<Currency | null>(null);
 
+  const [restoredAt, setRestoredAt] = useState<string | null>(null);
+
   useEffect(() => {
-    const example = createExampleScenario();
-    setScenario(example);
-    setResults(calculate(example));
+    const saved = loadSavedScenario();
+    const initial = saved?.scenario ?? createExampleScenario();
+    if (saved && !saved.scenario.isExample) setRestoredAt(saved.savedAt);
+    setScenario(initial);
+    setResults(calculate(initial));
     setLoading(false);
   }, []);
+
+  // Autosave to this browser shortly after each change
+  useEffect(() => {
+    if (!scenario) return;
+    const timer = window.setTimeout(() => saveScenario(scenario), 300);
+    return () => window.clearTimeout(timer);
+  }, [scenario]);
 
   const handleScenarioUpdate = (updates: Partial<Scenario>) => {
     if (!scenario) return;
@@ -51,15 +63,16 @@ export default function App() {
   };
 
   const replaceScenario = (next: Scenario) => {
+    setRestoredAt(null);
     setScenario(next);
     setResults(calculate(next));
   };
 
-  /** Replacing a customer scenario discards unsaved edits; the example can always be reloaded. */
+  /** Only the current scenario is kept in the browser, so replacing a customer scenario loses it unless saved to a file. */
   const confirmReplace = () =>
     !scenario ||
     scenario.isExample ||
-    window.confirm(`Replace "${scenario.name}"? Unsaved changes will be lost. Use Export › Save scenario first to keep them.`);
+    window.confirm(`Replace "${scenario.name}"? Only the current scenario is kept in this browser. Use Export › Save scenario first to keep a copy.`);
 
   const handleLoadExample = () => {
     if (confirmReplace()) replaceScenario(createExampleScenario());
@@ -329,6 +342,16 @@ export default function App() {
             <span>Horizon: <span className="text-gray-700">{scenario.timeValue.horizonMonths} months</span></span>
           </div>
         </div>
+
+        {restoredAt !== null && (
+          <p role="status" className="mb-6 text-sm text-gray-500">
+            Restored the scenario saved in this browser
+            {restoredAt ? ` on ${new Date(restoredAt).toLocaleString()}` : ''}.{' '}
+            <button onClick={() => setRestoredAt(null)} className="text-blue-700 hover:text-blue-900">
+              Dismiss
+            </button>
+          </p>
+        )}
 
         {scenario.isExample && (
           <ExampleBanner
