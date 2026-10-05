@@ -1,5 +1,5 @@
 import type { Role, Currency, KpiInput, LlmUsage, Scenario } from '@ai-roi-calc/engine';
-import { fxFactor } from '@ai-roi-calc/engine';
+import { createExampleScenario, fxFactor } from '@ai-roi-calc/engine';
 
 export const ROLE_TEMPLATES: Record<string, Role[]> = {
   testing: [
@@ -277,9 +277,10 @@ export const ROLE_TEMPLATES: Record<string, Role[]> = {
   ],
 };
 
-export type UseCase = 'testing' | 'development' | 'support';
+export type UseCase = 'automotive' | 'testing' | 'development' | 'support';
 
 export const USE_CASES: Array<{ id: UseCase; label: string; description: string }> = [
+  { id: 'automotive', label: 'Automotive software (ECU / ADAS)', description: 'Requirements, SIL tests, safety reviews, ISO 26262 / ASPICE work products, HIL' },
   { id: 'testing', label: 'Software testing', description: 'Releases tested, defects analysed and verified' },
   { id: 'development', label: 'Software development', description: 'User stories, code reviews, bug fixes' },
   { id: 'support', label: 'IT support / service desk', description: 'L1 tickets, L2 incidents, knowledge, problems' },
@@ -309,8 +310,12 @@ const AI = { affected: true, review: true };
 const AI_NO_REVIEW = { affected: true, review: false };
 const MANUAL = { affected: false, review: false };
 
+// The automotive template is the built-in example's team, workload and AI usage (authored in EUR)
+const AUTOMOTIVE = createExampleScenario();
+
 /** Monthly workload per use case, sized to the matching role template's baseline team × 160 h. */
 export const WORKLOAD_TEMPLATES: Record<UseCase, KpiInput[]> = {
+  automotive: AUTOMOTIVE.kpis,
   testing: [
     item('testing-effort-per-release', 'Testing effort per release', 'releases', 2, 2_540, AI),
     item('defect-rca-effort', 'Defect root-cause analysis', 'defects', 200, 1.0, AI_NO_REVIEW),
@@ -343,6 +348,7 @@ const usage = (
 
 /** Typical AI model usage per use case, linked to the matching workload items. Starting points to adjust. */
 export const LLM_USAGE_TEMPLATES: Record<UseCase, LlmUsage[]> = {
+  automotive: AUTOMOTIVE.llmUsage,
   testing: [
     usage('test-generation', 'Test design and generation', 'claude-sonnet-5-5', 'testing-effort-per-release', 15_000, 8_000, 2_000),
     usage('review-agent', 'Test review agent', 'claude-opus-5-5', 'testing-effort-per-release', 2_000, 30_000, 3_000),
@@ -362,6 +368,7 @@ export const LLM_USAGE_TEMPLATES: Record<UseCase, LlmUsage[]> = {
 
 export function detectUseCase(useCaseText: string): UseCase {
   const t = useCaseText.toLowerCase();
+  if (['automotive', 'ecu', 'adas', 'autosar', 'vehicle', 'iso 26262', 'aspice'].some(w => t.includes(w))) return 'automotive';
   if (t.includes('support') || t.includes('service') || t.includes('ticket') || t.includes('itsm')) return 'support';
   if (t.includes('test') || t.includes('qa')) return 'testing';
   if (t.includes('dev') || t.includes('engineer') || t.includes('build') || t.includes('code')) return 'development';
@@ -372,32 +379,37 @@ export function workloadHours(kpis: KpiInput[]): number {
   return kpis.reduce((sum, k) => sum + (k.volumePerMonth ?? 0) * k.baseline, 0);
 }
 
-// Template rates are authored in INR; convert them into the scenario currency.
+const convertRates = (roles: Role[], factor: number): Role[] =>
+  roles.map(role => ({
+    ...role,
+    costPerFte: Math.round(role.costPerFte * factor),
+    billRatePerFte: Math.round(role.billRatePerFte * factor),
+  }));
+
+/**
+ * Roles for a use case in the scenario currency. Automotive rates are authored in EUR (European onshore);
+ * the other templates and the cross-functional roles in INR. Cross-functional roles added to the automotive
+ * team are rescaled to its average rate so one team does not mix rate levels.
+ */
 export function getRolesForUseCase(
   useCase: UseCase,
   includeAll: boolean,
   currency: Currency,
   fxRatesPerEur: Record<Currency, number>
 ): Role[] {
-  const factor = fxFactor('INR', currency, fxRatesPerEur);
-  return selectRoles(useCase, includeAll).map(role => ({
-    ...role,
-    costPerFte: Math.round(role.costPerFte * factor),
-    billRatePerFte: Math.round(role.billRatePerFte * factor),
-  }));
-}
+  const fromInr = fxFactor('INR', currency, fxRatesPerEur);
+  const primary =
+    useCase === 'automotive'
+      ? convertRates(AUTOMOTIVE.roles, fxFactor('EUR', currency, fxRatesPerEur))
+      : convertRates(ROLE_TEMPLATES[useCase]!, fromInr);
 
-function selectRoles(useCase: UseCase, includeAll: boolean): Role[] {
-  let selectedRoles: Role[] = [...ROLE_TEMPLATES[useCase]!];
-
-  // Add cross-functional roles if requested
-  if (includeAll) {
-    selectedRoles = [...selectedRoles, ...ROLE_TEMPLATES.allRoles];
+  let extra = includeAll ? convertRates(ROLE_TEMPLATES.allRoles!, fromInr) : [];
+  if (useCase === 'automotive' && extra.length > 0) {
+    extra = rescaleRolesToAverage(extra, averageCostPerFte(primary));
   }
 
-  // Ensure unique IDs
   const seen = new Set<string>();
-  return selectedRoles.filter(role => {
+  return [...primary, ...extra].filter(role => {
     if (seen.has(role.id)) return false;
     seen.add(role.id);
     return true;
