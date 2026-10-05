@@ -18,7 +18,8 @@
     "test:all": "npm test -w packages/engine",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
+    "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",
@@ -26,6 +27,7 @@
     "concurrently": "^8.2.2",
     "eslint": "^8.50.0",
     "prettier": "^3.1.0",
+    "puppeteer-core": "^23.11.1",
     "typescript": "^5.3.0"
   },
   "engines": {
