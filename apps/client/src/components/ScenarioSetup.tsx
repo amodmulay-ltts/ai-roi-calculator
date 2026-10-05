@@ -13,6 +13,7 @@ import {
 import Tooltip from './Tooltip';
 import { rateUnitOf } from '../utils/rates';
 import ModelSelector from './ModelSelector';
+import AiEffectPanel from './AiEffectPanel';
 import { deliveryModelInfo } from '../utils/deliveryModels';
 
 export type SetupMode = 'new' | 'edit';
@@ -28,7 +29,8 @@ interface ScenarioSetupProps {
   initialStep?: number;
 }
 
-const STEPS = ['Basics', 'Delivery model', 'Timeline', 'Team and workload', 'Investment', 'Team preview', 'Review'];
+const STEPS = ['Basics', 'Delivery model', 'Timeline', 'Team and workload', 'AI effect', 'Investment', 'Team preview', 'Review'];
+export const INVESTMENT_STEP = STEPS.indexOf('Investment') + 1;
 
 /** A new customer scenario starts from the example's realistic structure, without its identity. */
 function blankScenario(): Scenario {
@@ -117,9 +119,21 @@ export default function ScenarioSetup({ mode, current, onApply, onCancel, initia
           {step === 4 && (
             <Step4Roles scenario={scenario} onUpdate={updateScenario} />
           )}
-          {step === 5 && <Step5Investment scenario={scenario} onUpdate={updateScenario} />}
-          {step === 6 && <Step6TeamPreview scenario={scenario} />}
-          {step === 7 && <Step7Review scenario={scenario} isNew={isNew} />}
+          {step === 5 && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">AI effect</h3>
+                <p className="text-sm text-gray-600">
+                  How much AI cuts the effort on the work above, and how much human review it needs. This drives the team size and
+                  most of the result, so agree it with the customer and validate it with a pilot.
+                </p>
+              </div>
+              <AiEffectPanel scenario={scenario} onUpdate={updateScenario} />
+            </div>
+          )}
+          {step === 6 && <Step5Investment scenario={scenario} onUpdate={updateScenario} />}
+          {step === 7 && <Step6TeamPreview scenario={scenario} />}
+          {step === 8 && <Step7Review scenario={scenario} isNew={isNew} />}
         </div>
 
         <div className="bg-gray-50 px-8 py-4 flex gap-3 justify-between items-center border-t rounded-b-xl">
