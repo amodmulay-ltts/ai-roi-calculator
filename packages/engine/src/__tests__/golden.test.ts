@@ -306,12 +306,15 @@ describe('Example scenario', () => {
     expect(loaded.ok && loaded.scenario.isExample).toBe(true);
   });
 
-  it('tells a simple story: 31 FTE, 30% less effort, payback inside a year', () => {
-    expect(r.effort.staffingFte.baseline).toBe(31);
-    expect(r.effort.effortFte.baseline).toBeCloseTo(31, 6);
+  it('tells a simple story: 33 FTE whose work equals the team, 30% less AI-assisted effort, payback in year two', () => {
+    expect(r.scenario.useCase).toContain('Automotive');
+    expect(r.effort.staffingFte.baseline).toBe(33);
+    expect(r.effort.totalEffort.baseline).toBe(33 * 160);
+    expect(r.effort.effortFte.baseline).toBeCloseTo(33, 6);
     expect(r.effort.effortSavingPercent.mature).toBeCloseTo(0.3, 6);
-    expect(r.financialMetrics.totalInvestment).toBe(300_000);
-    expect(r.financialMetrics.paybackMonth).toBeLessThanOrEqual(12);
+    expect(r.financialMetrics.totalInvestment).toBe(430_000);
+    expect(r.financialMetrics.paybackMonth).toBeGreaterThan(12);
+    expect(r.financialMetrics.paybackMonth).toBeLessThanOrEqual(18);
     expect(r.financialMetrics.npv).toBeGreaterThan(0);
   });
 
@@ -329,11 +332,13 @@ describe('Generic workload', () => {
       { id: 'meetings', name: 'Coordination', unit: 'hrs/month', baseline: 960, appliesToFactor: false, isVelocity: false, overrides: {}, volumePerMonth: 1, reviewOverheadApplies: false },
     ];
     const r = calculate(s);
+    const o = s.aiOverheadPercent.mature;
+    const factor = s.productivityFactor.mode === 'direct-factor' ? s.productivityFactor.mature : 1;
     expect(r.effort.workloadHours['tickets']!.baseline).toBe(2_000);
     expect(r.effort.totalEffort.baseline).toBe(2_960);
-    // tickets drop to 70% plus 7% review overhead; coordination is not AI-affected
-    expect(r.effort.totalEffort.mature).toBeCloseTo(2_000 * 0.7 * 1.07 + 960, 6);
-    expect(r.effort.effortSavingPercent.mature).toBeCloseTo(0.3, 6);
+    // tickets drop by the AI factor plus review overhead; coordination is not AI-affected
+    expect(r.effort.totalEffort.mature).toBeCloseTo(2_000 * factor * (1 + o.hitl + o.rework + o.dualRun) + 960, 6);
+    expect(r.effort.effortSavingPercent.mature).toBeCloseTo(1 - factor, 6);
   });
 
   it('upgrades files saved with releases/defects per month to workload volumes', () => {
@@ -371,16 +376,20 @@ describe('TCO versus client-chargeable (F6)', () => {
 describe('Cost avoidance (F7)', () => {
   const withExtra = (included: boolean) => {
     const s = createExampleScenario();
-    s.kpis = s.kpis.map(k => (k.id === 'testing-effort-per-release' ? { ...k, extraVolumePerMonth: 1 } : k));
+    s.kpis = s.kpis.map(k => (k.id === 'requirements' ? { ...k, extraVolumePerMonth: 1 } : k));
     s.costAvoidanceIncludedInRoi = included;
     return calculate(s);
   };
 
   it('values extra demand as hours saved per unit × baseline hourly rate', () => {
     const r = withExtra(false);
-    const rate = 233_000 / (31 * 160);
-    const savedPerRelease = 2_300 - 2_300 * 0.7 * 1.07;
-    expect(r.cost.costAvoidance.mature).toBeCloseTo(savedPerRelease * rate, 4);
+    const s = r.scenario;
+    const o = s.aiOverheadPercent.mature;
+    const factor = s.productivityFactor.mode === 'direct-factor' ? s.productivityFactor.mature : 1;
+    const hoursEach = s.kpis.find(k => k.id === 'requirements')!.baseline;
+    const rate = r.cost.peopleCost.baseline / (r.effort.staffingFte.baseline * s.globalAssumptions.workingHrsPerFtePerMonth);
+    const savedPerRequirement = hoursEach - hoursEach * factor * (1 + o.hitl + o.rework + o.dualRun);
+    expect(r.cost.costAvoidance.mature).toBeCloseTo(savedPerRequirement * rate, 4);
     expect(r.benefitLedger.some(l => l.category === 'costAvoidance')).toBe(true);
   });
 
@@ -419,16 +428,16 @@ describe('AI model usage cost', () => {
   it('costs requests × tokens × price, converted from USD and following the workload volume', () => {
     const s = createExampleScenario();
     s.llmUsage = [
-      { id: 'u', name: 'Generation', priceId: 'claude-sonnet-5-5', kpiId: 'testing-effort-per-release', requestsPerUnit: 1_000, inputTokensPerRequest: 1_000_000, outputTokensPerRequest: 0 },
+      { id: 'u', name: 'Generation', priceId: 'claude-sonnet-5-5', kpiId: 'requirements', requestsPerUnit: 1_000, inputTokensPerRequest: 1_000_000, outputTokensPerRequest: 0 },
     ];
     const r = calculate(s);
-    // 2 releases × 1,000 requests × 1M input tokens × $2 / M tok = $4,000 → EUR at the scenario rate
-    const expected = (2 * 1_000 * 2) / s.fxRatesPerEur.USD;
-    expect(r.cost.llmRequestsPerMonth['u']).toBe(2_000);
+    // 40 requirements × 1,000 requests × 1M input tokens × $2 / M tok = $80,000 → EUR at the scenario rate
+    const expected = (40 * 1_000 * 2) / s.fxRatesPerEur.USD;
+    expect(r.cost.llmRequestsPerMonth['u']).toBe(40_000);
     expect(r.cost.llmCost.mature).toBeCloseTo(expected, 6);
     expect(r.cost.llmCost.baseline).toBe(0);
 
-    const doubled = { ...s, kpis: s.kpis.map(k => (k.id === 'testing-effort-per-release' ? { ...k, volumePerMonth: 4 } : k)) };
+    const doubled = { ...s, kpis: s.kpis.map(k => (k.id === 'requirements' ? { ...k, volumePerMonth: 80 } : k)) };
     expect(calculate(doubled).cost.llmCost.mature).toBeCloseTo(expected * 2, 6);
   });
 
@@ -483,8 +492,8 @@ describe('Advice', () => {
   });
 
   it('separates strong, marginal and negative cases by the effort cut', () => {
-    expect(adviceFor(cut(0.2)).tone).toBe('marginal');
-    const negative = adviceFor(cut(0.08));
+    expect(adviceFor(cut(0.25)).tone).toBe('marginal');
+    const negative = adviceFor(cut(0.15));
     expect(negative.tone).toBe('negative');
     expect(negative.findings[0]!.severity).toBe('warning');
     expect(negative.findings.some(f => f.id === 'transition-dip')).toBe(false);
@@ -547,10 +556,12 @@ describe('Delivery model comparison', () => {
 
 describe('IRR', () => {
   it('solves fast-payback cases above 200% instead of capping', () => {
-    const irr = calculate(createExampleScenario()).financialMetrics.irr!;
+    const fast = createExampleScenario();
+    fast.oneTimeInvestment = fast.oneTimeInvestment.map(i => ({ ...i, amount: i.amount * 0.1 }));
+    const irr = calculate(fast).financialMetrics.irr!;
     expect(irr).toBeGreaterThan(2);
     // NPV at the solved annual rate is ~0
-    const flows = calculate(createExampleScenario()).monthlyForecast.map(m => m.netCashFlow);
+    const flows = calculate(fast).monthlyForecast.map(m => m.netCashFlow);
     const monthly = Math.pow(1 + irr, 1 / 12) - 1;
     const npv = flows.reduce((sum, f, m) => sum + f / Math.pow(1 + monthly, m), 0);
     expect(Math.abs(npv)).toBeLessThan(1);

@@ -87,7 +87,7 @@ async function main() {
     await page.evaluate(() => localStorage.clear());
     await page.reload({ waitUntil: 'networkidle0' });
     let body = await text(page);
-    check('example loads by default', body.includes('Northwind Insurance') && body.includes('EXAMPLE CALCULATION'));
+    check('example loads by default', body.includes('Vantara Motors') && body.includes('EXAMPLE CALCULATION'));
     check('headline results render', /Net value created/.test(body) && /Month \d+/.test(body));
     await shot('01-dashboard-example');
 
@@ -157,7 +157,7 @@ async function main() {
     // 5. Corrupt storage falls back to the example
     await page.evaluate(() => localStorage.setItem('valueai.currentScenario.v1', '{"scenario":{"name":1}}'));
     await page.reload({ waitUntil: 'networkidle0' });
-    check('corrupt saved data falls back to the example', (await text(page)).includes('Northwind Insurance'));
+    check('corrupt saved data falls back to the example', (await text(page)).includes('Vantara Motors'));
 
     check('no console or page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {

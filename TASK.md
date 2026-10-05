@@ -29,7 +29,7 @@ Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, auto
 | 10 | Autosave + browser smoke test (`npm run smoke`, 8 checks) | Done, browser-tested |
 | 10b | Story layout (section bar, cash-flow section, tabbed assumptions), charts in the blue palette | Done, browser-tested (21 smoke checks + screenshots) |
 | – | Escape user text in server HTML report (XSS); validate all API input | Done, tested against running server |
-| – | Example scenario (Northwind, fictional) loaded by default, labelled on screen and in exports | Done |
+| – | Example scenario (Vantara Motors, automotive software development, fictional) loaded by default, labelled on screen and in exports | Done, browser-tested |
 | – | One scenario setup (new / edit) replaces Edit Context + wizard; Scenario and Export menus | Done, build-tested |
 | – | IRR no longer capped at 200% | Done, tested |
 | – | Help: presentation-style scrolling walkthrough of concept and example | Done, render-tested (not in a browser) |
