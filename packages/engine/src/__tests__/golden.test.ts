@@ -21,6 +21,8 @@ import {
   DELIVERY_MODELS,
   DEFAULT_BCC_RATE_FACTOR,
   normalizeScenario,
+  effectiveRate,
+  deliveryContext,
   parseScenario,
   parseScenarioText,
   scenarioToYaml,
@@ -537,6 +539,49 @@ describe('Advice', () => {
     const ids = a.findings.map(f => f.id);
     expect(ids).toEqual(expect.arrayContaining(['overrides', 'overhead-rationale', 'fte-gap']));
     expect(a.findings.findIndex(f => f.severity === 'info')).toBeGreaterThan(a.findings.findIndex(f => f.severity === 'warning'));
+  });
+});
+
+describe('Onshore and offshore rates per role', () => {
+  const bccMature = (edit: (s: Scenario) => void) => {
+    const s = createExampleScenario();
+    s.primaryModel = 'bcc-only';
+    edit(s);
+    return { s, r: calculate(s) };
+  };
+
+  it("blends each role's own onshore and offshore rate by the offshore share", () => {
+    const { s, r } = bccMature(sc => {
+      sc.roles = sc.roles.map(role => ({ ...role, offshorable: true, bccCostPerFte: 4_000 }));
+    });
+    const share = s.deliveryProfiles['bcc-only'].bccShare;
+    const expected = s.roles.reduce((sum, role, i) => sum + r.effort.roleFte[i]!.mature * ((1 - share) * role.costPerFte + share * 4_000), 0);
+    expect(r.cost.peopleCost.mature).toBeCloseTo(expected, 6);
+  });
+
+  it('falls back to onshore × default factor when a role has no offshore rate', () => {
+    const { s, r } = bccMature(sc => {
+      sc.roles = sc.roles.map(role => ({ ...role, offshorable: true, bccCostPerFte: undefined }));
+    });
+    const share = s.deliveryProfiles['bcc-only'].bccShare;
+    const blend = 1 - share + share * s.bccRateFactor;
+    const expected = s.roles.reduce((sum, role, i) => sum + r.effort.roleFte[i]!.mature * role.costPerFte * blend, 0);
+    expect(r.cost.peopleCost.mature).toBeCloseTo(expected, 6);
+  });
+
+  it('keeps roles that cannot be offshored at the onshore rate', () => {
+    const { r } = bccMature(() => {});
+    const safety = r.scenario.roles.findIndex(role => role.id === 'safety-eng');
+    expect(r.scenario.roles[safety]!.offshorable).toBe(false);
+    expect(effectiveRate(r.scenario.roles[safety]!, 'mature', deliveryContext(r.scenario))).toBe(r.scenario.roles[safety]!.costPerFte);
+  });
+
+  it('converts offshore rates with the currency', () => {
+    const s = createExampleScenario();
+    s.roles[0]!.bccCostPerFte = 5_000;
+    const usd = convertScenarioCurrency(s, 'USD', fxFactor('EUR', 'USD', s.fxRatesPerEur));
+    expect(usd.roles[0]!.bccCostPerFte).toBeCloseTo(5_000 * s.fxRatesPerEur.USD, 6);
+    expect(usd.roles[1]!.bccCostPerFte).toBeUndefined();
   });
 });
 

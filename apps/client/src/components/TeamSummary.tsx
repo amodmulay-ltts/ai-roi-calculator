@@ -1,5 +1,6 @@
 import type { Results, Scenario } from '@ai-roi-calc/engine';
 import Tooltip from './Tooltip';
+import { offshoreRate } from '@ai-roi-calc/engine';
 import { displayRate, rateSuffix, rateUnitOf } from '../utils/rates';
 
 interface TeamSummaryProps {
@@ -82,8 +83,10 @@ export default function TeamSummary({ scenario, results, onUpdate }: TeamSummary
               <th className="text-right font-normal py-1">Baseline</th>
               <th className="text-right font-normal py-1">Mature</th>
               <th className="text-right font-normal py-1">
-                Cost {rateSuffix(unit)} ({scenario.baseCurrency})
+                Onshore {rateSuffix(unit)} ({scenario.baseCurrency})
               </th>
+              <th className="text-right font-normal py-1">Offshore {rateSuffix(unit)}</th>
+              <th className="text-right font-normal py-1">Offshore saving</th>
             </tr>
           </thead>
           <tbody>
@@ -93,10 +96,30 @@ export default function TeamSummary({ scenario, results, onUpdate }: TeamSummary
                 <td className="py-1 text-right">{fmt(roleFte[i]!.baseline)}</td>
                 <td className="py-1 text-right">{fmt(roleFte[i]!.mature)}</td>
                 <td className="py-1 text-right">{rate(displayRate(role, unit, hours))}</td>
+                {role.offshorable === false ? (
+                  <td colSpan={2} className="py-1 text-right text-gray-400">
+                    stays onshore
+                  </td>
+                ) : (
+                  <>
+                    <td className="py-1 text-right">
+                      {rate(displayRate({ ...role, costPerFte: offshoreRate(role, scenario.bccRateFactor) }, unit, hours))}
+                      {role.bccCostPerFte === undefined && <span className="text-gray-400"> *</span>}
+                    </td>
+                    <td className="py-1 text-right">
+                      {role.costPerFte > 0 ? `${Math.round((1 - offshoreRate(role, scenario.bccRateFactor) / role.costPerFte) * 100)}%` : '—'}
+                    </td>
+                  </>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
+        {scenario.roles.some(r => r.offshorable !== false && r.bccCostPerFte === undefined) && (
+          <p className="mt-2 text-xs text-gray-400">
+            * default offshore rate: {Math.round(scenario.bccRateFactor * 100)}% of onshore. Set role-specific rates in Edit roles, FTE and rates.
+          </p>
+        )}
       </details>
     </div>
   );

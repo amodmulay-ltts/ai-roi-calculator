@@ -384,6 +384,7 @@ const convertRates = (roles: Role[], factor: number): Role[] =>
     ...role,
     costPerFte: Math.round(role.costPerFte * factor),
     billRatePerFte: Math.round(role.billRatePerFte * factor),
+    ...(role.bccCostPerFte !== undefined && { bccCostPerFte: Math.round(role.bccCostPerFte * factor) }),
   }));
 
 /**
@@ -431,6 +432,7 @@ export function rescaleRolesToAverage(roles: Role[], target: number): Role[] {
     ...r,
     costPerFte: Math.round(r.costPerFte * k),
     billRatePerFte: Math.round(r.billRatePerFte * k),
+    ...(r.bccCostPerFte !== undefined && { bccCostPerFte: Math.round(r.bccCostPerFte * k) }),
   }));
 }
 

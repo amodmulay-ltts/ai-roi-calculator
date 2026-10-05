@@ -71,8 +71,8 @@ export default function ModelSelector({ scenario, onUpdate }: ModelSelectorProps
         </label>
         <label htmlFor="bcc-rate" className="flex items-center gap-2">
           <span className="flex items-center">
-            BCC cost vs onshore
-            <Tooltip text="Cost per BCC FTE as a percentage of the onshore rate entered on each role. Role rates are onshore rates." />
+            Default BCC cost vs onshore
+            <Tooltip text="Offshore cost as a percentage of the onshore rate, used for every role without its own offshore rate. Set role-specific offshore rates, and roles that must stay onshore, in Assumptions › Team › Edit roles." />
           </span>
           <PercentInput id="bcc-rate" size="sm" value={scenario.bccRateFactor} max={100} onChange={v => onUpdate({ bccRateFactor: v })} />
         </label>

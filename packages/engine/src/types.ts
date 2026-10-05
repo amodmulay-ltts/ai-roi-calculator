@@ -18,7 +18,12 @@ export interface Role {
   id: string;
   name: string;
   fte: Record<State, number>;
+  /** Onshore cost per FTE per month. */
   costPerFte: number;
+  /** Offshore (BCC) cost per FTE per month; absent = onshore cost × scenario.bccRateFactor. */
+  bccCostPerFte?: number;
+  /** Whether this role can be moved offshore in BCC models; absent = yes. */
+  offshorable?: boolean;
   billRatePerFte: number;
   gradeLevel: 1 | 2 | 3 | 4 | 5;
   isAiImpacted: boolean;
@@ -186,7 +191,7 @@ export interface Scenario {
   // Delivery model. Role costPerFte is the onshore rate.
   primaryModel: ImplementationModel;
   deliveryProfiles: Record<ImplementationModel, DeliveryProfile>;
-  /** BCC cost per FTE as a fraction of onshore cost. */
+  /** Default BCC cost as a fraction of onshore cost, for roles without their own offshore rate. */
   bccRateFactor: number;
   /** Customer's current BCC share; the baseline is never changed by the delivery model. */
   baselineBccShare: number;

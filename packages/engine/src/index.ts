@@ -52,6 +52,7 @@ export {
   deliveryContext,
   effectiveFte,
   effectiveRate,
+  offshoreRate,
 } from './delivery.js';
 export {
   CURRENCIES,

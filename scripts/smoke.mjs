@@ -175,7 +175,27 @@ async function main() {
     );
     await page.click('#assumptions-panel details summary');
     const panel = await page.$eval('#assumptions-panel', el => el.innerText.toLowerCase());
-    check('team panel lists rates per hour', panel.includes('cost / hour') && panel.includes('75'));
+    check('team panel lists rates per hour', panel.includes('onshore / hour') && panel.includes('75'));
+
+    // 1e. Onshore and offshore rates side by side
+    await clickByText(page, 'button', 'Edit roles, FTE and rates');
+    check(
+      'onshore-only role has its offshore rate locked',
+      await page.$eval('input[aria-label="Functional Safety Engineer offshore cost / hour"]', el => el.disabled)
+    );
+    const offshore = await page.$('input[aria-label="Embedded Developer offshore cost / hour"]');
+    await offshore.type('25');
+    await clickByText(page, '#assumptions-panel button', 'Save changes');
+    await new Promise(r => setTimeout(r, 600));
+    const withOffshore = await page.evaluate(() => JSON.parse(localStorage.getItem('valueai.currentScenario.v1') ?? '{}').scenario);
+    check(
+      'role-specific offshore rate is stored as monthly cost (25 / hour × 150 h = 3,750)',
+      Math.round(withOffshore?.roles?.find(r => r.id === 'embedded-dev')?.bccCostPerFte) === 3_750
+    );
+    await page.click('#assumptions-panel details summary');
+    const teamPanel = await page.$eval('#assumptions-panel', el => el.innerText.toLowerCase());
+    check('team panel shows onshore and offshore rates side by side', teamPanel.includes('offshore saving') && teamPanel.includes('stays onshore'));
+    await shot('01e-onshore-offshore');
 
     // 2. Help presentation opens and closes with Escape
     await clickByText(page, 'button', 'How it works');
