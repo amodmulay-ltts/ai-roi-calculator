@@ -14,6 +14,7 @@ import TornadoChart from './components/TornadoChart';
 import SensitivityGrid from './components/SensitivityGrid';
 import ModelSelector from './components/ModelSelector';
 import ModelComparison from './components/ModelComparison';
+import AdvicePanel from './components/AdvicePanel';
 import ScenarioSetup, { type SetupMode } from './components/ScenarioSetup';
 import ExampleBanner from './components/ExampleBanner';
 import HelpPresentation from './components/HelpPresentation';
@@ -511,6 +512,8 @@ export default function App() {
             </div>
           </dl>
         </section>
+
+        <AdvicePanel scenario={scenario} results={results} />
 
         {/* Delivery model: which model, then its parameters */}
         <section className="mb-12 space-y-6" aria-label="Delivery model">

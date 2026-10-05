@@ -26,6 +26,7 @@ The app opens with an **example calculation**, marked "Example calculation · fi
 | **Scenario** menu | **New scenario** (guided setup for a customer) · **Edit setup** (the same steps, prefilled; jump to any step and apply) · **Open file** (.yaml / .json) · **Load example** |
 | **Export** menu | **Save scenario (.yaml)** to reopen later · **PDF report** (HTML, print to PDF) · **Excel workbook** · **JSON** (scenario + results) |
 | Currency (header) | Choose **Convert** (multiply every amount by an editable FX rate) or **Relabel** (keep the numbers). Rates are indicative, not live. |
+| Advice | Directly under the headline results: a verdict (worth pursuing, marginal, does not pay back, no change), the two most important findings, and further notes. Rule-based, so every statement traces to an input. Also included in the PDF report. |
 | Delivery model comparison | Directly under the headline results: all five models calculated on the same baseline and ranked by NPV, with payback, monthly saving, mature team size and investment. The verdict names the best model and how much the selected model gives up. Select a row to make that model active. |
 | Delivery model panel | Below the comparison: edit the selected model's offshore share and AI adoption, today's offshore share, and the offshore cost level. |
 | Team panel | Choose how headcount is costed: **Derived from AI productivity** (default) or **Staffing plan as entered**. |
@@ -70,6 +71,21 @@ Northwind Insurance (fictional) has a 31-person onshore testing team. All amount
 Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €3.7M (payback month 5) because offshore rates and AI savings combine.
 
 **What does not work:** the AI running costs and the investment have to be covered first. With the same example, an effort cut of 10% loses about €866K over 36 months, 15% roughly breaks even on monthly cost, 20% pays back only in month 29, and 30% pays back in month 11.
+
+## How the advice works
+
+`advise(scenario, results)` in the engine applies fixed rules to the calculated figures:
+
+| Rule | Triggers when |
+|---|---|
+| Verdict | **No change**: the model equals today's setup. **Does not pay back**: no payback in the horizon or NPV ≤ 0. **Marginal**: ROI < 50% or payback after 60% of the horizon. Otherwise **worth pursuing**. |
+| Break-even realisation | Share of the assumed AI effort reduction needed for NPV ≥ 0, found by bisection while all costs and the investment stay in. Flagged as a check above 70%. |
+| AI running costs | AI-specific monthly costs take more than 50% of the people saving. |
+| FTE gap | Staffing plan and workload-based team differ by more than 5%. |
+| Transition budget | Lowest cumulative cash position before payback, and the monthly cost above today during transition. |
+| Overrides | Work items with fixed hours, which the productivity factor does not change. |
+| Pyramid effect | The mature team costs more per person (negative mix effect). |
+| Overhead rationale | Overhead % changes without a stated reason (F5). |
 
 ## How the calculation works
 
@@ -117,6 +133,7 @@ packages/engine/        Pure TypeScript calculation library (no I/O), shared by 
   src/engine.ts           calculate(scenario) → results
   src/delivery.ts         delivery-model profiles and their effect on FTE, rates, costs
   src/compare.ts          all delivery models on one baseline, ranked by NPV
+  src/advice.ts           rule-based verdict and findings
   src/currency.ts         FX rates and scenario conversion
   src/example.ts          the Northwind example
   src/defaults.ts         reference scenario from the source Excel (INR), legacy-file normalisation
@@ -145,7 +162,7 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 
 ## Tests
 
-`npm test` runs the engine suite: 55 tests. They cover:
+`npm test` runs the engine suite: 60 tests. They cover:
 
 - **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story

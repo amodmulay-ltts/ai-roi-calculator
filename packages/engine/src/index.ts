@@ -27,6 +27,16 @@ export type {
 export { createDefaultScenario, normalizeScenario } from './defaults.js';
 export { createExampleScenario } from './example.js';
 export { compareDeliveryModels, type ModelComparison } from './compare.js';
+export {
+  advise,
+  breakEvenRealisation,
+  withRealisedEffortReduction,
+  formatMoney,
+  type Advice,
+  type Finding,
+  type FindingSeverity,
+  type VerdictTone,
+} from './advice.js';
 export { parseScenario, type ParseScenarioResult } from './schema.js';
 export { scenarioToYaml, parseScenarioText } from './serialize.js';
 export {
