@@ -157,6 +157,8 @@ export interface Scenario {
   fxRatesPerEur: Record<Currency, number>;
   /** Illustrative example with fictional data; shown and exported with an "Example" label. */
   isExample?: boolean;
+  /** How role rates are shown and entered; stored as cost per FTE per month either way. */
+  rateUnit?: 'hour' | 'month';
   scenarioDate: string;
 
   // Global settings

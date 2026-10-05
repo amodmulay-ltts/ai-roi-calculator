@@ -133,6 +133,37 @@ async function main() {
     await clickByText(page, '[role="menuitem"]', 'EUR');
     await clickByText(page, '[role="dialog"] button', 'Convert all amounts');
 
+    // 1d. Roles: hourly rates, working hours, add/remove, persisted on the scenario
+    await clickByText(page, '[role="tab"]', 'Team');
+    await clickByText(page, 'button', 'Edit roles, FTE and rates');
+    await clickByText(page, '[aria-label="Rate unit"] [role="radio"]', 'Hour');
+    const architectRate = () => page.$eval('input[aria-label="Software Architect cost / hour"]', el => Number(el.value));
+    check('hourly rate shown from monthly cost (12,000 / 160 h)', (await architectRate()) === 75);
+    const hours = await page.$('input[aria-invalid]');
+    await hours.click({ clickCount: 3 });
+    await hours.type('150');
+    check('changing working hours keeps hourly rates', (await architectRate()) === 75);
+    await clickByText(page, 'button', 'Add role');
+    check('a role can be added', !!(await page.$('input[aria-label="New role FTE Today"]')));
+    const removeButtons = await page.$$('#assumptions-panel button');
+    for (const b of removeButtons.reverse()) {
+      if ((await b.evaluate(el => el.textContent?.trim())) === 'Remove') { await b.click(); break; }
+    }
+    check('a role can be removed', !(await page.$('input[aria-label="New role FTE Today"]')));
+    await shot('01d-roles-editor');
+    await clickByText(page, '#assumptions-panel button', 'Save changes');
+    await new Promise(r => setTimeout(r, 600)); // autosave delay
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('valueai.currentScenario.v1') ?? '{}').scenario);
+    check('rate unit "hour" is stored on the scenario', saved?.rateUnit === 'hour');
+    check('working hours are stored (150)', saved?.globalAssumptions?.workingHrsPerFtePerMonth === 150);
+    check(
+      'monthly cost follows the hours (75 / hour × 150 h = 11,250)',
+      Math.round(saved?.roles?.find(r => r.id === 'sw-architect')?.costPerFte) === 11_250
+    );
+    await page.click('#assumptions-panel details summary');
+    const panel = await page.$eval('#assumptions-panel', el => el.innerText.toLowerCase());
+    check('team panel lists rates per hour', panel.includes('cost / hour') && panel.includes('75'));
+
     // 2. Help presentation opens and closes with Escape
     await clickByText(page, 'button', 'How it works');
     await page.waitForSelector('[aria-label="How VALUEAI works"]');
