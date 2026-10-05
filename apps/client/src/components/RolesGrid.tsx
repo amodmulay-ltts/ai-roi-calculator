@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Role, Scenario } from '@ai-roi-calc/engine';
 import Tooltip from './Tooltip';
+import { offshoreRate } from '@ai-roi-calc/engine';
 import { displayRate, monthlyFromRate, rateSuffix, rateUnitOf, type RateUnit } from '../utils/rates';
 
 interface RolesGridProps {
@@ -44,7 +45,12 @@ export default function RolesGrid({ scenario, onUpdate, onDone, formatCurrency }
       return {
         ...d,
         hoursPerFte: hours,
-        roles: d.roles.map(r => ({ ...r, costPerFte: r.costPerFte * k, billRatePerFte: r.billRatePerFte * k })),
+        roles: d.roles.map(r => ({
+          ...r,
+          costPerFte: r.costPerFte * k,
+          billRatePerFte: r.billRatePerFte * k,
+          ...(r.bccCostPerFte !== undefined && { bccCostPerFte: r.bccCostPerFte * k }),
+        })),
       };
     });
 
@@ -139,7 +145,19 @@ export default function RolesGrid({ scenario, onUpdate, onDone, formatCurrency }
               </th>
             ))}
             <th className="px-2 py-2 font-normal text-right">
-              Cost {rateSuffix(unit)} ({scenario.baseCurrency})
+              Onshore cost {rateSuffix(unit)} ({scenario.baseCurrency})
+            </th>
+            <th className="px-2 py-2 font-normal text-right">
+              <span className="inline-flex items-center">
+                Offshore cost {rateSuffix(unit)}
+                <Tooltip text={`The role's cost in the best-cost country. Leave empty to use ${Math.round(scenario.bccRateFactor * 100)}% of the onshore cost (the default in the delivery model).`} />
+              </span>
+            </th>
+            <th className="px-2 py-2 font-normal text-center">
+              <span className="inline-flex items-center">
+                Offshore-able
+                <Tooltip text="Untick for roles that must stay onshore, such as safety sign-off or customer-facing leadership. They keep the onshore rate in every delivery model." />
+              </span>
             </th>
             <th className="px-2 py-2 font-normal text-center">AI-impacted</th>
             <th className="px-2 py-2" />
@@ -182,6 +200,32 @@ export default function RolesGrid({ scenario, onUpdate, onDone, formatCurrency }
                       setRole(role.id, { costPerFte: monthlyFromRate(Math.max(0, Number(e.target.value) || 0), unit, hoursPerFte || 1) })
                     }
                     className={`w-24 px-2 py-1 text-right border rounded ${changedCell(round2(role.costPerFte), round2(prev?.costPerFte ?? NaN))}`}
+                  />
+                </td>
+                <td className="px-2 py-2 text-right">
+                  <input
+                    aria-label={`${role.name} offshore cost ${rateSuffix(unit)}`}
+                    type="number"
+                    min={0}
+                    step={unit === 'hour' ? 0.5 : 100}
+                    disabled={role.offshorable === false}
+                    placeholder={String(round2(displayRate({ ...role, costPerFte: offshoreRate({ ...role, bccCostPerFte: undefined }, scenario.bccRateFactor) }, unit, hoursPerFte || 1)))}
+                    value={role.bccCostPerFte === undefined ? '' : round2(displayRate({ ...role, costPerFte: role.bccCostPerFte }, unit, hoursPerFte || 1))}
+                    onChange={e =>
+                      setRole(role.id, {
+                        bccCostPerFte:
+                          e.target.value === '' ? undefined : monthlyFromRate(Math.max(0, Number(e.target.value) || 0), unit, hoursPerFte || 1),
+                      })
+                    }
+                    className={`w-24 px-2 py-1 text-right border rounded disabled:bg-gray-50 disabled:text-gray-300 ${changedCell(role.bccCostPerFte, prev?.bccCostPerFte)}`}
+                  />
+                </td>
+                <td className="px-2 py-2 text-center">
+                  <input
+                    type="checkbox"
+                    aria-label={`${role.name} can be offshored`}
+                    checked={role.offshorable !== false}
+                    onChange={e => setRole(role.id, { offshorable: e.target.checked })}
                   />
                 </td>
                 <td className="px-2 py-2 text-center">

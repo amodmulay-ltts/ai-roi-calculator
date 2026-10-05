@@ -57,6 +57,8 @@ export const AUTOMOTIVE_ROLES: Role[] = [
     billRatePerFte: 15_000,
     gradeLevel: 4,
     isAiImpacted: true,
+    // Stays onshore in BCC models: safety sign-off and assessor contact
+    offshorable: false,
   },
   {
     id: 'project-lead',
@@ -66,6 +68,8 @@ export const AUTOMOTIVE_ROLES: Role[] = [
     billRatePerFte: 15_500,
     gradeLevel: 5,
     isAiImpacted: false,
+    // Stays onshore in BCC models: customer-facing leadership
+    offshorable: false,
   },
   {
     id: 'devops',

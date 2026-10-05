@@ -32,6 +32,7 @@ export function convertScenarioCurrency(scenario: Scenario, to: Currency, factor
     roles: scenario.roles.map(r => ({
       ...r,
       costPerFte: money(r.costPerFte),
+      ...(r.bccCostPerFte !== undefined && { bccCostPerFte: money(r.bccCostPerFte) }),
       billRatePerFte: money(r.billRatePerFte),
     })),
     costLines: scenario.costLines.map(l => ({

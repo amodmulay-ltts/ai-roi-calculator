@@ -53,8 +53,15 @@ const DRIVERS: Array<{ id: string; label: string; vary: Variation; describe: (s:
   {
     id: 'rates',
     label: 'Role rates',
-    vary: (s, f) => ({ ...s, roles: s.roles.map(r => ({ ...r, costPerFte: r.costPerFte * f })) }),
-    describe: (_s, f) => `${f < 1 ? '−' : '+'}20% cost per FTE`,
+    vary: (s, f) => ({
+      ...s,
+      roles: s.roles.map(r => ({
+        ...r,
+        costPerFte: r.costPerFte * f,
+        ...(r.bccCostPerFte !== undefined && { bccCostPerFte: r.bccCostPerFte * f }),
+      })),
+    }),
+    describe: (_s, f) => `${f < 1 ? '−' : '+'}20% onshore and offshore cost per FTE`,
   },
   {
     id: 'overhead',

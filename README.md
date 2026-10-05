@@ -38,7 +38,7 @@ The dashboard reads top to bottom in the order of a customer conversation, with 
 | Delivery model panel | Below the comparison: edit the selected model's offshore share and AI adoption, today's offshore share, and the offshore cost level. |
 | Team panel | Choose how headcount is costed: **Derived from AI productivity** (default) or **Staffing plan as entered**. |
 | AI effect (Assumptions › AI effect, and setup step 5) | The central assumption: how much AI cuts the effort on AI-assisted work, once mature and during the transition, and the review overhead it needs (human review, rework, dual running) per stage. Shows the effect on the monthly workload and which work items it applies to; items with fixed hours in Workload are not changed by it. The delivery model's AI adoption scales it. |
-| Roles editor (Assumptions › Team › Edit roles, FTE and rates) | Edit every role after the scenario is created: name, FTE today / transition / mature, cost rate and AI-impacted flag; add and remove roles. Rates can be entered **per hour or per month** (saved with the scenario) and the **working hours per FTE per month** are editable. With hourly rates, changing the hours keeps the hourly rates and the monthly cost follows. Rates are onshore internal cost; offshore rates come from the delivery model. |
+| Roles editor (Assumptions › Team › Edit roles, FTE and rates) | Edit every role after the scenario is created: name, FTE today / transition / mature, **onshore and offshore cost rate side by side**, whether the role can be offshored, and the AI-impacted flag; add and remove roles. An empty offshore rate uses the default percentage from the delivery model. The Team panel lists onshore rate, offshore rate and offshore saving per role. Rates can be entered **per hour or per month** (saved with the scenario) and the **working hours per FTE per month** are editable. With hourly rates, changing the hours keeps the hourly rates and the monthly cost follows. Rates are onshore internal cost; offshore rates come from the delivery model. |
 | AI model usage panel | Token cost of the AI models: each usage item is linked to a work item, so requests follow the monthly volume (e.g. 15,000 requests per release). Cost = requests × (input tokens × input price + output tokens × output price). **Edit usage and prices** to change models, requests and tokens, and to edit the dated price table. |
 | Sensitivity panel | Which assumption the case depends on most. Each driver moves ±20% on its own and the NPV range is shown: AI effort reduction (share of the assumed reduction that materialises, costs kept), AI running costs (tools, infrastructure, model prices), role rates, overhead and risk %, transition length, one-off investment. A grid shows the payback month for AI effect (60–140%) × transition length. |
 | Cost basis (Cost Model) | **Total cost of ownership** (every cost line) or **Client-chargeable cost** (leaves out lines marked not chargeable). The choice drives savings, payback, ROI and NPV. |
@@ -85,7 +85,7 @@ Vantara Motors (fictional) has a 33-person onshore embedded software team buildi
 
 The advice flags that the case needs about 76% of the assumed effort reduction to break even, so the 30% assumption should be validated with a pilot before it is presented as a commitment.
 
-Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €4.6M (payback month 6) and BCC only about €4.4M, because offshore rates dominate for a team at German-level onshore cost.
+Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €3.9M (payback month 6) and BCC only about €3.8M, because offshore rates dominate for a team at German-level onshore cost, even with functional safety and project leadership kept onshore.
 
 **What does not work:** the AI running costs, the tool qualification and the investment have to be covered first. With the same example, an effort cut of 10% loses about €1.39M over 36 months, 15% and 20% never pay back, 25% pays back only in month 23, and 30% pays back in month 15. Token costs are small (€1.5K a month); licences, the private platform, qualification and the investment are what the effort reduction has to cover.
 
@@ -124,7 +124,9 @@ States: **baseline** (today), **transition** (first N months, AI being introduce
 
 ```
 Delivery model      profile = { bccShare, aiAdoption }      (editable per model)
-  role rate         onshoreRate × (1 − bccShare + bccShare × bccCostFactor)
+  role rate         (1 − bccShare) × onshoreRate + bccShare × offshoreRate     (offshore-able roles)
+                    onshoreRate                                                (roles that stay onshore)
+                    offshoreRate = the role's own offshore rate, or onshoreRate × default BCC factor
                     (transition runs at today's location mix; the monthly ramp migrates it)
   AI plan scaling   value_s = baseline + (planned_s − baseline) × aiAdoption
                     applied to role FTE, AI-specific cost lines, AI-specific investment,
@@ -160,7 +162,7 @@ Delivery model defaults:
 | AI + BCC | 80% | 100% |
 | AI-first | 0% | 125% |
 
-BCC cost is 45% of onshore by default. Role rates are entered as onshore rates.
+Each role has an onshore and an offshore rate. The offshore rate defaults to 45% of onshore until a role-specific rate is entered, and roles can be marked as staying onshore (in the example: functional safety and project leadership), so their rate never changes with the model.
 
 ## Architecture
 
@@ -201,7 +203,7 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 
 ## Tests
 
-`npm test` runs the engine suite: 71 tests. They cover:
+`npm test` runs the engine suite: 75 tests. They cover:
 
 - **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story

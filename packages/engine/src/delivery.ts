@@ -21,23 +21,26 @@ export const DEFAULT_DELIVERY_PROFILES: Record<ImplementationModel, DeliveryProf
 export const DEFAULT_BCC_RATE_FACTOR = 0.45;
 export interface DeliveryContext {
   adoption: Record<State, number>;
-  locationRateFactor: Record<State, number>;
+  /** Share of offshore-able work done in the best-cost country, per state. */
+  bccShare: Record<State, number>;
+  /** Default offshore cost as a fraction of onshore, for roles without their own offshore rate. */
+  bccRateFactor: number;
   /** False when the target model is identical to today's delivery (status quo). */
   changeApplies: boolean;
 }
 
 export function deliveryContext(scenario: Scenario): DeliveryContext {
   const profile = scenario.deliveryProfiles[scenario.primaryModel];
-  const location = (share: number) => 1 - share + share * scenario.bccRateFactor;
   return {
     adoption: { baseline: 0, transition: profile.aiAdoption, mature: profile.aiAdoption },
     // Transition runs at today's location mix; the monthly ramp then migrates it to the target mix,
     // which stands in for knowledge transfer / dual running during a location change.
-    locationRateFactor: {
-      baseline: location(scenario.baselineBccShare),
-      transition: location(scenario.baselineBccShare),
-      mature: location(profile.bccShare),
+    bccShare: {
+      baseline: scenario.baselineBccShare,
+      transition: scenario.baselineBccShare,
+      mature: profile.bccShare,
     },
+    bccRateFactor: scenario.bccRateFactor,
     changeApplies: profile.aiAdoption > 0 || profile.bccShare !== scenario.baselineBccShare,
   };
 }
@@ -52,8 +55,16 @@ export function effectiveFte(role: Role, state: State, ctx: DeliveryContext): nu
   return Math.max(0, scaleByAdoption(role.fte.baseline, role.fte[state], ctx.adoption[state]));
 }
 
+/** A role's offshore cost per FTE per month: its own rate, or the onshore rate × the default factor. */
+export function offshoreRate(role: Role, bccRateFactor: number): number {
+  return role.bccCostPerFte ?? role.costPerFte * bccRateFactor;
+}
+
+/** Blend of onshore and offshore rate by the state's offshore share; roles that cannot move stay onshore. */
 export function effectiveRate(role: Role, state: State, ctx: DeliveryContext): number {
-  return role.costPerFte * ctx.locationRateFactor[state];
+  if (role.offshorable === false) return role.costPerFte;
+  const share = ctx.bccShare[state];
+  return (1 - share) * role.costPerFte + share * offshoreRate(role, ctx.bccRateFactor);
 }
 
 export function effectiveLineAmount(line: CostLine, state: State, ctx: DeliveryContext): number {

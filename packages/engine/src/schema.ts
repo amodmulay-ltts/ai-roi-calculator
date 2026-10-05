@@ -16,6 +16,8 @@ const role = z.object({
   name: text,
   fte: perState(z.number().finite().min(0).max(100_000)),
   costPerFte: money,
+  bccCostPerFte: money.optional(),
+  offshorable: z.boolean().optional(),
   billRatePerFte: money,
   gradeLevel: z.number().int().min(1).max(5),
   isAiImpacted: z.boolean(),
