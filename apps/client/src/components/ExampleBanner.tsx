@@ -19,7 +19,7 @@ export default function ExampleBanner({ results, formatCurrency, onStartNew, onH
       <div className="max-w-3xl">
         <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Example calculation · fictional data</p>
         <p className="text-sm text-gray-700">
-          A {Math.round(effort.staffingFte.baseline)}-person team adopts AI that cuts testing effort by {effortCut}%, for a
+          A {Math.round(effort.staffingFte.baseline)}-person team adopts AI that cuts the effort on its AI-assisted work by {effortCut}%, for a
           one-off investment of {formatCurrency(financialMetrics.totalInvestment)}. Use it to see how the calculator works;
           do not use these figures for a customer decision.
         </p>

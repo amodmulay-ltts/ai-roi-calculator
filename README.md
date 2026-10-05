@@ -45,41 +45,43 @@ Opening a file or loading the example asks for confirmation before replacing a c
 
 ## The example, step by step
 
-Northwind Insurance (fictional) has a 31-person onshore testing team. All amounts are monthly EUR unless stated. Every figure below is produced by the engine; `npm test` checks the key ones.
+Vantara Motors (fictional) has a 33-person onshore embedded software team building ECU and ADAS software. All amounts are monthly EUR unless stated. Every figure below is produced by the engine; `npm test` checks the key ones.
 
 **1. Today (baseline)**
 
 | | |
 |---|---|
-| Workload | 2 releases × 2,300 h + 200 defects × (1.0 h root-cause + 0.8 h verification) = **4,960 h** = 31 FTE × 160 h |
-| Team | 1 test manager (€11,000), 20 test analysts (€7,000), 8 automation engineers (€8,000), 2 SDETs (€9,000) |
-| Run cost | people €233,000 + existing tools €3,000 = €236,000 direct; +12% overhead, +5% risk reserve = **€276,120** |
+| Workload | 40 requirements × 60 h + 300 SIL test cases × 3 h + 160 safety-relevant code reviews × 2 h + 60 defects × 8 h + 40 ISO 26262 / ASPICE work products × 12 h + 700 h HIL testing, integration and coordination = **5,280 h** = 33 FTE × 160 h |
+| Team | 2 software architects (€12,000), 8 senior embedded developers (€10,000), 12 embedded developers (€8,500), 6 test and validation engineers (€8,000), 2 functional safety engineers (€11,000), 2 project leads (€11,500), 1 DevOps engineer (€9,500) |
+| Run cost | people €308,500 + toolchain licences €6,000 = €314,500 direct; +12% overhead, +5% risk reserve = **€367,965** |
 
-**2. With AI (mature state, after a 3-month transition)**
+**2. With AI (mature state, after a 4-month transition)**
 
 | | |
 |---|---|
-| Productivity | AI cuts effort per release and per defect to 70% (transition: 85%) |
-| AI overhead | Human review and rework add 7% to core testing effort (transition: 20%, including dual running) |
-| Workload | 2 × 2,300 × 0.70 + 7% + 200 × 1.8 × 0.70 = **3,697 h** |
-| Team | 31 × 3,697 / 4,960 = **23.1 FTE**, spread by the staffing plan's mix (now including 1.5 AI engineers) |
-| AI model usage | 30,000 test-generation requests on Claude Sonnet 5.5 (€931) + 4,000 review-agent requests on Claude Opus 5.5 (€621) + 2,000 defect-triage requests on Claude Haiku 4.5 (€43) = **€1,595** a month, from tokens × list price |
-| Run cost | people + cost lines of €12,500 (existing tools €3,000, AI tools €6,000, AI infrastructure €2,000, governance €1,500) + AI model usage = **€227,036** fully loaded |
+| Productivity | AI cuts the effort per item to 70% on everything except HIL lab and integration time (transition: 85%) |
+| AI overhead | Safety-critical code needs more human review: review and rework add 11% to the AI-assisted hours (transition: 23%, including dual running) |
+| Workload | 4,580 AI-assisted hours × 0.70 + 11% + 700 h = **4,259 h** |
+| Team | 33 × 4,259 / 5,280 = **26.6 FTE**, spread by the staffing plan's mix (now including 1.5 AI engineers) |
+| AI model usage | coding assistant on Claude Sonnet 5.5 (20,000 requests, €759) + SIL test generation on Sonnet 5.5 (6,000, €186) + MISRA and safety review agent on Claude Opus 5.5 (800, €110) + safety work product drafting on Opus 5.5 (2,000, €414) = **€1,469** a month, from tokens × list price |
+| Run cost | people + cost lines of €17,000 (toolchain €6,000, AI coding assistant licences €4,000, private IP-protected AI platform €5,000, AI tool qualification and governance €2,000) + AI model usage = **€322,643** fully loaded |
 
 **3. Result**
 
 | Metric | Value | Meaning |
 |---|---|---|
-| Monthly saving (mature) | €49,084 | €276,120 − €227,036 |
-| One-off investment | €300,000 | Setup €200K, training €60K, contingency €40K |
-| Payback | Month 10 | First month where cumulative savings minus investment is ≥ 0. The transition months cost more than today. |
-| NPV (36 months, 10%) | €1.08M | All monthly cash flows discounted to today |
-| ROI (36 months) | 437% | (total savings − investment) ÷ investment, undiscounted |
-| IRR | 256% / year | Discount rate at which NPV = 0 |
+| Monthly saving (mature) | €45,322 | €367,965 − €322,643 |
+| One-off investment | €430,000 | Private AI platform and toolchain integration €250K, AI tool qualification and process update €80K, training €60K, contingency €40K |
+| Payback | Month 15 | First month where cumulative savings minus investment is ≥ 0. The transition months cost more than today. |
+| NPV (36 months, 10%) | €769K | All monthly cash flows discounted to today |
+| ROI (36 months) | 229% | (total savings − investment) ÷ investment, undiscounted |
+| IRR | 114% / year | Discount rate at which NPV = 0 |
 
-Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €3.8M (payback month 5) because offshore rates and AI savings combine.
+The advice flags that the case needs about 76% of the assumed effort reduction to break even, so the 30% assumption should be validated with a pilot before it is presented as a commitment.
 
-**What does not work:** the AI running costs and the investment have to be covered first. With the same example, an effort cut of 10% loses about €744K over 36 months, 15% saves only €4K a month and never pays back, 20% pays back in month 23, and 30% pays back in month 10. Token costs are small here (€1.6K a month); licences, infrastructure and the investment are what the effort reduction has to cover.
+Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €4.6M (payback month 6) and BCC only about €4.4M, because offshore rates dominate for a team at German-level onshore cost.
+
+**What does not work:** the AI running costs, the tool qualification and the investment have to be covered first. With the same example, an effort cut of 10% loses about €1.39M over 36 months, 15% and 20% never pay back, 25% pays back only in month 23, and 30% pays back in month 15. Token costs are small (€1.5K a month); licences, the private platform, qualification and the investment are what the effort reduction has to cover.
 
 ## AI model prices
 
@@ -165,7 +167,7 @@ packages/engine/        Pure TypeScript calculation library (no I/O), shared by 
   src/llm.ts              AI model usage cost and the default price table
   src/sensitivity.ts      tornado (±20% per driver) and payback grid
   src/currency.ts         FX rates and scenario conversion
-  src/example.ts          the Northwind example
+  src/example.ts          the Vantara Motors example (automotive software development)
   src/defaults.ts         reference scenario from the source Excel (INR), legacy-file normalisation
   src/schema.ts           zod validation for any untrusted scenario (files, API)
   src/serialize.ts        YAML save / YAML+JSON load

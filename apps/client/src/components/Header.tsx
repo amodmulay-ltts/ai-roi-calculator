@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { CURRENCIES } from '@ai-roi-calc/engine';
+import { CURRENCIES, EXAMPLE_CLIENT } from '@ai-roi-calc/engine';
 
 interface MenuItem {
   label: string;
@@ -130,7 +130,7 @@ export default function Header(props: HeaderProps) {
               { label: 'New scenario…', hint: 'Guided setup for a customer', onSelect: props.onNewScenario },
               { label: 'Edit setup…', hint: 'Basics, delivery model, timeline, team, investment', onSelect: props.onEditSetup },
               { label: 'Open file…', hint: 'A saved .yaml or .json scenario', onSelect: props.onOpenFile },
-              { label: 'Load example', hint: 'Northwind Insurance, fictional data', onSelect: props.onLoadExample },
+              { label: 'Load example', hint: `${EXAMPLE_CLIENT}, automotive software`, onSelect: props.onLoadExample },
             ]}
           />
           <Menu

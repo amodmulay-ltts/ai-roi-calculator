@@ -40,7 +40,7 @@ function useExampleFigures() {
       results: m.results,
     }));
 
-    const sensitivity = [0.1, 0.15, 0.2, 0.3].map(cut => {
+    const sensitivity = [0.1, 0.15, 0.2, 0.25, 0.3].map(cut => {
       const s = createExampleScenario();
       if (s.productivityFactor.mode === 'direct-factor') {
         s.productivityFactor.mature = 1 - cut;
@@ -208,7 +208,7 @@ export default function HelpPresentation({ open, onClose, onStartNew }: HelpPres
         </Slide>
 
         <Slide id="today" kicker="Example · Step 1 · Today">
-          <Hero>{num(r.effort.staffingFte.baseline)} people, {num(r.effort.totalEffort.baseline)} hours of testing work a month.</Hero>
+          <Hero>{num(r.effort.staffingFte.baseline)} people, {num(r.effort.totalEffort.baseline)} hours of work a month.</Hero>
           <Support
             items={[
               { value: eur(r.cost.fullyLoaded.baseline), label: 'Fully loaded monthly cost today' },
