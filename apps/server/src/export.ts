@@ -3,6 +3,7 @@
  */
 
 import type { Scenario, Results } from '@ai-roi-calc/engine';
+import { advise } from '@ai-roi-calc/engine';
 
 const HTML_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 
@@ -21,6 +22,7 @@ export function safeFileName(scenario: Scenario, ext: string): string {
  */
 export function generatePdfHtml(scenario: Scenario, results: Results): string {
   const { financialMetrics, cost, effort } = results;
+  const advice = advise(scenario, results);
   const currency = scenario.baseCurrency;
   const formatCurrency = (value: number, _currency?: string) =>
     new Intl.NumberFormat('en', {
@@ -65,6 +67,10 @@ export function generatePdfHtml(scenario: Scenario, results: Results): string {
     .cover h1 { font-size: 48px; margin-bottom: 20px; }
     .cover p { font-size: 18px; color: #6b7280; margin: 10px 0; }
     .metadata { margin-top: 40px; color: #6b7280; }
+    .advice-headline { font-size: 20px; font-weight: bold; color: #1d4ed8; margin-bottom: 6px; }
+    .findings { margin: 12px 0 0 18px; }
+    .findings li { margin-bottom: 6px; }
+    .note { font-size: 11px; color: #9ca3af; margin-top: 8px; }
     .example-flag { position: fixed; top: 0; left: 0; right: 0; padding: 8px; text-align: center; font-size: 12px; font-weight: bold; letter-spacing: 0.08em; color: #1d4ed8; background: #eff6ff; border-bottom: 1px solid #bfdbfe; }
   </style>
 </head>
@@ -105,6 +111,14 @@ ${scenario.isExample ? '<div class="example-flag">EXAMPLE CALCULATION &middot; F
       <div class="kpi-value">${formatCurrency(cost.fullyLoaded.baseline - cost.fullyLoaded.mature, scenario.baseCurrency)}</div>
     </div>
   </div>
+
+  <h2>Advice</h2>
+  <p class="advice-headline">${escapeHtml(advice.headline)}</p>
+  <p>${escapeHtml(advice.summary)}</p>
+  ${advice.findings.length ? `<ul class="findings">${advice.findings
+    .map(f => `<li><strong>${f.severity === 'warning' ? 'Check: ' : ''}${escapeHtml(f.title)}.</strong> ${escapeHtml(f.detail)}</li>`)
+    .join('')}</ul>` : ''}
+  <p class="note">Generated from the figures by fixed rules; every statement traces to an input.</p>
 
   <h2>Financial Overview</h2>
   <table>

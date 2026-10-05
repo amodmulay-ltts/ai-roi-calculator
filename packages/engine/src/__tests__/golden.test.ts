@@ -9,6 +9,9 @@ import {
   createDefaultScenario,
   createExampleScenario,
   compareDeliveryModels,
+  advise,
+  breakEvenRealisation,
+  withRealisedEffortReduction,
   convertScenarioCurrency,
   fxFactor,
   DEFAULT_FX_RATES_PER_EUR,
@@ -344,6 +347,63 @@ describe('Generic workload', () => {
     expect(loaded.ok).toBe(true);
     if (!loaded.ok) return;
     expect(calculate(loaded.scenario).financialMetrics.npv).toBeCloseTo(calculate(referenceScenario()).financialMetrics.npv, 4);
+  });
+});
+
+describe('Advice', () => {
+  const adviceFor = (edit?: (s: Scenario) => void) => {
+    const s = createExampleScenario();
+    edit?.(s);
+    return advise(s, calculate(s));
+  };
+  const cut = (share: number) => (s: Scenario) => {
+    if (s.productivityFactor.mode === 'direct-factor') {
+      s.productivityFactor.mature = 1 - share;
+      s.productivityFactor.transition = 1 - share / 2;
+    }
+  };
+
+  it('calls the example strong and states payback and value from the results', () => {
+    const a = adviceFor();
+    expect(a.tone).toBe('strong');
+    expect(a.headline).toContain('month 11');
+    expect(a.findings.some(f => f.id === 'example')).toBe(true);
+  });
+
+  it('separates strong, marginal and negative cases by the effort cut', () => {
+    expect(adviceFor(cut(0.2)).tone).toBe('marginal');
+    const negative = adviceFor(cut(0.08));
+    expect(negative.tone).toBe('negative');
+    expect(negative.findings[0]!.severity).toBe('warning');
+    expect(negative.findings.some(f => f.id === 'transition-dip')).toBe(false);
+  });
+
+  it('reports no change for the status quo without further findings', () => {
+    const a = adviceFor(s => (s.primaryModel = 'onshore'));
+    expect(a.tone).toBe('no-change');
+    expect(a.findings).toHaveLength(0);
+  });
+
+  it('finds the share of the AI effect needed to break even, keeping all costs', () => {
+    const s = createExampleScenario();
+    const share = breakEvenRealisation(s)!;
+    expect(share).toBeGreaterThan(0);
+    expect(share).toBeLessThan(1);
+    expect(calculate(withRealisedEffortReduction(s, share)).financialMetrics.npv).toBeGreaterThanOrEqual(0);
+    expect(calculate(withRealisedEffortReduction(s, share - 0.01)).financialMetrics.npv).toBeLessThan(0);
+    // Costs are untouched by the test
+    expect(withRealisedEffortReduction(s, 0).costLines).toEqual(s.costLines);
+  });
+
+  it('flags overrides, a missing overhead rationale and the staffing-plan gap', () => {
+    const a = adviceFor(s => {
+      s.kpis[0]!.overrides.mature = 1_500;
+      s.globalAssumptions.corporateOverheadPercent.mature = 0.15;
+      s.roles[1]!.fte.mature = 5;
+    });
+    const ids = a.findings.map(f => f.id);
+    expect(ids).toEqual(expect.arrayContaining(['overrides', 'overhead-rationale', 'fte-gap']));
+    expect(a.findings.findIndex(f => f.severity === 'info')).toBeGreaterThan(a.findings.findIndex(f => f.severity === 'warning'));
   });
 });
 
