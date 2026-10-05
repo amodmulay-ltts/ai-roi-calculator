@@ -350,6 +350,53 @@ describe('Generic workload', () => {
   });
 });
 
+describe('AI model usage cost', () => {
+  it('costs requests × tokens × price, converted from USD and following the workload volume', () => {
+    const s = createExampleScenario();
+    s.llmUsage = [
+      { id: 'u', name: 'Generation', priceId: 'claude-sonnet-5-5', kpiId: 'testing-effort-per-release', requestsPerUnit: 1_000, inputTokensPerRequest: 1_000_000, outputTokensPerRequest: 0 },
+    ];
+    const r = calculate(s);
+    // 2 releases × 1,000 requests × 1M input tokens × $2 / M tok = $4,000 → EUR at the scenario rate
+    const expected = (2 * 1_000 * 2) / s.fxRatesPerEur.USD;
+    expect(r.cost.llmRequestsPerMonth['u']).toBe(2_000);
+    expect(r.cost.llmCost.mature).toBeCloseTo(expected, 6);
+    expect(r.cost.llmCost.baseline).toBe(0);
+
+    const doubled = { ...s, kpis: s.kpis.map(k => (k.id === 'testing-effort-per-release' ? { ...k, volumePerMonth: 4 } : k)) };
+    expect(calculate(doubled).cost.llmCost.mature).toBeCloseTo(expected * 2, 6);
+  });
+
+  it('flows into run cost, scales with AI adoption and keeps the ledger reconciled', () => {
+    const base = createExampleScenario();
+    const without = calculate({ ...base, llmUsage: [] });
+    const withUsage = calculate(base);
+    expect(withUsage.cost.directOpex.mature - without.cost.directOpex.mature).toBeCloseTo(withUsage.cost.llmCost.mature, 6);
+
+    const noAi = calculate({ ...base, primaryModel: 'bcc-only' });
+    expect(noAi.cost.llmCost.mature).toBe(0);
+
+    const ledger = withUsage.benefitLedger.reduce((sum, l) => sum + l.amount, 0);
+    expect(ledger).toBeCloseTo(withUsage.cost.fullyLoaded.baseline - withUsage.cost.fullyLoaded.mature, 2);
+  });
+
+  it('uses edited prices from the scenario and survives save/load', () => {
+    const s = createExampleScenario();
+    const before = calculate(s).cost.llmCost.mature;
+    s.llmPricing.prices = s.llmPricing.prices.map(p => ({ ...p, inputPerMTok: p.inputPerMTok * 2, outputPerMTok: p.outputPerMTok * 2 }));
+    expect(calculate(s).cost.llmCost.mature).toBeCloseTo(before * 2, 6);
+
+    const loaded = parseScenarioText(scenarioToYaml(s));
+    expect(loaded.ok && loaded.scenario.llmPricing).toEqual(s.llmPricing);
+  });
+
+  it('flags model prices older than 90 days', () => {
+    const s = createExampleScenario();
+    s.llmPricing.asOf = '2020-01-01';
+    expect(advise(s, calculate(s)).findings.some(f => f.id === 'llm-prices-stale')).toBe(true);
+  });
+});
+
 describe('Advice', () => {
   const adviceFor = (edit?: (s: Scenario) => void) => {
     const s = createExampleScenario();
@@ -366,7 +413,7 @@ describe('Advice', () => {
   it('calls the example strong and states payback and value from the results', () => {
     const a = adviceFor();
     expect(a.tone).toBe('strong');
-    expect(a.headline).toContain('month 11');
+    expect(a.headline).toContain(`month ${calculate(createExampleScenario()).financialMetrics.paybackMonth}`);
     expect(a.findings.some(f => f.id === 'example')).toBe(true);
   });
 

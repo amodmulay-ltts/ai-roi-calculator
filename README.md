@@ -30,8 +30,9 @@ The app opens with an **example calculation**, marked "Example calculation · fi
 | Delivery model comparison | Directly under the headline results: all five models calculated on the same baseline and ranked by NPV, with payback, monthly saving, mature team size and investment. The verdict names the best model and how much the selected model gives up. Select a row to make that model active. |
 | Delivery model panel | Below the comparison: edit the selected model's offshore share and AI adoption, today's offshore share, and the offshore cost level. |
 | Team panel | Choose how headcount is costed: **Derived from AI productivity** (default) or **Staffing plan as entered**. |
+| AI model usage panel | Token cost of the AI models: each usage item is linked to a work item, so requests follow the monthly volume (e.g. 15,000 requests per release). Cost = requests × (input tokens × input price + output tokens × output price). **Edit usage and prices** to change models, requests and tokens, and to edit the dated price table. |
 | Workload panel | The work the team does each month: volume × hours each, today versus mature. **Edit workload** to change volumes and hours, override hours per state, mark items as AI-assisted or as carrying review overhead, and add or remove items. |
-| Use-case templates | In setup, step "Team and workload": **Software testing**, **Software development** or **IT support / service desk**. Each sets roles and a matching workload (sized so the work equals the team). Adjust volumes and the average onshore cost to the customer. |
+| Use-case templates | In setup, step "Team and workload": **Software testing**, **Software development** or **IT support / service desk**. Each sets roles, a matching workload (sized so the work equals the team) and typical AI model usage. Adjust volumes and the average onshore cost to the customer. |
 
 Opening a file or loading the example asks for confirmation before replacing a customer scenario. Files are validated before use: a malformed file shows readable errors instead of being loaded.
 
@@ -55,22 +56,36 @@ Northwind Insurance (fictional) has a 31-person onshore testing team. All amount
 | AI overhead | Human review and rework add 7% to core testing effort (transition: 20%, including dual running) |
 | Workload | 2 × 2,300 × 0.70 + 7% + 200 × 1.8 × 0.70 = **3,697 h** |
 | Team | 31 × 3,697 / 4,960 = **23.1 FTE**, spread by the staffing plan's mix (now including 1.5 AI engineers) |
-| Run cost | people + cost lines of €17,500 (existing tools €3,000, AI usage €5,000, AI tools €6,000, AI infrastructure €2,000, governance €1,500) = **€231,020** fully loaded |
+| AI model usage | 30,000 test-generation requests on Claude Sonnet 5.5 (€931) + 4,000 review-agent requests on Claude Opus 5.5 (€621) + 2,000 defect-triage requests on Claude Haiku 4.5 (€43) = **€1,595** a month, from tokens × list price |
+| Run cost | people + cost lines of €12,500 (existing tools €3,000, AI tools €6,000, AI infrastructure €2,000, governance €1,500) + AI model usage = **€227,036** fully loaded |
 
 **3. Result**
 
 | Metric | Value | Meaning |
 |---|---|---|
-| Monthly saving (mature) | €45,100 | €276,120 − €231,020 |
+| Monthly saving (mature) | €49,084 | €276,120 − €227,036 |
 | One-off investment | €300,000 | Setup €200K, training €60K, contingency €40K |
-| Payback | Month 11 | First month where cumulative savings minus investment is ≥ 0. The transition months cost more than today. |
-| NPV (36 months, 10%) | €956K | All monthly cash flows discounted to today |
-| ROI (36 months) | 390% | (total savings − investment) ÷ investment, undiscounted |
-| IRR | 220% / year | Discount rate at which NPV = 0 |
+| Payback | Month 10 | First month where cumulative savings minus investment is ≥ 0. The transition months cost more than today. |
+| NPV (36 months, 10%) | €1.08M | All monthly cash flows discounted to today |
+| ROI (36 months) | 437% | (total savings − investment) ÷ investment, undiscounted |
+| IRR | 256% / year | Discount rate at which NPV = 0 |
 
-Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €3.7M (payback month 5) because offshore rates and AI savings combine.
+Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €3.8M (payback month 5) because offshore rates and AI savings combine.
 
-**What does not work:** the AI running costs and the investment have to be covered first. With the same example, an effort cut of 10% loses about €866K over 36 months, 15% roughly breaks even on monthly cost, 20% pays back only in month 29, and 30% pays back in month 11.
+**What does not work:** the AI running costs and the investment have to be covered first. With the same example, an effort cut of 10% loses about €744K over 36 months, 15% saves only €4K a month and never pays back, 20% pays back in month 23, and 30% pays back in month 10. Token costs are small here (€1.6K a month); licences, infrastructure and the investment are what the effort reduction has to cover.
+
+## AI model prices
+
+The price table is stored inside each scenario, so a saved scenario always reproduces the same result. Defaults are Anthropic's first-party API list prices, USD per million tokens, as of 2026-09-25:
+
+| Model | Input | Output |
+|---|---|---|
+| Claude Fable 5.1 | $10 | $50 |
+| Claude Opus 5.5 | $4 | $20 |
+| Claude Sonnet 5.5 | $2 | $10 |
+| Claude Haiku 4.5 | $1 | $5 |
+
+Prices for other vendors' models are not shipped, because they could not be verified: add them to the table from the vendor's price list. Prices are deliberately **not fetched live**: vendors publish no stable pricing API, and a figure shown to a customer must not change silently between two openings of the same scenario. The advice flags prices older than 90 days. USD prices are converted with the scenario's FX rates.
 
 ## How the advice works
 
@@ -80,12 +95,13 @@ Switching the delivery model on the same data shows the trade-offs: AI + BCC rea
 |---|---|
 | Verdict | **No change**: the model equals today's setup. **Does not pay back**: no payback in the horizon or NPV ≤ 0. **Marginal**: ROI < 50% or payback after 60% of the horizon. Otherwise **worth pursuing**. |
 | Break-even realisation | Share of the assumed AI effort reduction needed for NPV ≥ 0, found by bisection while all costs and the investment stay in. Flagged as a check above 70%. |
-| AI running costs | AI-specific monthly costs take more than 50% of the people saving. |
+| AI running costs | AI-specific monthly costs, including model usage, take more than 50% of the people saving. |
 | FTE gap | Staffing plan and workload-based team differ by more than 5%. |
 | Transition budget | Lowest cumulative cash position before payback, and the monthly cost above today during transition. |
 | Overrides | Work items with fixed hours, which the productivity factor does not change. |
 | Pyramid effect | The mature team costs more per person (negative mix effect). |
 | Overhead rationale | Overhead % changes without a stated reason (F5). |
+| Model prices | The price table is more than 90 days older than the scenario date. |
 
 ## How the calculation works
 
@@ -103,6 +119,8 @@ Workload            hours_s(item) = volume × hoursEach_s,  hoursEach_s = overri
                     core = items with review overhead;  other = the rest
                     totalEffort  = core × (1 + (hitl + rework + dualRun) × aiAdoption) + other
                     effort saving % = 1 − core_s / core_baseline
+AI model usage      requests = volume(linked item) × requestsPerUnit
+                    cost_s   = requests × (inTokens × inPrice + outTokens × outPrice) / 1e6 × FX × aiAdoption
 Headcount           effort-derived (default): team_s = baselineTeam × totalEffort_s / totalEffort_B,
                     spread across roles by the staffing plan mix
                     staffing plan: role FTE as entered
@@ -134,6 +152,7 @@ packages/engine/        Pure TypeScript calculation library (no I/O), shared by 
   src/delivery.ts         delivery-model profiles and their effect on FTE, rates, costs
   src/compare.ts          all delivery models on one baseline, ranked by NPV
   src/advice.ts           rule-based verdict and findings
+  src/llm.ts              AI model usage cost and the default price table
   src/currency.ts         FX rates and scenario conversion
   src/example.ts          the Northwind example
   src/defaults.ts         reference scenario from the source Excel (INR), legacy-file normalisation
@@ -162,7 +181,7 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 
 ## Tests
 
-`npm test` runs the engine suite: 60 tests. They cover:
+`npm test` runs the engine suite: 64 tests. They cover:
 
 - **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story
@@ -175,4 +194,4 @@ Server exports have been checked against a running server. **The UI has not yet 
 - Cross-functional roles added from a template are scaled with the workload like every other role, which slightly flatters the saving; the setup flags a team/workload gap above 10%.
 - Sensitivity analysis varies horizon and discount rate rather than the business drivers (planned).
 - The client-chargeable toggle and cost avoidance are not yet applied to ROI (planned).
-- FX rates and AI prices are static and editable, not live.
+- FX rates and AI model prices are static and editable, not live (see AI model prices).

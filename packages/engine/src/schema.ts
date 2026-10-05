@@ -53,6 +53,32 @@ const kpi = z.object({
 
 const overheadPct = z.object({ hitl: share, rework: share, dualRun: share });
 
+const llmPricing = z.object({
+  currency,
+  asOf: text,
+  source: z.string().max(500),
+  prices: z
+    .array(
+      z.object({
+        id: text,
+        label: text,
+        inputPerMTok: z.number().finite().min(0).max(100_000),
+        outputPerMTok: z.number().finite().min(0).max(100_000),
+      })
+    )
+    .max(100),
+});
+
+const llmUsage = z.object({
+  id: text,
+  name: text,
+  priceId: text,
+  kpiId: text.optional(),
+  requestsPerUnit: z.number().finite().min(0).max(1e9),
+  inputTokensPerRequest: z.number().finite().min(0).max(1e8),
+  outputTokensPerRequest: z.number().finite().min(0).max(1e8),
+});
+
 /** Accepts current files and files saved before delivery profiles / FX rates existed. */
 const scenarioFile = z.object({
   id: text,
@@ -82,6 +108,8 @@ const scenarioFile = z.object({
   peopleMode: z.object({ mode: z.enum(['staffing-plan', 'effort-derived']) }),
   kpis: z.array(kpi).max(500),
   costLines: z.array(costLine).max(500),
+  llmUsage: z.array(llmUsage).max(200).optional(),
+  llmPricing: llmPricing.optional(),
   oneTimeInvestment: z.array(investment).max(500),
   productivityFactor: z.union([
     z.object({ mode: z.literal('direct-factor'), transition: z.number().finite().positive(), mature: z.number().finite().positive() }),

@@ -7,6 +7,7 @@ import Header from './components/Header';
 import RolesGrid from './components/RolesGrid';
 import CostLinesGrid from './components/CostLinesGrid';
 import WorkloadGrid from './components/WorkloadGrid';
+import AiUsagePanel from './components/AiUsagePanel';
 import CumulativeCashFlowChart from './components/CumulativeCashFlowChart';
 import MonthlyOpexChart from './components/MonthlyOpexChart';
 import FtePyramidChart from './components/FtePyramidChart';
@@ -628,6 +629,9 @@ export default function App() {
           </div>
 
           <WorkloadGrid scenario={scenario} results={results} onUpdate={kpis => handleScenarioUpdate({ kpis })} />
+          <div className="mt-8">
+            <AiUsagePanel scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
+          </div>
         </section>
 
         {/* Visualizations */}

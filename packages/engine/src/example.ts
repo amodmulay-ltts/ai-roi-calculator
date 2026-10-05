@@ -1,6 +1,7 @@
 import type { Scenario } from './types.js';
 import { DEFAULT_FX_RATES_PER_EUR } from './currency.js';
 import { DEFAULT_BCC_RATE_FACTOR, DEFAULT_DELIVERY_PROFILES } from './delivery.js';
+import { DEFAULT_LLM_PRICING } from './llm.js';
 
 /**
  * Illustrative example loaded on start: a fictional European insurer's 31-person testing team.
@@ -48,12 +49,18 @@ export function createExampleScenario(): Scenario {
 
     costLines: [
       { id: 'existing-tools', name: 'Existing test tool licences', category: 'Tools', monthlyAmount: { baseline: 3_000, transition: 3_000, mature: 3_000 }, chargeable: true, aiSpecific: false },
-      { id: 'llm-usage', name: 'LLM / AI platform usage', category: 'AI', monthlyAmount: { baseline: 0, transition: 4_000, mature: 5_000 }, chargeable: true, aiSpecific: true },
       { id: 'ai-test-tools', name: 'AI test tool licences', category: 'AI', monthlyAmount: { baseline: 0, transition: 6_000, mature: 6_000 }, chargeable: true, aiSpecific: true },
       { id: 'ai-infra', name: 'Cloud infrastructure for AI', category: 'Infra', monthlyAmount: { baseline: 0, transition: 2_000, mature: 2_000 }, chargeable: true, aiSpecific: true },
       { id: 'governance', name: 'AI governance and reporting', category: 'Governance', monthlyAmount: { baseline: 0, transition: 3_000, mature: 1_500 }, chargeable: true, aiSpecific: false },
       { id: 'training', name: 'Training and change management', category: 'Transition', monthlyAmount: { baseline: 0, transition: 5_000, mature: 0 }, chargeable: true, aiSpecific: false },
     ],
+    // Model usage follows the work: requests per release / per defect × tokens × list price
+    llmUsage: [
+      { id: 'test-generation', name: 'Test design and generation', priceId: 'claude-sonnet-5-5', kpiId: 'testing-effort-per-release', requestsPerUnit: 15_000, inputTokensPerRequest: 8_000, outputTokensPerRequest: 2_000 },
+      { id: 'review-agent', name: 'Test review agent', priceId: 'claude-opus-5-5', kpiId: 'testing-effort-per-release', requestsPerUnit: 2_000, inputTokensPerRequest: 30_000, outputTokensPerRequest: 3_000 },
+      { id: 'defect-triage', name: 'Defect triage assistant', priceId: 'claude-haiku-4-5', kpiId: 'defect-rca-effort', requestsPerUnit: 10, inputTokensPerRequest: 20_000, outputTokensPerRequest: 1_000 },
+    ],
+    llmPricing: structuredClone(DEFAULT_LLM_PRICING),
     oneTimeInvestment: [
       { id: 'setup', name: 'Setup and integration', amount: 200_000, month: 0, aiSpecific: true },
       { id: 'enablement', name: 'Training and enablement', amount: 60_000, month: 0, aiSpecific: false },
