@@ -4,6 +4,13 @@
 
 import type { Scenario, Results } from '@ai-roi-calc/engine';
 import { advise } from '@ai-roi-calc/engine';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// The client's public logo is the single source; embedded as a data URI so the downloaded report is self-contained
+const LOGO_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/public/ltts-logo.png');
+const LOGO_DATA_URI = existsSync(LOGO_PATH) ? `data:image/png;base64,${readFileSync(LOGO_PATH).toString('base64')}` : null;
 
 const HTML_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 
@@ -44,7 +51,7 @@ export function generatePdfHtml(scenario: Scenario, results: Results): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">
   <title>${escapeHtml(scenario.name)} - VALUEAI ROI Report</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -67,6 +74,7 @@ export function generatePdfHtml(scenario: Scenario, results: Results): string {
     .cover h1 { font-size: 48px; margin-bottom: 20px; }
     .cover p { font-size: 18px; color: #6b7280; margin: 10px 0; }
     .metadata { margin-top: 40px; color: #6b7280; }
+    .logo { height: 90px; width: auto; margin-bottom: 48px; }
     .advice-headline { font-size: 20px; font-weight: bold; color: #1d4ed8; margin-bottom: 6px; }
     .findings { margin: 12px 0 0 18px; }
     .findings li { margin-bottom: 6px; }
@@ -79,6 +87,7 @@ export function generatePdfHtml(scenario: Scenario, results: Results): string {
 <!-- Cover Page -->
 ${scenario.isExample ? '<div class="example-flag">EXAMPLE CALCULATION &middot; FICTIONAL DATA &middot; NOT FOR CUSTOMER DECISIONS</div>' : ''}
 <div class="page cover">
+  ${LOGO_DATA_URI ? `<img class="logo" src="${LOGO_DATA_URI}" alt="L&amp;T Technology Services">` : ''}
   <h1>${escapeHtml(scenario.name)}</h1>
   <p><strong>Client:</strong> ${escapeHtml(scenario.clientName)}</p>
   <p><strong>Use Case:</strong> ${escapeHtml(scenario.useCase)}</p>

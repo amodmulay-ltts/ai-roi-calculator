@@ -93,17 +93,9 @@ export default function Header(props: HeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 flex items-center justify-center">
-            <img
-              src="/lt-logo.png"
-              alt="L&T logo"
-              className="h-full w-full object-contain"
-              onError={e => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          </div>
+        <div className="flex items-center gap-4">
+          <img src="/ltts-logo.png" alt="L&T Technology Services" className="h-12 w-auto" />
+          <span className="h-8 w-px bg-gray-200" aria-hidden="true" />
           <div className="flex flex-col">
             <h1 className="text-lg font-semibold text-gray-900 tracking-tight">VALUEAI</h1>
             <p className="text-xs text-gray-500">ROI Calculator</p>

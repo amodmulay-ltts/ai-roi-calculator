@@ -17,6 +17,10 @@ npm run smoke                      # browser smoke test on the built app (needs 
 npm run build                      # production build of engine, server and client
 ```
 
+## Branding
+
+The L&T Technology Services logo (`apps/client/public/ltts-logo.png`) appears in the header, on the first screen of "How it works" and on the cover of the PDF report, where it is embedded so the downloaded report is self-contained. The favicon is the L&T emblem cropped from the same file. To update the logo, replace that one file.
+
 ## Using the app
 
 The app opens with an **example calculation**, marked "Example calculation · fictional data" on screen and in every export. Use it to learn the tool; do not use its figures for a customer.
