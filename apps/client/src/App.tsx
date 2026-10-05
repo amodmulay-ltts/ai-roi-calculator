@@ -56,9 +56,12 @@ export default function App() {
   const [restoredAt, setRestoredAt] = useState<string | null>(null);
 
   useEffect(() => {
+    // A saved example is not user work: always start from the current built-in example instead,
+    // so a changed example is not hidden behind an old copy kept in the browser
     const saved = loadSavedScenario();
-    const initial = saved?.scenario ?? createExampleScenario();
-    if (saved && !saved.scenario.isExample) setRestoredAt(saved.savedAt);
+    const restore = saved && !saved.scenario.isExample ? saved : null;
+    const initial = restore?.scenario ?? createExampleScenario();
+    if (restore) setRestoredAt(restore.savedAt);
     setScenario(initial);
     setResults(calculate(initial));
     setLoading(false);
