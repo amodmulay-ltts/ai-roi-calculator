@@ -49,6 +49,7 @@ const kpi = z.object({
   volumePerMonth: z.number().finite().min(0).max(1e8).optional(),
   volumeUnit: text.optional(),
   reviewOverheadApplies: z.boolean().optional(),
+  extraVolumePerMonth: z.number().finite().min(0).max(1e8).optional(),
 });
 
 const overheadPct = z.object({ hitl: share, rework: share, dualRun: share });

@@ -101,6 +101,8 @@ export interface KpiInput {
   volumeUnit?: string;
   /** Whether AI review overhead (HITL, rework, dual run) is added on top of this item's hours. */
   reviewOverheadApplies?: boolean;
+  /** Extra demand per month that AI lets the team absorb without hiring (cost avoidance, F7). */
+  extraVolumePerMonth?: number;
 }
 
 export interface AiOverheadPercent {
@@ -190,8 +192,6 @@ export interface Scenario {
   // Options
   costChargeable: 'tco' | 'chargeable';
   costAvoidanceIncludedInRoi: boolean;
-  costAvoidanceExtraTestCasesPerMonth?: number;
-  costAvoidanceExtraScriptsPerMonth?: number;
 }
 
 // ============ RESULTS ============
@@ -223,6 +223,8 @@ export interface CostCalculation {
   llmCost: Record<State, number>;
   llmCostByUsage: Record<string, Record<State, number>>;
   llmRequestsPerMonth: Record<string, number>;
+  /** Value of the extra demand absorbed without hiring, per month (not part of run cost). */
+  costAvoidance: Record<State, number>;
   directOpex: Record<State, number>;
   overhead: Record<State, number>;
   risk: Record<State, number>;

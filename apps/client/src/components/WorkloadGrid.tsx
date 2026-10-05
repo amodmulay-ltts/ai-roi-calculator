@@ -5,13 +5,14 @@ import Tooltip from './Tooltip';
 interface WorkloadGridProps {
   scenario: Scenario;
   results: Results;
-  onUpdate: (kpis: KpiInput[]) => void;
+  onUpdate: (updates: Partial<Scenario>) => void;
+  formatCurrency: (value: number) => string;
 }
 
 const fmt = (v: number, digits = 0) => v.toLocaleString('en', { maximumFractionDigits: digits });
 const isWorkload = (k: KpiInput) => k.volumePerMonth !== undefined;
 
-export default function WorkloadGrid({ scenario, results, onUpdate }: WorkloadGridProps) {
+export default function WorkloadGrid({ scenario, results, onUpdate, formatCurrency }: WorkloadGridProps) {
   const [draft, setDraft] = useState<KpiInput[] | null>(null);
   const { effort } = results;
   const workload = scenario.kpis.filter(isWorkload);
@@ -65,6 +66,12 @@ export default function WorkloadGrid({ scenario, results, onUpdate }: WorkloadGr
               <th className="px-2 py-2 font-normal text-right">Mature override</th>
               <th className="px-2 py-2 font-normal text-center">AI-assisted</th>
               <th className="px-2 py-2 font-normal text-center">Review overhead</th>
+              <th className="px-2 py-2 font-normal text-right">
+                <span className="inline-flex items-center">
+                  Extra volume absorbed
+                  <Tooltip text="Additional demand per month that the AI-assisted team can take on without hiring (cost avoidance). Valued at the hours saved per unit × today's average hourly rate. Shown separately; counted in ROI only if you switch it on." />
+                </span>
+              </th>
               <th className="px-2 py-2" />
             </tr>
           </thead>
@@ -102,6 +109,17 @@ export default function WorkloadGrid({ scenario, results, onUpdate }: WorkloadGr
                 </td>
                 <td className="px-2 py-2 text-center">
                   <input type="checkbox" aria-label={`${k.name} carries review overhead`} checked={!!k.reviewOverheadApplies} onChange={e => update(k.id, { reviewOverheadApplies: e.target.checked })} />
+                </td>
+                <td className="px-2 py-2 text-right">
+                  <input
+                    aria-label={`${k.name} extra volume absorbed per month`}
+                    type="number"
+                    min={0}
+                    placeholder="0"
+                    value={k.extraVolumePerMonth ?? ''}
+                    onChange={e => update(k.id, { extraVolumePerMonth: e.target.value === '' ? undefined : Number(e.target.value) || 0 })}
+                    className={`w-20 ${cell}`}
+                  />
                 </td>
                 <td className="px-2 py-2">
                   <button
@@ -141,7 +159,7 @@ export default function WorkloadGrid({ scenario, results, onUpdate }: WorkloadGr
           </button>
           <button
             onClick={() => {
-              onUpdate(draft);
+              onUpdate({ kpis: draft });
               setDraft(null);
             }}
             disabled={!changed}
@@ -210,6 +228,21 @@ export default function WorkloadGrid({ scenario, results, onUpdate }: WorkloadGr
       </table>
 
       {/* Quiet */}
+      {results.cost.costAvoidance.mature > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-gray-600">
+          <span>
+            Cost avoidance: {formatCurrency(results.cost.costAvoidance.mature)} a month from absorbing extra demand without hiring
+          </span>
+          <label className="flex items-center gap-2 text-xs text-gray-500">
+            <input
+              type="checkbox"
+              checked={scenario.costAvoidanceIncludedInRoi}
+              onChange={e => onUpdate({ costAvoidanceIncludedInRoi: e.target.checked })}
+            />
+            Count it in ROI
+          </label>
+        </div>
+      )}
       {info.length > 0 && (
         <p className="mt-4 text-xs text-gray-400">{info.length} information-only KPIs are kept with the scenario but not used in the calculation.</p>
       )}
