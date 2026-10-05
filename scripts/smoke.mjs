@@ -144,7 +144,15 @@ async function main() {
     await clickByText(page, '[role="menuitem"]', 'New scenario');
     await page.type('input[placeholder^="e.g., Acme Corp"]', 'Smoke Test Bank - AI testing');
     await page.type('input[placeholder="e.g., Acme Corporation"]', 'Smoke Test Bank');
-    for (let i = 0; i < 6; i++) await clickByText(page, '[role="dialog"] button', 'Next');
+    for (let i = 0; i < 3; i++) await clickByText(page, '[role="dialog"] button', 'Next');
+    check(
+      'automotive template is preselected for an automotive use case',
+      await page.$eval('[aria-label="Use case"] [aria-checked="true"]', el => el.textContent?.includes('Automotive'))
+    );
+    await clickByText(page, '[role="dialog"] button', 'Apply template');
+    check('automotive template sets the workload', (await text(page)).includes('5,280 h of work a month'));
+    await shot('03a-setup-automotive-template');
+    for (let i = 0; i < 3; i++) await clickByText(page, '[role="dialog"] button', 'Next');
     await shot('03-setup-review');
     await clickByText(page, '[role="dialog"] button', 'Create scenario');
     body = await text(page);

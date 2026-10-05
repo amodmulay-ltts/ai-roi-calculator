@@ -32,6 +32,7 @@ Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, auto
 | – | Example scenario (Vantara Motors, automotive software development, fictional) loaded by default, labelled on screen and in exports | Done, browser-tested |
 | – | One scenario setup (new / edit) replaces Edit Context + wizard; Scenario and Export menus | Done, build-tested |
 | – | IRR no longer capped at 200% | Done, tested |
+| – | Automotive software (ECU / ADAS) use-case template, from the example | Done, browser-tested |
 | – | LTTS logo in header, help title screen, PDF report cover; L&T emblem favicon | Done, browser-tested |
 | – | Help: presentation-style scrolling walkthrough of concept and example | Done, render-tested (not in a browser) |
 
