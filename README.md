@@ -21,6 +21,8 @@ npm run build                      # production build of engine, server and clie
 
 The app opens with an **example calculation**, marked "Example calculation · fictional data" on screen and in every export. Use it to learn the tool; do not use its figures for a customer.
 
+The dashboard reads top to bottom in the order of a customer conversation, with a section bar under the header to jump between parts: **Results** (NPV, payback, ROI) → **Advice** → **Delivery model** (comparison, then the selected model's settings) → **Cash flow** (cumulative cash position with the payback marker, monthly run cost against today, cost per stage) → **Sensitivity** → **Assumptions** (tabs: Team, Workload, AI model usage, Costs and investment).
+
 | Where | What |
 |---|---|
 | **How it works** (header) | Full-screen walkthrough you scroll screen by screen: the idea, the example step by step, when AI does *not* pay off, and which delivery model works best. All figures are calculated live from the example. Also opened from "How this is calculated" on the example banner. Esc closes it. |

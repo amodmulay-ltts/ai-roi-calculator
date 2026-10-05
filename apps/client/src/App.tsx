@@ -8,10 +8,9 @@ import RolesGrid from './components/RolesGrid';
 import CostLinesGrid from './components/CostLinesGrid';
 import WorkloadGrid from './components/WorkloadGrid';
 import AiUsagePanel from './components/AiUsagePanel';
-import CumulativeCashFlowChart from './components/CumulativeCashFlowChart';
-import MonthlyOpexChart from './components/MonthlyOpexChart';
-import FtePyramidChart from './components/FtePyramidChart';
 import SensitivityPanel from './components/SensitivityPanel';
+import CashFlowSection from './components/CashFlowSection';
+import CostsSummary from './components/CostsSummary';
 import ModelSelector from './components/ModelSelector';
 import ModelComparison from './components/ModelComparison';
 import AdvicePanel from './components/AdvicePanel';
@@ -25,6 +24,22 @@ import Tooltip from './components/Tooltip';
 const exportFileName = (scenario: Scenario, ext: string) =>
   `VALUEAI_${scenario.name.replace(/[^A-Za-z0-9.-]+/g, '_').slice(0, 80)}_${new Date().toISOString().split('T')[0]}.${ext}`;
 
+type AssumptionTab = 'team' | 'workload' | 'ai' | 'costs';
+const ASSUMPTION_TABS: Array<[AssumptionTab, string]> = [
+  ['team', 'Team'],
+  ['workload', 'Workload'],
+  ['ai', 'AI model usage'],
+  ['costs', 'Costs and investment'],
+];
+const SECTIONS: Array<[string, string]> = [
+  ['results', 'Results'],
+  ['advice', 'Advice'],
+  ['delivery', 'Delivery model'],
+  ['cashflow', 'Cash flow'],
+  ['sensitivity', 'Sensitivity'],
+  ['assumptions', 'Assumptions'],
+];
+
 export default function App() {
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [results, setResults] = useState<Results | null>(null);
@@ -34,6 +49,8 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingRoles, setEditingRoles] = useState(false);
   const [editingCostLines, setEditingCostLines] = useState(false);
+  const [assumptionsTab, setAssumptionsTab] = useState<AssumptionTab>('team');
+  const [setupStep, setSetupStep] = useState(1);
   const [pendingCurrency, setPendingCurrency] = useState<Currency | null>(null);
 
   const [restoredAt, setRestoredAt] = useState<string | null>(null);
@@ -170,62 +187,6 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const generateCumulativeCashFlowData = () => {
-    if (!results) return [];
-
-    return results.monthlyForecast.map(mf => ({
-      month: mf.month,
-      cumulativeSavings: mf.cumulativeCashFlow + mf.investmentOutflow,
-      cumulativeCost: mf.investmentOutflow,
-      netCashFlow: mf.cumulativeCashFlow,
-    }));
-  };
-
-  const generateMonthlyOpexData = () => {
-    if (!results || !scenario) return [];
-    const forecast = results.monthlyForecast;
-    const transitionEnd = scenario.globalAssumptions.transitionLengthMonths;
-
-    const months = [
-      0,
-      Math.floor(transitionEnd / 2),
-      transitionEnd,
-      Math.min(transitionEnd + 12, forecast.length - 1),
-    ];
-
-    const baselineState = results.cost.fullyLoaded.baseline;
-    const transitionState = results.cost.fullyLoaded.transition;
-    const matureState = results.cost.fullyLoaded.mature;
-
-    return months.map(month => ({
-      month,
-      baseline: month < transitionEnd ? baselineState : 0,
-      transition: month < transitionEnd ? transitionState : 0,
-      mature: month >= transitionEnd ? matureState : 0,
-    }));
-  };
-
-  const generateFteData = () => {
-    if (!results) return [];
-    return [
-      {
-        state: 'Baseline',
-        staffingFte: results.effort.staffingFte.baseline || 0,
-        effortFte: results.effort.effortFte.baseline || 0,
-      },
-      {
-        state: 'Transition',
-        staffingFte: results.effort.staffingFte.transition || 0,
-        effortFte: results.effort.effortFte.transition || 0,
-      },
-      {
-        state: 'Mature',
-        staffingFte: results.effort.staffingFte.mature || 0,
-        effortFte: results.effort.effortFte.mature || 0,
-      },
-    ];
-  };
-
   const formatCurrency = (value: number, currency = scenario?.baseCurrency || 'EUR') => {
     const symbols: Record<string, string> = {
       'EUR': '€',
@@ -287,7 +248,6 @@ export default function App() {
 
   const { financialMetrics, cost, effort } = results;
   const chargeableBasis = scenario.costChargeable === 'chargeable';
-  const signedDelta = (v: number) => (v > 0 ? '+' : '') + formatCurrency(v);
   const basis = chargeableBasis
     ? { direct: cost.chargeableDirectOpex, full: cost.chargeableFullyLoaded }
     : { direct: cost.directOpex, full: cost.fullyLoaded };
@@ -310,14 +270,29 @@ export default function App() {
       <HelpPresentation open={showHelp} onClose={() => setShowHelp(false)} onStartNew={() => setSetupMode('new')} />
       <ScenarioImport ref={fileInputRef} onImport={handleImportScenario} />
 
-      <main className="max-w-7xl mx-auto px-6 py-12">
+      <nav aria-label="Sections" className="sticky top-[73px] z-30 bg-gray-50/95 backdrop-blur border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 flex gap-6 overflow-x-auto text-sm">
+          {SECTIONS.map(([id, label]) => (
+            <a key={id} href={`#${id}`} className="py-2.5 text-gray-500 hover:text-gray-900 whitespace-nowrap">
+              {label}
+            </a>
+          ))}
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-6 py-10">
         <ScenarioSetup
           mode={setupMode}
           current={scenario}
-          onCancel={() => setSetupMode(null)}
+          initialStep={setupStep}
+          onCancel={() => {
+            setSetupMode(null);
+            setSetupStep(1);
+          }}
           onApply={next => {
             replaceScenario(next);
             setSetupMode(null);
+            setSetupStep(1);
           }}
         />
         <CurrencyChangeDialog
@@ -363,7 +338,7 @@ export default function App() {
         )}
 
         {/* Key Metrics Grid */}
-        <section className="mb-12">
+        <section id="results" className="mb-12 scroll-mt-32">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Hero */}
             <div className="lg:col-span-2 bg-white rounded-xl border border-blue-200 p-8 flex flex-col justify-center">
@@ -431,10 +406,12 @@ export default function App() {
           </dl>
         </section>
 
-        <AdvicePanel scenario={scenario} results={results} />
+        <div id="advice" className="scroll-mt-32">
+          <AdvicePanel scenario={scenario} results={results} />
+        </div>
 
         {/* Delivery model: which model, then its parameters */}
-        <section className="mb-12 space-y-6" aria-label="Delivery model">
+        <section id="delivery" className="mb-12 space-y-6 scroll-mt-32" aria-label="Delivery model">
           <ModelComparison
             scenario={scenario}
             formatCurrency={formatCurrency}
@@ -443,230 +420,84 @@ export default function App() {
           <ModelSelector scenario={scenario} onUpdate={handleScenarioUpdate} />
         </section>
 
-        {/* Cost Model */}
-        <section className="mb-12">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Cost Model</h3>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-500">Business case on</span>
-              <div role="radiogroup" aria-label="Cost basis" className="inline-flex rounded-lg border border-gray-200 p-1">
-                {([
-                  ['tco', 'Total cost of ownership'],
-                  ['chargeable', 'Client-chargeable cost'],
-                ] as const).map(([id, label]) => (
-                  <button
-                    key={id}
-                    role="radio"
-                    aria-checked={scenario.costChargeable === id}
-                    onClick={() => handleScenarioUpdate({ costChargeable: id })}
-                    className={`px-3 py-1 rounded-md transition ${
-                      scenario.costChargeable === id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <Tooltip text="Total cost of ownership counts every cost line. Client-chargeable cost leaves out lines marked as not chargeable (for example internal capex amortisation). The choice drives savings, payback, ROI and NPV." />
-            </div>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">State</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700">People Cost</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700">Direct OPEX</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700">Fully Loaded</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700">vs Baseline</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-gray-100 hover:bg-gray-50 transition">
-                  <td className="px-6 py-3 text-sm font-medium text-gray-900">Baseline</td>
-                  <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(cost.peopleCost.baseline)}</td>
-                  <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(basis.direct.baseline)}</td>
-                  <td className="px-6 py-3 text-sm text-right font-semibold text-gray-900">{formatCurrency(basis.full.baseline)}</td>
-                  <td className="px-6 py-3 text-sm text-right text-gray-400">—</td>
-                </tr>
-                <tr className="border-b border-gray-100 hover:bg-gray-50 transition">
-                  <td className="px-6 py-3 text-sm font-medium text-gray-900">Transition</td>
-                  <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(cost.peopleCost.transition)}</td>
-                  <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(basis.direct.transition)}</td>
-                  <td className="px-6 py-3 text-sm text-right font-semibold text-gray-900">{formatCurrency(basis.full.transition)}</td>
-                  <td className="px-6 py-3 text-sm text-right text-gray-700">{signedDelta(basis.full.transition - basis.full.baseline)}</td>
-                </tr>
-                <tr className="bg-blue-50 hover:bg-blue-100 transition">
-                  <td className="px-6 py-3 text-sm font-semibold text-gray-900">Mature</td>
-                  <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(cost.peopleCost.mature)}</td>
-                  <td className="px-6 py-3 text-sm text-right text-gray-700">{formatCurrency(basis.direct.mature)}</td>
-                  <td className="px-6 py-3 text-sm text-right font-semibold text-gray-900">{formatCurrency(basis.full.mature)}</td>
-                  <td className={`px-6 py-3 text-sm text-right font-semibold ${basis.full.mature <= basis.full.baseline ? 'text-blue-700' : 'text-gray-900'}`}>{signedDelta(basis.full.mature - basis.full.baseline)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <section id="cashflow" className="mb-12 scroll-mt-32">
+          <CashFlowSection scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
         </section>
 
-        {/* Input Grids Section */}
-        <section className="mb-12">
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Editable Inputs</h3>
-              <button
-                onClick={() => setEditingRoles(!editingRoles)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-              >
-                {editingRoles ? 'Editing Roles' : 'Edit Roles'}
-              </button>
-            </div>
-            {editingRoles && scenario ? (
-              <RolesGrid
-                roles={scenario.roles}
-                onUpdate={(updatedRoles) => handleScenarioUpdate({ roles: updatedRoles })}
-                isEditing={editingRoles}
-                onDone={() => setEditingRoles(false)}
-                formatCurrency={formatCurrency}
-              />
-            ) : (
-              <TeamSummary scenario={scenario} results={results} onUpdate={handleScenarioUpdate} />
-            )}
-          </div>
-
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Cost Lines</h3>
-              <button
-                onClick={() => setEditingCostLines(!editingCostLines)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-              >
-                {editingCostLines ? 'Editing Costs' : 'Edit Cost Lines'}
-              </button>
-            </div>
-            {editingCostLines && scenario ? (
-              <CostLinesGrid
-                costLines={scenario.costLines}
-                onUpdate={(updatedLines) => handleScenarioUpdate({ costLines: updatedLines })}
-                isEditing={editingCostLines}
-                onDone={() => setEditingCostLines(false)}
-                formatCurrency={formatCurrency}
-              />
-            ) : (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-4">Cost Lines</h4>
-                <div className="space-y-2 text-sm">
-                  {Array.from(new Set(scenario?.costLines.map(c => c.category) || [])).map(cat => {
-                    const lines = scenario?.costLines.filter(c => c.category === cat) || [];
-                    return (
-                      <div key={cat} className="text-gray-600">
-                        <span className="font-medium text-gray-700">{cat}</span>
-                        <span className="text-gray-500 ml-2">({lines.length} items)</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <WorkloadGrid scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
-          <div className="mt-8">
-            <AiUsagePanel scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
-          </div>
-        </section>
-
-        {/* Visualizations */}
-        <section className="mb-12">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-6">Visualizations</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <CumulativeCashFlowChart
-              data={generateCumulativeCashFlowData()}
-              formatCurrency={formatCurrency}
-            />
-            <MonthlyOpexChart
-              data={generateMonthlyOpexData()}
-              formatCurrency={formatCurrency}
-            />
-          </div>
-          <FtePyramidChart data={generateFteData()} />
-        </section>
-
-        {/* Sensitivity */}
-        <section className="mb-12">
+        <section id="sensitivity" className="mb-12 scroll-mt-32">
           <SensitivityPanel scenario={scenario} formatCurrency={formatCurrency} />
         </section>
 
-        {/* FTE Analysis */}
-        <section className="mb-12">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-6">FTE & Effort</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h4 className="text-sm font-semibold text-gray-900 mb-4">Staffing FTE</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm"><span className="text-gray-600">Baseline</span><span className="font-semibold text-gray-900">{effort.staffingFte.baseline.toFixed(1)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-gray-600">Transition</span><span className="font-semibold text-gray-900">{effort.staffingFte.transition.toFixed(1)}</span></div>
-                <div className="flex justify-between text-sm pt-2 border-t border-gray-100"><span className="text-gray-600">Mature</span><span className="font-semibold text-blue-600">{effort.staffingFte.mature.toFixed(1)}</span></div>
-              </div>
+        {/* Assumptions: every input in one place, one tab at a time */}
+        <section id="assumptions" className="mb-12 scroll-mt-32" aria-label="Assumptions">
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Assumptions</h3>
+              <p className="text-sm text-gray-600">The inputs behind every figure above. Changes recalculate immediately.</p>
             </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h4 className="text-sm font-semibold text-gray-900 mb-4">Effort FTE</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm"><span className="text-gray-600">Baseline</span><span className="font-semibold text-gray-900">{effort.effortFte.baseline.toFixed(1)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-gray-600">Transition</span><span className="font-semibold text-gray-900">{effort.effortFte.transition.toFixed(1)}</span></div>
-                <div className="flex justify-between text-sm pt-2 border-t border-gray-100"><span className="text-gray-600">Mature</span><span className="font-semibold text-blue-600">{effort.effortFte.mature.toFixed(1)}</span></div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h4 className="text-sm font-semibold text-gray-900 mb-4">Effort Saving</h4>
-              <div className="space-y-3">
-                <div className="text-3xl font-bold text-green-600 mb-2">{(effort.effortSavingPercent.mature * 100).toFixed(1)}%</div>
-                <p className="text-xs text-gray-600">Reduction in mature state vs baseline</p>
-              </div>
+            <div role="tablist" aria-label="Assumptions" className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+              {ASSUMPTION_TABS.map(([id, label]) => (
+                <button
+                  key={id}
+                  role="tab"
+                  id={`tab-${id}`}
+                  aria-selected={assumptionsTab === id}
+                  aria-controls="assumptions-panel"
+                  onClick={() => setAssumptionsTab(id)}
+                  className={`px-3 py-1.5 rounded-md text-sm transition ${
+                    assumptionsTab === id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
-        </section>
-
-        {/* Financial Summary */}
-        <section className="mb-12">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-6">Summary</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h4 className="text-sm font-semibold text-gray-900 mb-4">Investment & Returns</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between pb-3 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Total Investment</span>
-                  <span className="text-sm font-semibold text-gray-900">{formatCurrency(financialMetrics.totalInvestment)}</span>
+          <div id="assumptions-panel" role="tabpanel" aria-labelledby={`tab-${assumptionsTab}`}>
+            {assumptionsTab === 'team' &&
+              (editingRoles ? (
+                <RolesGrid
+                  roles={scenario.roles}
+                  onUpdate={updatedRoles => handleScenarioUpdate({ roles: updatedRoles })}
+                  isEditing={editingRoles}
+                  onDone={() => setEditingRoles(false)}
+                  formatCurrency={formatCurrency}
+                />
+              ) : (
+                <div className="space-y-3">
+                  <TeamSummary scenario={scenario} results={results} onUpdate={handleScenarioUpdate} />
+                  <button onClick={() => setEditingRoles(true)} className="text-sm text-blue-700 hover:text-blue-900">
+                    Edit roles, FTE and rates
+                  </button>
                 </div>
-                <div className="flex justify-between pb-3 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Total Savings</span>
-                  <span className="text-sm font-semibold text-green-600">+{formatCurrency(financialMetrics.totalSavingsOverHorizon)}</span>
-                </div>
-                <div className="flex justify-between pt-2">
-                  <span className="text-sm font-semibold text-gray-900">Net Benefit</span>
-                  <span className="text-sm font-bold text-green-700">+{formatCurrency(financialMetrics.totalSavingsOverHorizon - financialMetrics.totalInvestment)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h4 className="text-sm font-semibold text-gray-900 mb-4">Break-even & Payback</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between pb-3 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Break-even Month</span>
-                  <span className="text-sm font-semibold text-gray-900">{financialMetrics.breakEvenMonth || '—'}</span>
-                </div>
-                <div className="flex justify-between pb-3 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Payback Month</span>
-                  <span className="text-sm font-semibold text-gray-900">{financialMetrics.paybackMonth || '—'}</span>
-                </div>
-                <div className="flex justify-between pt-2">
-                  <span className="text-sm font-semibold text-gray-900">IRR</span>
-                  <span className="text-sm font-semibold text-blue-600">{financialMetrics.irr ? (financialMetrics.irr * 100).toFixed(1) + '%' : '—'}</span>
-                </div>
-              </div>
-            </div>
+              ))}
+            {assumptionsTab === 'workload' && (
+              <WorkloadGrid scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
+            )}
+            {assumptionsTab === 'ai' && (
+              <AiUsagePanel scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
+            )}
+            {assumptionsTab === 'costs' &&
+              (editingCostLines ? (
+                <CostLinesGrid
+                  costLines={scenario.costLines}
+                  onUpdate={updatedLines => handleScenarioUpdate({ costLines: updatedLines })}
+                  isEditing={editingCostLines}
+                  onDone={() => setEditingCostLines(false)}
+                  formatCurrency={formatCurrency}
+                />
+              ) : (
+                <CostsSummary
+                  scenario={scenario}
+                  results={results}
+                  formatCurrency={formatCurrency}
+                  onEditLines={() => setEditingCostLines(true)}
+                  onEditInvestment={() => {
+                    setSetupStep(5);
+                    setSetupMode('edit');
+                  }}
+                />
+              ))}
           </div>
         </section>
 
