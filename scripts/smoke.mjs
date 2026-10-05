@@ -91,6 +91,43 @@ async function main() {
     check('headline results render', /Net value created/.test(body) && /Month \d+/.test(body));
     await shot('01-dashboard-example');
 
+    // 1b. Story layout: section bar, delivery model selection, cost basis, assumption tabs
+    for (const id of ['results', 'advice', 'delivery', 'cashflow', 'sensitivity', 'assumptions']) {
+      check(`section #${id} present`, !!(await page.$(`#${id}`)));
+    }
+    await clickByText(page, '[aria-label="Delivery models ranked by NPV"] [role="radio"]', 'AI + BCC');
+    body = await text(page);
+    check('selecting a model in the comparison updates the verdict', body.includes('This is the model currently selected'));
+    await clickByText(page, '[aria-label="Cost basis"] [role="radio"]', 'Client-chargeable');
+    check(
+      'cost basis toggle switches',
+      await page.$eval('[aria-label="Cost basis"] [aria-checked="true"]', el => el.textContent?.includes('Client-chargeable'))
+    );
+    await clickByText(page, '[aria-label="Cost basis"] [role="radio"]', 'Total cost of ownership');
+    for (const [tab, expected] of [
+      ['Workload', 'h / month'],
+      ['AI model usage', 'Claude Sonnet 5.5'],
+      ['Costs and investment', 'One-off investment'],
+      ['Team', 'Team size'],
+    ]) {
+      await clickByText(page, '[role="tab"]', tab);
+      // innerText reflects CSS text-transform, so compare case-insensitively
+      const panelText = await page.$eval('#assumptions-panel', el => el.innerText.toLowerCase());
+      check(`assumptions tab "${tab}" shows its content`, panelText.includes(expected.toLowerCase()));
+    }
+    await clickByText(page, '[aria-label="Delivery models ranked by NPV"] [role="radio"]', 'Onshore + AI');
+    await shot('01b-dashboard-after-interaction');
+
+    // 1c. Currency: convert to USD via the dialog
+    await clickByText(page, 'header button', 'EUR');
+    await clickByText(page, '[role="menuitem"]', 'USD');
+    await clickByText(page, '[role="dialog"] button', 'Convert all amounts');
+    body = await text(page);
+    check('currency converts to USD', body.includes('$') && !body.includes('Change currency'));
+    await clickByText(page, 'header button', 'USD');
+    await clickByText(page, '[role="menuitem"]', 'EUR');
+    await clickByText(page, '[role="dialog"] button', 'Convert all amounts');
+
     // 2. Help presentation opens and closes with Escape
     await clickByText(page, 'button', 'How it works');
     await page.waitForSelector('[aria-label="How VALUEAI works"]');

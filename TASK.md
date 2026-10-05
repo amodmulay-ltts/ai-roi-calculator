@@ -27,7 +27,7 @@ Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, auto
 | 8 | LLM usage × price model with dated, editable price table | Done, engine-tested + render-tested |
 | 9 | Tornado on business drivers + payback grid, TCO/chargeable basis, cost avoidance, IRR | Done, engine-tested + render-tested |
 | 10 | Autosave + browser smoke test (`npm run smoke`, 8 checks) | Done, browser-tested |
-| 10b | Layout restructure; charts and leftover colours to the blue palette | Next |
+| 10b | Story layout (section bar, cash-flow section, tabbed assumptions), charts in the blue palette | Done, browser-tested (21 smoke checks + screenshots) |
 | – | Escape user text in server HTML report (XSS); validate all API input | Done, tested against running server |
 | – | Example scenario (Northwind, fictional) loaded by default, labelled on screen and in exports | Done |
 | – | One scenario setup (new / edit) replaces Edit Context + wizard; Scenario and Export menus | Done, build-tested |

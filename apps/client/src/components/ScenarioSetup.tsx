@@ -12,6 +12,7 @@ import {
 } from '../utils/roleTemplates';
 import Tooltip from './Tooltip';
 import ModelSelector from './ModelSelector';
+import { deliveryModelInfo } from '../utils/deliveryModels';
 
 export type SetupMode = 'new' | 'edit';
 
@@ -22,6 +23,8 @@ interface ScenarioSetupProps {
   current: Scenario;
   onApply: (scenario: Scenario) => void;
   onCancel: () => void;
+  /** Step to open on (1-based); defaults to the first. */
+  initialStep?: number;
 }
 
 const STEPS = ['Basics', 'Delivery model', 'Timeline', 'Team and workload', 'Investment', 'Team preview', 'Review'];
@@ -37,7 +40,7 @@ function blankScenario(): Scenario {
   };
 }
 
-export default function ScenarioSetup({ mode, current, onApply, onCancel }: ScenarioSetupProps) {
+export default function ScenarioSetup({ mode, current, onApply, onCancel, initialStep = 1 }: ScenarioSetupProps) {
   const [step, setStep] = useState(1);
   const [scenario, setScenario] = useState<Scenario>(current);
 
@@ -45,7 +48,7 @@ export default function ScenarioSetup({ mode, current, onApply, onCancel }: Scen
   useEffect(() => {
     if (!mode) return;
     setScenario(mode === 'new' ? blankScenario() : structuredClone(current));
-    setStep(1);
+    setStep(initialStep);
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!mode) return null;
@@ -629,7 +632,7 @@ function Step7Review({ scenario, isNew }: any) {
           <div className="text-sm"><span className="font-semibold">Horizon:</span> {scenario.timeValue.horizonMonths} months</div>
           <div className="text-sm"><span className="font-semibold">Transition:</span> {scenario.globalAssumptions.transitionLengthMonths} months</div>
           <div className="text-sm"><span className="font-semibold">Discount Rate:</span> {(scenario.timeValue.discountRateAnnual * 100).toFixed(0)}%</div>
-          <div className="text-sm"><span className="font-semibold">Model:</span> {scenario.primaryModel}</div>
+          <div className="text-sm"><span className="font-semibold">Delivery model:</span> {deliveryModelInfo(scenario.primaryModel).label}</div>
         </div>
 
         <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
@@ -641,7 +644,7 @@ function Step7Review({ scenario, isNew }: any) {
             )}
           </p>
           <p className="text-xs text-gray-600 mt-2">
-            You'll then be able to edit team roles, costs, KPIs, and see real-time financial analysis.
+            Every assumption stays editable on the dashboard: team, workload, AI model usage, costs and investment.
           </p>
         </div>
       </div>
