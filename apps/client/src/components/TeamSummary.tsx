@@ -1,5 +1,6 @@
 import type { Results, Scenario } from '@ai-roi-calc/engine';
 import Tooltip from './Tooltip';
+import { displayRate, rateSuffix, rateUnitOf } from '../utils/rates';
 
 interface TeamSummaryProps {
   scenario: Scenario;
@@ -12,6 +13,9 @@ const fmt = (n: number) => (Math.round(n * 10) / 10).toLocaleString('en');
 
 export default function TeamSummary({ scenario, results, onUpdate }: TeamSummaryProps) {
   const { staffingFte, planFte, roleFte } = results.effort;
+  const unit = rateUnitOf(scenario);
+  const hours = scenario.globalAssumptions.workingHrsPerFtePerMonth;
+  const rate = (v: number) => v.toLocaleString('en', { maximumFractionDigits: unit === 'hour' ? 2 : 0 });
   const derived = scenario.peopleMode.mode === 'effort-derived';
   const otherMature = derived ? planFte.mature : null;
   const gap = derived && planFte.mature > 0 ? (planFte.mature - staffingFte.mature) / staffingFte.mature : 0;
@@ -77,6 +81,9 @@ export default function TeamSummary({ scenario, results, onUpdate }: TeamSummary
               <th className="text-left font-normal py-1">Role</th>
               <th className="text-right font-normal py-1">Baseline</th>
               <th className="text-right font-normal py-1">Mature</th>
+              <th className="text-right font-normal py-1">
+                Cost {rateSuffix(unit)} ({scenario.baseCurrency})
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -85,6 +92,7 @@ export default function TeamSummary({ scenario, results, onUpdate }: TeamSummary
                 <td className="py-1">{role.name}</td>
                 <td className="py-1 text-right">{fmt(roleFte[i]!.baseline)}</td>
                 <td className="py-1 text-right">{fmt(roleFte[i]!.mature)}</td>
+                <td className="py-1 text-right">{rate(displayRate(role, unit, hours))}</td>
               </tr>
             ))}
           </tbody>

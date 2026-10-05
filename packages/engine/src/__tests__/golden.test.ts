@@ -619,6 +619,14 @@ describe('Scenario save and load', () => {
     if (!result.ok) expect(result.errors[0]).toContain('timeValue.horizonMonths');
   });
 
+  it('keeps the rate unit and rejects unknown units', () => {
+    const s = edited();
+    s.rateUnit = 'hour';
+    const loaded = parseScenarioText(scenarioToYaml(s));
+    expect(loaded.ok && loaded.scenario.rateUnit).toBe('hour');
+    expect(parseScenario({ ...s, rateUnit: 'week' }).ok).toBe(false);
+  });
+
   it('rejects files without any workload item', () => {
     const s = edited();
     s.kpis = [{ id: 'coverage', name: 'Automation coverage', unit: '%', baseline: 40, appliesToFactor: false, isVelocity: false, overrides: {} }];

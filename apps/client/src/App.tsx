@@ -460,9 +460,8 @@ export default function App() {
             {assumptionsTab === 'team' &&
               (editingRoles ? (
                 <RolesGrid
-                  roles={scenario.roles}
-                  onUpdate={updatedRoles => handleScenarioUpdate({ roles: updatedRoles })}
-                  isEditing={editingRoles}
+                  scenario={scenario}
+                  onUpdate={handleScenarioUpdate}
                   onDone={() => setEditingRoles(false)}
                   formatCurrency={formatCurrency}
                 />

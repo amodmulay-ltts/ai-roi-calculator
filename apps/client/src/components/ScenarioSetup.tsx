@@ -11,6 +11,7 @@ import {
   type UseCase,
 } from '../utils/roleTemplates';
 import Tooltip from './Tooltip';
+import { rateUnitOf } from '../utils/rates';
 import ModelSelector from './ModelSelector';
 import { deliveryModelInfo } from '../utils/deliveryModels';
 
@@ -284,17 +285,41 @@ function Step4Roles({ scenario, onUpdate }: { scenario: Scenario; onUpdate: (u: 
       </table>
 
       <div>
-        <label htmlFor="avg-onshore" className="flex items-center text-sm font-semibold text-gray-900 mb-2">
-          Average onshore cost per FTE per month ({scenario.baseCurrency})
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <label htmlFor="avg-onshore" className="flex items-center text-sm font-semibold text-gray-900">
+          Average onshore cost per FTE per {rateUnitOf(scenario)} ({scenario.baseCurrency})
           <Tooltip text="Fully loaded internal cost of an onshore team member in the customer's location. All role rates are rescaled to this average, keeping their relative grade differences. BCC rates are derived from it using the BCC cost percentage." />
         </label>
+          <div role="radiogroup" aria-label="Rate unit" className="inline-flex rounded-lg border border-gray-200 p-0.5 text-xs">
+            {(['hour', 'month'] as const).map(u => (
+              <button
+                key={u}
+                type="button"
+                role="radio"
+                aria-checked={rateUnitOf(scenario) === u}
+                onClick={() => onUpdate({ rateUnit: u })}
+                className={`px-2.5 py-1 rounded-md ${rateUnitOf(scenario) === u ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                per {u}
+              </button>
+            ))}
+          </div>
+        </div>
         <input
           id="avg-onshore"
           type="number"
           min={0}
-          step={100}
-          value={Math.round(averageCostPerFte(scenario.roles))}
-          onChange={e => onUpdate({ roles: rescaleRolesToAverage(scenario.roles, Number(e.target.value)) })}
+          step={rateUnitOf(scenario) === 'hour' ? 0.5 : 100}
+          value={
+            rateUnitOf(scenario) === 'hour'
+              ? Math.round((averageCostPerFte(scenario.roles) / hrsPerFte) * 100) / 100
+              : Math.round(averageCostPerFte(scenario.roles))
+          }
+          onChange={e => {
+            const entered = Number(e.target.value);
+            const monthly = rateUnitOf(scenario) === 'hour' ? entered * hrsPerFte : entered;
+            onUpdate({ roles: rescaleRolesToAverage(scenario.roles, monthly) });
+          }}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p className="text-xs text-gray-500 mt-1">
