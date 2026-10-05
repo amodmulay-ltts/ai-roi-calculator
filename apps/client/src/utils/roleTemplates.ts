@@ -1,4 +1,4 @@
-import type { Role, Currency, KpiInput, Scenario } from '@ai-roi-calc/engine';
+import type { Role, Currency, KpiInput, LlmUsage, Scenario } from '@ai-roi-calc/engine';
 import { fxFactor } from '@ai-roi-calc/engine';
 
 export const ROLE_TEMPLATES: Record<string, Role[]> = {
@@ -331,6 +331,35 @@ export const WORKLOAD_TEMPLATES: Record<UseCase, KpiInput[]> = {
   ],
 };
 
+const usage = (
+  id: string,
+  name: string,
+  priceId: string,
+  kpiId: string,
+  requestsPerUnit: number,
+  inputTokensPerRequest: number,
+  outputTokensPerRequest: number
+): LlmUsage => ({ id, name, priceId, kpiId, requestsPerUnit, inputTokensPerRequest, outputTokensPerRequest });
+
+/** Typical AI model usage per use case, linked to the matching workload items. Starting points to adjust. */
+export const LLM_USAGE_TEMPLATES: Record<UseCase, LlmUsage[]> = {
+  testing: [
+    usage('test-generation', 'Test design and generation', 'claude-sonnet-5-5', 'testing-effort-per-release', 15_000, 8_000, 2_000),
+    usage('review-agent', 'Test review agent', 'claude-opus-5-5', 'testing-effort-per-release', 2_000, 30_000, 3_000),
+    usage('defect-triage', 'Defect triage assistant', 'claude-haiku-4-5', 'defect-rca-effort', 10, 20_000, 1_000),
+  ],
+  development: [
+    usage('coding-assistant', 'Coding assistant', 'claude-sonnet-5-5', 'user-stories', 400, 12_000, 2_000),
+    usage('code-review-agent', 'Code review agent', 'claude-opus-5-5', 'code-reviews', 3, 40_000, 2_000),
+    usage('bug-analysis', 'Bug analysis', 'claude-sonnet-5-5', 'bug-fixes', 20, 15_000, 1_500),
+  ],
+  support: [
+    usage('ticket-assistant', 'Ticket assistant', 'claude-haiku-4-5', 'l1-tickets', 3, 4_000, 500),
+    usage('incident-copilot', 'Incident copilot', 'claude-sonnet-5-5', 'l2-incidents', 15, 12_000, 1_500),
+    usage('knowledge-drafting', 'Knowledge article drafting', 'claude-sonnet-5-5', 'knowledge-articles', 30, 10_000, 3_000),
+  ],
+};
+
 export function detectUseCase(useCaseText: string): UseCase {
   const t = useCaseText.toLowerCase();
   if (t.includes('support') || t.includes('service') || t.includes('ticket') || t.includes('itsm')) return 'support';
@@ -393,10 +422,11 @@ export function rescaleRolesToAverage(roles: Role[], target: number): Role[] {
   }));
 }
 
-/** Roles and workload for a use case; replaces both in the scenario. */
+/** Roles, workload and AI model usage for a use case; replaces all three in the scenario. */
 export function applyUseCaseTemplate(scenario: Scenario, useCase: UseCase, includeAll: boolean): Partial<Scenario> {
   return {
     roles: getRolesForUseCase(useCase, includeAll, scenario.baseCurrency, scenario.fxRatesPerEur),
     kpis: structuredClone(WORKLOAD_TEMPLATES[useCase]),
+    llmUsage: structuredClone(LLM_USAGE_TEMPLATES[useCase]),
   };
 }

@@ -23,6 +23,7 @@ import {
   effectiveProductivityFactor,
   effectiveOverride,
 } from './delivery.js';
+import { llmCosts } from './llm.js';
 
 /**
  * Main entry point: calculate(scenario) -> Results
@@ -192,6 +193,9 @@ function getProductivityFactor(scenario: Scenario): Record<State, number> {
 function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortCalculation): CostCalculation {
   const result: CostCalculation = {
     peopleCost: { baseline: 0, transition: 0, mature: 0 },
+    llmCost: { baseline: 0, transition: 0, mature: 0 },
+    llmCostByUsage: {},
+    llmRequestsPerMonth: {},
     directOpex: { baseline: 0, transition: 0, mature: 0 },
     overhead: { baseline: 0, transition: 0, mature: 0 },
     risk: { baseline: 0, transition: 0, mature: 0 },
@@ -203,6 +207,10 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
   };
 
   const states: State[] = ['baseline', 'transition', 'mature'];
+  const llm = llmCosts(scenario, ctx);
+  result.llmCost = llm.total;
+  result.llmCostByUsage = llm.byUsage;
+  result.llmRequestsPerMonth = llm.requestsPerMonth;
 
   for (const state of states) {
     // People cost: sum of all roles' FTE × cost per FTE
@@ -223,9 +231,9 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
       }
     }
 
-    // Direct OPEX
-    result.directOpex[state] = peopleCost + costLinesTotal;
-    result.chargeableDirectOpex[state] = peopleCost + costLinesChargeable;
+    // Direct OPEX (model usage is chargeable, like the AI cost lines)
+    result.directOpex[state] = peopleCost + costLinesTotal + llm.total[state];
+    result.chargeableDirectOpex[state] = peopleCost + costLinesChargeable + llm.total[state];
 
     // Overhead and risk
     const overheadPercent = scenario.globalAssumptions.corporateOverheadPercent[state];
@@ -403,6 +411,9 @@ function calculateBenefitLedger(
     baselineCostLines += effectiveLineAmount(line, 'baseline', ctx);
     matureCostLines += effectiveLineAmount(line, 'mature', ctx);
   }
+  // Model usage is a non-people cost too; keeps the ledger reconciled to the monthly saving
+  baselineCostLines += cost.llmCost.baseline;
+  matureCostLines += cost.llmCost.mature;
   const costLinesDelta = baselineCostLines - matureCostLines;
   ledger.push({
     category: 'nonPeopleCostDelta',

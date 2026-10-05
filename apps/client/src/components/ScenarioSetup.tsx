@@ -216,7 +216,7 @@ function Step4Roles({ scenario, onUpdate }: { scenario: Scenario; onUpdate: (u: 
             Apply template
           </button>
         </div>
-        <p className="text-xs text-gray-400">Applying replaces the roles and workload below.</p>
+        <p className="text-xs text-gray-400">Applying replaces the roles, the workload below and the AI model usage.</p>
       </fieldset>
 
       {/* Hero: does the work match the team? */}

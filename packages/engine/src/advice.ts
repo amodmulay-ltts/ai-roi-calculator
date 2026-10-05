@@ -136,7 +136,7 @@ export function advise(scenario: Scenario, results: Results): Advice {
   // ---------- AI running costs versus the saving they enable ----------
   const aiRunCost = scenario.costLines
     .filter(l => l.aiSpecific)
-    .reduce((sum, l) => sum + effectiveLineAmount(l, 'mature', ctx) - effectiveLineAmount(l, 'baseline', ctx), 0);
+    .reduce((sum, l) => sum + effectiveLineAmount(l, 'mature', ctx) - effectiveLineAmount(l, 'baseline', ctx), cost.llmCost.mature);
   const peopleSaving = cost.peopleCost.baseline - cost.peopleCost.mature;
   if (aiRunCost > 0 && peopleSaving > 0 && aiRunCost / peopleSaving > AI_COST_SHARE_LIMIT) {
     findings.push({
@@ -220,6 +220,18 @@ export function advise(scenario: Scenario, results: Results): Advice {
       title: 'Overhead % changes without a stated reason',
       detail: `The ${missingRationale.join(' and ')} overhead differs from today. Add the rationale so the customer can follow it.`,
     });
+  }
+
+  if (scenario.llmUsage.length > 0) {
+    const ageDays = (Date.parse(scenario.scenarioDate) - Date.parse(scenario.llmPricing.asOf)) / 86_400_000;
+    if (ageDays > 90) {
+      findings.push({
+        id: 'llm-prices-stale',
+        severity: 'info',
+        title: `AI model prices are from ${scenario.llmPricing.asOf}`,
+        detail: 'Model prices change often. Check the vendor price list and update the price table before presenting.',
+      });
+    }
   }
 
   if (scenario.isExample) {

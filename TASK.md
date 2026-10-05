@@ -11,7 +11,7 @@
 
 ## Current status
 
-Engine tests: **60/60 passing** (`npm test -w packages/engine`). Build clean.
+Engine tests: **64/64 passing** (`npm test -w packages/engine`). Build clean.
 Browser testing: **not yet done** for any of the fixes below.
 
 | # | Fix (from REVIEW_Self_Assessment.md) | Status |
@@ -24,8 +24,8 @@ Browser testing: **not yet done** for any of the fixes below.
 | 5 | Side-by-side delivery-model comparison | Done, engine-tested + render-tested |
 | 6 | Per-use-case templates: generic workload (volume × hours), testing / development / support | Done, engine-tested + render-tested |
 | 7 | Warnings panel + rule-based advice (dashboard and PDF) | Done, engine-tested + render-tested |
-| 8 | LLM usage × price model with dated, editable price table | Next |
-| 9 | Tornado drivers, IRR robustness, chargeable toggle, cost avoidance | Planned |
+| 8 | LLM usage × price model with dated, editable price table | Done, engine-tested + render-tested |
+| 9 | Tornado drivers, chargeable toggle, cost avoidance (IRR done) | Next |
 | 10 | Layout restructure, autosave, browser testing | Planned |
 | – | Escape user text in server HTML report (XSS); validate all API input | Done, tested against running server |
 | – | Example scenario (Northwind, fictional) loaded by default, labelled on screen and in exports | Done |

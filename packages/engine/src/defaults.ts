@@ -6,6 +6,7 @@
 import type { Scenario, Role, CostLine, KpiInput, AiOverheadPercent, Currency } from './types.js';
 import { DEFAULT_FX_RATES_PER_EUR, convertScenarioCurrency, fxFactor } from './currency.js';
 import { DEFAULT_DELIVERY_PROFILES, DEFAULT_BCC_RATE_FACTOR, DELIVERY_MODELS } from './delivery.js';
+import { DEFAULT_LLM_PRICING } from './llm.js';
 
 /** Files saved before generic workload: testing KPIs took their volumes from releases/defects per month. */
 function migrateLegacyWorkload(s: Scenario): Scenario['kpis'] {
@@ -31,6 +32,8 @@ export function normalizeScenario(input: Scenario): Scenario {
     bccRateFactor: legacy.bccRateFactor ?? DEFAULT_BCC_RATE_FACTOR,
     baselineBccShare: legacy.baselineBccShare ?? 0,
     kpis: migrateLegacyWorkload(legacy),
+    llmUsage: legacy.llmUsage ?? [],
+    llmPricing: legacy.llmPricing ?? structuredClone(DEFAULT_LLM_PRICING),
     costLines: legacy.costLines.map(l => ({ ...l, aiSpecific: l.aiSpecific ?? l.category === 'AI' })),
     oneTimeInvestment: legacy.oneTimeInvestment.map(i => ({ ...i, aiSpecific: i.aiSpecific ?? true })),
   };
@@ -443,6 +446,9 @@ function createInrReferenceScenario(): Scenario {
     kpis: JSON.parse(JSON.stringify(DEFAULT_KPIS)),
 
     costLines: JSON.parse(JSON.stringify(DEFAULT_COST_LINES)),
+    // The reference reproduces the source Excel, which has a flat "LLM tokens" cost line instead
+    llmUsage: [],
+    llmPricing: structuredClone(DEFAULT_LLM_PRICING),
     oneTimeInvestment: JSON.parse(JSON.stringify(DEFAULT_ONE_TIME_INVESTMENT)),
 
     productivityFactor: {

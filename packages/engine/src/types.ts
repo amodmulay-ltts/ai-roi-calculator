@@ -42,6 +42,33 @@ export interface OneTimeInvestmentItem {
   aiSpecific: boolean;
 }
 
+export interface LlmPrice {
+  id: string;
+  label: string;
+  /** Price per million input tokens, in LlmPricing.currency. */
+  inputPerMTok: number;
+  outputPerMTok: number;
+}
+
+export interface LlmPricing {
+  currency: Currency;
+  /** Date the prices were taken from the vendor list (YYYY-MM-DD). */
+  asOf: string;
+  source: string;
+  prices: LlmPrice[];
+}
+
+export interface LlmUsage {
+  id: string;
+  name: string;
+  priceId: string;
+  /** Workload item whose monthly volume drives the requests; absent = requestsPerUnit is per month. */
+  kpiId?: string;
+  requestsPerUnit: number;
+  inputTokensPerRequest: number;
+  outputTokensPerRequest: number;
+}
+
 export interface GlobalAssumptions {
   /** Legacy (pre-workload files): migrated to KPI volumes by normalizeScenario. */
   releasesPerMonth?: number;
@@ -144,6 +171,9 @@ export interface Scenario {
 
   // Costs
   costLines: CostLine[];
+  /** AI model usage, costed as requests × tokens × price (AI-specific, scales with adoption). */
+  llmUsage: LlmUsage[];
+  llmPricing: LlmPricing;
   oneTimeInvestment: OneTimeInvestmentItem[];
 
   // Productivity
@@ -189,6 +219,10 @@ export interface EffortCalculation {
 
 export interface CostCalculation {
   peopleCost: Record<State, number>;
+  /** AI model usage cost (part of direct OPEX). */
+  llmCost: Record<State, number>;
+  llmCostByUsage: Record<string, Record<State, number>>;
+  llmRequestsPerMonth: Record<string, number>;
   directOpex: Record<State, number>;
   overhead: Record<State, number>;
   risk: Record<State, number>;

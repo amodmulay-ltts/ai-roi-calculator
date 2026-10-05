@@ -8,6 +8,9 @@ export type {
   Currency,
   ImplementationModel,
   DeliveryProfile,
+  LlmPrice,
+  LlmPricing,
+  LlmUsage,
   ProductivityMode,
   Role,
   CostLine,
@@ -26,6 +29,7 @@ export type {
 
 export { createDefaultScenario, normalizeScenario } from './defaults.js';
 export { createExampleScenario } from './example.js';
+export { DEFAULT_LLM_PRICING, llmCosts } from './llm.js';
 export { compareDeliveryModels, type ModelComparison } from './compare.js';
 export {
   advise,
