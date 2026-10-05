@@ -162,6 +162,7 @@ export default function HelpPresentation({ open, onClose, onStartNew }: HelpPres
 
       <div ref={scroller} className="h-full overflow-y-scroll snap-y snap-mandatory scroll-smooth">
         <Slide id="intro" kicker="VALUEAI · How it works">
+          <img src="/ltts-logo.png" alt="L&T Technology Services" className="h-14 w-auto mb-10" />
           <Hero>What will AI really save this customer, and when does it pay back?</Hero>
           <Support
             items={[

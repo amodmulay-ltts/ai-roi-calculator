@@ -89,6 +89,10 @@ async function main() {
     let body = await text(page);
     check('example loads by default', body.includes('Vantara Motors') && body.includes('EXAMPLE CALCULATION'));
     check('headline results render', /Net value created/.test(body) && /Month \d+/.test(body));
+    check(
+      'LTTS logo loads in the header',
+      await page.$eval('header img[alt="L&T Technology Services"]', img => img.complete && img.naturalWidth > 0)
+    );
     await shot('01-dashboard-example');
 
     // 1b. Story layout: section bar, delivery model selection, cost basis, assumption tabs
