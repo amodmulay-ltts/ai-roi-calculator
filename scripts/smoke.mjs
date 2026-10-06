@@ -98,9 +98,17 @@ async function main() {
     await shot('01-dashboard-example');
 
     // 1b. Story layout: section bar, delivery model selection, cost basis, assumption tabs
-    for (const id of ['results', 'advice', 'delivery', 'cashflow', 'sensitivity', 'assumptions']) {
+    for (const id of ['assumptions', 'ai-effect', 'delivery', 'compare', 'cashflow', 'sensitivity', 'results', 'advice']) {
       check(`section #${id} present`, !!(await page.$(`#${id}`)));
     }
+    const order = await page.$$eval('main [id]', els =>
+      els.map(e => e.id).filter(id => ['assumptions', 'ai-effect', 'delivery', 'compare', 'cashflow', 'sensitivity', 'results', 'advice'].includes(id))
+    );
+    check(
+      'page reads from inputs to net value',
+      order.join(' ') === 'assumptions ai-effect delivery compare cashflow sensitivity results advice',
+      order.join(' ')
+    );
     await clickByText(page, '[aria-label="Delivery models ranked by NPV"] [role="radio"]', 'AI + BCC');
     body = await text(page);
     check('selecting a model in the comparison updates the verdict', body.includes('This is the model currently selected'));
@@ -135,9 +143,9 @@ async function main() {
     await clickByText(page, '[role="dialog"] button', 'Convert all amounts');
 
     // 1c2. AI effect: the central assumption is editable and drives the verdict
-    await clickByText(page, '[role="tab"]', 'AI effect');
+    await page.evaluate(() => document.getElementById('ai-effect')?.scrollIntoView());
     const setCut = async value => {
-      const input = await page.$('#assumptions-panel #cut-mature');
+      const input = await page.$('#ai-effect #cut-mature');
       await input.click({ clickCount: 3 });
       await input.type(String(value));
     };
@@ -147,7 +155,7 @@ async function main() {
     check('restoring 30% restores the verdict', (await text(page)).includes('Pays back in month 15'));
 
     // 1c1. AI sourcing presets drive both cost and effect, and are reversible
-    await clickByText(page, '[role="tab"]', 'AI effect');
+    await page.evaluate(() => document.getElementById('ai-effect')?.scrollIntoView());
     await clickByText(page, '[aria-label="AI sourcing"] [role="radio"]', 'Local / open-weight');
     body = await text(page);
     check('local sourcing flips the verdict', body.includes('Does not pay back within'));
