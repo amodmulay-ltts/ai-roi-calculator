@@ -34,6 +34,8 @@ Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, auto
 | – | IRR no longer capped at 200% | Done, tested |
 | – | Automotive software (ECU / ADAS) use-case template; the default example is built from it; saved examples no longer restored | Done, browser-tested |
 | – | Onshore and offshore rate per role, onshore-only roles, side-by-side rates in Team | Done, browser-tested |
+| – | How it works: three AI flavours (frontier / enterprise / local) with live comparison, then the calculator concept | Done, browser-tested |
+| – | Fix `npm run dev` for the server (Node removed `--loader`) | Done |
 | – | AI effect editable (effort cut and review overhead per stage): dashboard tab and setup step 5 | Done, browser-tested |
 | – | Roles editor: hourly or monthly rates, editable working hours, add/remove roles after creation | Done, browser-tested |
 | – | LTTS logo in header, help title screen, PDF report cover; L&T emblem favicon | Done, browser-tested |

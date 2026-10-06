@@ -29,7 +29,7 @@ The dashboard reads top to bottom in the order of a customer conversation, with 
 
 | Where | What |
 |---|---|
-| **How it works** (header) | Full-screen walkthrough you scroll screen by screen: the idea, the example step by step, when AI does *not* pay off, and which delivery model works best. All figures are calculated live from the example. Also opened from "How this is calculated" on the example banner. Esc closes it. |
+| **How it works** (header) | Full-screen walkthrough you scroll screen by screen: the three flavours of AI (frontier, enterprise, local/open-weight) and what each one does to the cost, the idea, the example step by step, when AI does *not* pay off, and which delivery model works best. All figures are calculated live from the example. Also opened from "How this is calculated" on the example banner. Esc closes it. |
 | **Scenario** menu | **New scenario** (guided setup for a customer) · **Edit setup** (the same steps, prefilled; jump to any step and apply) · **Open file** (.yaml / .json) · **Load example** |
 | **Export** menu | **Save scenario (.yaml)** to reopen later · **PDF report** (HTML, print to PDF) · **Excel workbook** · **JSON** (scenario + results) |
 | Currency (header) | Choose **Convert** (multiply every amount by an editable FX rate) or **Relabel** (keep the numbers). Rates are indicative, not live. |
@@ -88,6 +88,18 @@ The advice flags that the case needs about 76% of the assumed effort reduction t
 Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €3.9M (payback month 6) and BCC only about €3.8M, because offshore rates dominate for a team at German-level onshore cost, even with functional safety and project leadership kept onshore.
 
 **What does not work:** the AI running costs, the tool qualification and the investment have to be covered first. With the same example, an effort cut of 10% loses about €1.39M over 36 months, 15% and 20% never pay back, 25% pays back only in month 23, and 30% pays back in month 15. Token costs are small (€1.5K a month); licences, the private platform, qualification and the investment are what the effort reduction has to cover.
+
+## The three flavours of AI
+
+The walkthrough frames every case as a choice between three ways of getting a model, and the calculator models all three the same way (effect on the work, running cost, one-off investment):
+
+| Flavour | What it is | Cost shape |
+|---|---|---|
+| Frontier | The most capable hosted models, through the vendor's API | Per token, little fixed cost |
+| Enterprise | The same class of model inside your own cloud tenant or a private deployment | Per token plus a platform fee and qualification effort |
+| Local / open-weight | Models you run on your own hardware | No token bill; fixed hardware and MLOps cost |
+
+On the example, the comparison lands on one point: **the token price is almost never the decision, the effort cut is.** Paying 30% more per token costs about 2% of NPV, while a model that only cuts effort by 18% instead of 30% turns €769K of value into a €1.2M loss. Self-hosting has to reach roughly the same effort cut as frontier before it pays back at all. The flavour assumptions live in [aiFlavours.ts](apps/client/src/utils/aiFlavours.ts) and are illustrative starting points, not vendor claims.
 
 ## AI model prices
 

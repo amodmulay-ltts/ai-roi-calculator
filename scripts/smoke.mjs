@@ -201,6 +201,15 @@ async function main() {
     await clickByText(page, 'button', 'How it works');
     await page.waitForSelector('[aria-label="How VALUEAI works"]');
     await shot('02-help');
+    // innerText reflects CSS text-transform (slide kickers are uppercased), so compare case-insensitively
+    const helpText = (await page.$eval('[aria-label="How VALUEAI works"]', el => el.innerText)).toLowerCase();
+    for (const flavour of ['Frontier models', 'Enterprise models', 'Local / open-weight models'])
+      check(`help covers ${flavour}`, helpText.includes(flavour.toLowerCase()));
+    check('help compares the flavours on the same team', helpText.includes('the three flavours, same team'));
+    check(
+      'help keeps the calculator walkthrough',
+      helpText.includes('three moments in time') && helpText.includes('of value created over')
+    );
     await page.keyboard.press('Escape');
     check('help opens and closes', !(await page.$('[aria-label="How VALUEAI works"]')));
 
