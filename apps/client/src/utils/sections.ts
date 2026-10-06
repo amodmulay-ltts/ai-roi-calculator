@@ -33,20 +33,6 @@ export const SECTIONS: SectionInfo[] = [
       )} each a month, ${num(r.effort.totalEffort.baseline)} hours of work, ${s.costLines.length} cost lines.`,
   },
   {
-    id: 'ai-effect',
-    label: 'AI effect',
-    headline: 'The one assumption the whole case turns on',
-    what: 'How the model is sourced — frontier, enterprise or self-hosted — and what that does to the work: how far it cuts the effort, and how much human review it adds back.',
-    read: 'Picking a sourcing option seeds both the cost shape and the effect, because a weaker model does less of the work. Everything it writes stays editable, and switching back restores what it changed.',
-    watch: 'This is the number a customer will challenge first, and the one with the least evidence behind it. Treat it as a hypothesis to validate with a pilot, not a commitment. The sensitivity section shows how much rests on it.',
-    live: (s, r, _money) =>
-      s.productivityFactor.mode === 'direct-factor'
-        ? `This scenario assumes a ${pct(1 - s.productivityFactor.mature)} effort cut once mature, taking the work from ${num(
-            r.effort.totalEffort.baseline
-          )} to ${num(r.effort.totalEffort.mature)} hours a month.`
-        : 'This scenario derives its productivity factor from evaluation data.',
-  },
-  {
     id: 'delivery',
     label: 'Delivery model',
     headline: 'Where the people sit, and how much AI they use',
@@ -68,6 +54,20 @@ export const SECTIONS: SectionInfo[] = [
     read: 'The bars are NPV. The verdict line names the best option and what the selected one gives up. Selecting a row makes that model active everywhere else on the page.',
     watch: 'Offshoring and AI are different levers that can both look good in isolation. A model that wins on cost may lose on capability or data residency, neither of which this table measures.',
     live: (_s, _r, money) => `Compare each option’s payback, monthly saving, mature team size and investment side by side.`,
+  },
+  {
+    id: 'ai-effect',
+    label: 'AI effect',
+    headline: 'The one assumption the whole case turns on',
+    what: 'How the model is sourced — frontier, enterprise or self-hosted — and what that does to the work: how far it cuts the effort, and how much human review it adds back.',
+    read: 'Picking a sourcing option seeds both the cost shape and the effect, because a weaker model does less of the work. Everything it writes stays editable, and switching back restores what it changed.',
+    watch: 'This is the number a customer will challenge first, and the one with the least evidence behind it. Treat it as a hypothesis to validate with a pilot, not a commitment. The sensitivity section shows how much rests on it.',
+    live: (s, r, _money) =>
+      s.productivityFactor.mode === 'direct-factor'
+        ? `This scenario assumes a ${pct(1 - s.productivityFactor.mature)} effort cut once mature, taking the work from ${num(
+            r.effort.totalEffort.baseline
+          )} to ${num(r.effort.totalEffort.mature)} hours a month.`
+        : 'This scenario derives its productivity factor from evaluation data.',
   },
   {
     id: 'cashflow',
