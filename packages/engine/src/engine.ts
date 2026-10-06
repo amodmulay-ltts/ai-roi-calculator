@@ -24,6 +24,7 @@ import {
   effectiveOverride,
 } from './delivery.js';
 import { llmCosts } from './llm.js';
+import { seatCosts } from './seats.js';
 
 /**
  * Main entry point: calculate(scenario) -> Results
@@ -196,6 +197,10 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
     llmCost: { baseline: 0, transition: 0, mature: 0 },
     llmCostByUsage: {},
     llmRequestsPerMonth: {},
+    seatCost: { baseline: 0, transition: 0, mature: 0 },
+    seatCostByAssignment: {},
+    seatsByAssignment: {},
+    totalSeats: { baseline: 0, transition: 0, mature: 0 },
     costAvoidance: { baseline: 0, transition: 0, mature: 0 },
     directOpex: { baseline: 0, transition: 0, mature: 0 },
     overhead: { baseline: 0, transition: 0, mature: 0 },
@@ -212,6 +217,12 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
   result.llmCost = llm.total;
   result.llmCostByUsage = llm.byUsage;
   result.llmRequestsPerMonth = llm.requestsPerMonth;
+
+  const seats = seatCosts(scenario, ctx, effort);
+  result.seatCost = seats.total;
+  result.seatCostByAssignment = seats.byAssignment;
+  result.seatsByAssignment = seats.seatsByAssignment;
+  result.totalSeats = seats.totalSeats;
 
   for (const state of states) {
     // People cost: sum of all roles' FTE × cost per FTE
@@ -232,9 +243,9 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
       }
     }
 
-    // Direct OPEX (model usage is chargeable, like the AI cost lines)
-    result.directOpex[state] = peopleCost + costLinesTotal + llm.total[state];
-    result.chargeableDirectOpex[state] = peopleCost + costLinesChargeable + llm.total[state];
+    // Direct OPEX (model usage and seats are chargeable, like the AI cost lines)
+    result.directOpex[state] = peopleCost + costLinesTotal + llm.total[state] + seats.total[state];
+    result.chargeableDirectOpex[state] = peopleCost + costLinesChargeable + llm.total[state] + seats.total[state];
 
     // Overhead and risk
     const overheadPercent = scenario.globalAssumptions.corporateOverheadPercent[state];
@@ -412,9 +423,9 @@ function calculateBenefitLedger(
     baselineCostLines += effectiveLineAmount(line, 'baseline', ctx);
     matureCostLines += effectiveLineAmount(line, 'mature', ctx);
   }
-  // Model usage is a non-people cost too; keeps the ledger reconciled to the monthly saving
-  baselineCostLines += cost.llmCost.baseline;
-  matureCostLines += cost.llmCost.mature;
+  // Model usage and seats are non-people costs too; keeps the ledger reconciled to the monthly saving
+  baselineCostLines += cost.llmCost.baseline + cost.seatCost.baseline;
+  matureCostLines += cost.llmCost.mature + cost.seatCost.mature;
   const costLinesDelta = baselineCostLines - matureCostLines;
   ledger.push({
     category: 'nonPeopleCostDelta',

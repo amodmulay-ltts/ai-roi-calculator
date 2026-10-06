@@ -585,6 +585,56 @@ describe('Onshore and offshore rates per role', () => {
   });
 });
 
+describe('Seat pricing', () => {
+  const withSeats = (edit?: (s: Scenario) => void) => {
+    const s = createExampleScenario();
+    edit?.(s);
+    return { s, r: calculate(s) };
+  };
+
+  it("costs the assigned roles' FTE at the seat price, converted from USD", () => {
+    const { s, r } = withSeats();
+    const price = s.seatPricing.prices.find(p => p.id === 'claude-enterprise')!.pricePerSeatPerMonth;
+    const assigned = s.seatAssignments[0]!.roleIds;
+    const fte = s.roles.reduce((sum, role, i) => (assigned.includes(role.id) ? sum + r.effort.roleFte[i]!.mature : sum), 0);
+    expect(r.cost.totalSeats.mature).toBeCloseTo(fte, 6);
+    expect(r.cost.seatCost.mature).toBeCloseTo((fte * price) / s.fxRatesPerEur.USD, 6);
+  });
+
+  it('charges no seats in the baseline and none when the model has no AI', () => {
+    expect(withSeats().r.cost.seatCost.baseline).toBe(0);
+    expect(withSeats(s => (s.primaryModel = 'bcc-only')).r.cost.seatCost.mature).toBe(0);
+  });
+
+  it('shrinks the seat bill as the team shrinks', () => {
+    const { r } = withSeats();
+    expect(r.cost.totalSeats.transition).toBeGreaterThan(r.cost.totalSeats.mature);
+  });
+
+  it('flows into run cost and keeps the ledger reconciled', () => {
+    const { r } = withSeats();
+    const without = calculate({ ...createExampleScenario(), seatAssignments: [] });
+    expect(r.cost.directOpex.mature - without.cost.directOpex.mature).toBeCloseTo(r.cost.seatCost.mature, 6);
+    const ledger = r.benefitLedger.reduce((sum, l) => sum + l.amount, 0);
+    expect(ledger).toBeCloseTo(r.cost.fullyLoaded.baseline - r.cost.fullyLoaded.mature, 2);
+  });
+
+  it('warns when a seat that bundles usage is paired with token usage', () => {
+    const enterprise = withSeats();
+    expect(advise(enterprise.s, enterprise.r).findings.some(f => f.id === 'seat-usage-double-count')).toBe(false);
+
+    const bundled = withSeats(x => (x.seatAssignments[0]!.seatPriceId = 'claude-team-standard'));
+    expect(advise(bundled.s, bundled.r).findings.some(f => f.id === 'seat-usage-double-count')).toBe(true);
+  });
+
+  it('survives save and load', () => {
+    const s = createExampleScenario();
+    const loaded = parseScenarioText(scenarioToYaml(s));
+    expect(loaded.ok && loaded.scenario.seatAssignments).toEqual(s.seatAssignments);
+    expect(loaded.ok && loaded.scenario.seatPricing).toEqual(s.seatPricing);
+  });
+});
+
 describe('Benefit ledger notes', () => {
   it('formats amounts in the scenario currency, not a hardcoded symbol', () => {
     const eur = calculate(createExampleScenario()).benefitLedger;

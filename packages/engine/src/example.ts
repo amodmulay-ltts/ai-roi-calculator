@@ -2,6 +2,7 @@ import type { Scenario } from './types.js';
 import { DEFAULT_FX_RATES_PER_EUR } from './currency.js';
 import { DEFAULT_BCC_RATE_FACTOR, DEFAULT_DELIVERY_PROFILES } from './delivery.js';
 import { DEFAULT_LLM_PRICING } from './llm.js';
+import { DEFAULT_SEAT_PRICING } from './seats.js';
 import { AUTOMOTIVE_TEMPLATE } from './templates.js';
 
 /** Display name of the example's client, used in menus and copy. */
@@ -55,6 +56,8 @@ export function createExampleScenario(): Scenario {
     ],
 
     llmPricing: structuredClone(DEFAULT_LLM_PRICING),
+    seatAssignments: structuredClone(AUTOMOTIVE_TEMPLATE.seatAssignments),
+    seatPricing: structuredClone(DEFAULT_SEAT_PRICING),
 
     oneTimeInvestment: [
       { id: 'setup', name: 'Private AI platform and toolchain integration', amount: 250_000, month: 0, aiSpecific: true },

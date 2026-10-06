@@ -70,20 +70,21 @@ Vantara Motors (fictional) has a 33-person onshore embedded software team buildi
 | Workload | 4,580 AI-assisted hours × 0.70 + 11% + 700 h = **4,259 h** |
 | Team | 33 × 4,259 / 5,280 = **26.6 FTE**, spread by the staffing plan's mix (now including 1.5 AI engineers) |
 | AI model usage | coding assistant on Claude Sonnet 5.5 (20,000 requests, €759) + SIL test generation on Sonnet 5.5 (6,000, €186) + MISRA and safety review agent on Claude Opus 5.5 (800, €110) + safety work product drafting on Opus 5.5 (2,000, €414) = **€1,469** a month, from tokens × list price |
-| Run cost | people + cost lines of €17,000 (toolchain €6,000, AI coding assistant licences €4,000, private IP-protected AI platform €5,000, AI tool qualification and governance €2,000) + AI model usage = **€322,643** fully loaded |
+| AI seats | 24.6 engineer seats at Claude Enterprise ($20/seat/month, usage billed separately) = **€425** a month. Seats follow the roles that hold them: 32.3 during the transition, 24.6 once mature |
+| Run cost | people + cost lines of €17,000 (toolchain €6,000, AI coding assistant licences €4,000, private IP-protected AI platform €5,000, AI tool qualification and governance €2,000) + model usage + seats = **€323,140** fully loaded |
 
 **3. Result**
 
 | Metric | Value | Meaning |
 |---|---|---|
-| Monthly saving (mature) | €45,322 | €367,965 − €322,643 |
+| Monthly saving (mature) | €44,825 | €367,965 − €323,140 |
 | One-off investment | €430,000 | Private AI platform and toolchain integration €250K, AI tool qualification and process update €80K, training €60K, contingency €40K |
 | Payback | Month 15 | First month where cumulative savings minus investment is ≥ 0. The transition months cost more than today. |
-| NPV (36 months, 10%) | €769K | All monthly cash flows discounted to today |
-| ROI (36 months) | 229% | (total savings − investment) ÷ investment, undiscounted |
-| IRR | 114% / year | Discount rate at which NPV = 0 |
+| NPV (36 months, 10%) | €753K | All monthly cash flows discounted to today |
+| ROI (36 months) | 224% | (total savings − investment) ÷ investment, undiscounted |
+| IRR | 111% / year | Discount rate at which NPV = 0 |
 
-The advice flags that the case needs about 76% of the assumed effort reduction to break even, so the 30% assumption should be validated with a pilot before it is presented as a commitment.
+The advice flags that the case needs about 77% of the assumed effort reduction to break even, so the 30% assumption should be validated with a pilot before it is presented as a commitment.
 
 Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €3.9M (payback month 6) and BCC only about €3.8M, because offshore rates dominate for a team at German-level onshore cost, even with functional safety and project leadership kept onshore.
 
@@ -99,7 +100,7 @@ The walkthrough frames every case as a choice between three ways of getting a mo
 | Enterprise | The same class of model inside your own cloud tenant or a private deployment | Per token plus a platform fee and qualification effort |
 | Local / open-weight | Models you run on your own hardware | No token bill; fixed hardware and MLOps cost |
 
-On the example, the comparison lands on one point: **the token price is almost never the decision, the effort cut is.** Paying 30% more per token costs about 2% of NPV, while a model that only cuts effort by 18% instead of 30% turns €769K of value into a €1.2M loss. Self-hosting has to reach roughly the same effort cut as frontier before it pays back at all. The flavour assumptions live in [aiFlavours.ts](apps/client/src/utils/aiFlavours.ts) and are illustrative starting points, not vendor claims.
+On the example, the comparison lands on one point: **the token price is almost never the decision, the effort cut is.** Paying 30% more per token costs about 2% of NPV, while a model that only cuts effort by 18% instead of 30% turns €753K of value into a €1.2M loss. Self-hosting has to reach roughly the same effort cut as frontier before it pays back at all. The flavour assumptions live in [aiFlavours.ts](apps/client/src/utils/aiFlavours.ts) and are illustrative starting points, not vendor claims.
 
 ## AI model prices
 
@@ -185,6 +186,7 @@ packages/engine/        Pure TypeScript calculation library (no I/O), shared by 
   src/compare.ts          all delivery models on one baseline, ranked by NPV
   src/advice.ts           rule-based verdict and findings
   src/llm.ts              AI model usage cost and the default price table
+  src/seats.ts            per-seat licence cost and the default seat price table
   src/sensitivity.ts      tornado (±20% per driver) and payback grid
   src/currency.ts         FX rates and scenario conversion
   src/templates.ts        automotive use-case template (team, workload, AI usage): single source for setup and the example
@@ -215,7 +217,7 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 
 ## Tests
 
-`npm test` runs the engine suite: 76 tests. They cover:
+`npm test` runs the engine suite: 82 tests. They cover:
 
 - **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story

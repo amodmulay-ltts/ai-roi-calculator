@@ -60,6 +60,31 @@ export interface LlmPricing {
   prices: LlmPrice[];
 }
 
+export interface SeatPrice {
+  id: string;
+  label: string;
+  /** Price per seat per month, in SeatPricing.currency. */
+  pricePerSeatPerMonth: number;
+  /** True when model usage is bundled into the seat; false when usage is billed separately. */
+  includesUsage: boolean;
+}
+
+export interface SeatPricing {
+  currency: Currency;
+  /** Date the prices were taken from the vendor list (YYYY-MM-DD). */
+  asOf: string;
+  source: string;
+  prices: SeatPrice[];
+}
+
+export interface SeatAssignment {
+  id: string;
+  name: string;
+  seatPriceId: string;
+  /** Roles that get this seat; the seat count follows their FTE through every state. */
+  roleIds: string[];
+}
+
 export interface LlmUsage {
   id: string;
   name: string;
@@ -180,6 +205,9 @@ export interface Scenario {
   /** AI model usage, costed as requests × tokens × price (AI-specific, scales with adoption). */
   llmUsage: LlmUsage[];
   llmPricing: LlmPricing;
+  /** Per-seat AI licences, costed from the assigned roles' FTE. */
+  seatAssignments: SeatAssignment[];
+  seatPricing: SeatPricing;
   oneTimeInvestment: OneTimeInvestmentItem[];
 
   // Productivity
@@ -225,6 +253,11 @@ export interface CostCalculation {
   peopleCost: Record<State, number>;
   /** AI model usage cost (part of direct OPEX). */
   llmCost: Record<State, number>;
+  /** Per-seat licence cost (part of direct OPEX). */
+  seatCost: Record<State, number>;
+  seatCostByAssignment: Record<string, Record<State, number>>;
+  seatsByAssignment: Record<string, Record<State, number>>;
+  totalSeats: Record<State, number>;
   llmCostByUsage: Record<string, Record<State, number>>;
   llmRequestsPerMonth: Record<string, number>;
   /** Value of the extra demand absorbed without hiring, per month (not part of run cost). */

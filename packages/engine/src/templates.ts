@@ -1,4 +1,4 @@
-import type { Currency, KpiInput, LlmUsage, Role } from './types.js';
+import type { Currency, KpiInput, LlmUsage, Role, SeatAssignment } from './types.js';
 
 /**
  * Automotive software (ECU / ADAS) use-case template: team, workload and AI model usage.
@@ -10,6 +10,7 @@ export interface UseCaseTemplate {
   roles: Role[];
   kpis: KpiInput[];
   llmUsage: LlmUsage[];
+  seatAssignments: SeatAssignment[];
 }
 
 export const AUTOMOTIVE_ROLES: Role[] = [
@@ -183,9 +184,20 @@ export const AUTOMOTIVE_LLM_USAGE: LlmUsage[] = [
   },
 ];
 
+// Enterprise seats for the hands-on engineering roles; usage is billed on top at API rates
+export const AUTOMOTIVE_SEATS: SeatAssignment[] = [
+  {
+    id: 'engineer-seats',
+    name: 'AI coding assistant seats (engineers)',
+    seatPriceId: 'claude-enterprise',
+    roleIds: ['sw-architect', 'senior-embedded', 'embedded-dev', 'validation-eng', 'safety-eng', 'devops', 'ai-engineer'],
+  },
+];
+
 export const AUTOMOTIVE_TEMPLATE: UseCaseTemplate = {
   rateCurrency: 'EUR',
   roles: AUTOMOTIVE_ROLES,
   kpis: AUTOMOTIVE_WORKLOAD,
   llmUsage: AUTOMOTIVE_LLM_USAGE,
+  seatAssignments: AUTOMOTIVE_SEATS,
 };
