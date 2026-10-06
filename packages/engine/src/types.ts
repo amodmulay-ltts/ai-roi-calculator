@@ -60,6 +60,8 @@ export interface LlmPricing {
   prices: LlmPrice[];
 }
 
+export type AiSourcing = 'frontier' | 'enterprise' | 'local';
+
 export interface SeatPrice {
   id: string;
   label: string;
@@ -205,6 +207,10 @@ export interface Scenario {
   /** AI model usage, costed as requests × tokens × price (AI-specific, scales with adoption). */
   llmUsage: LlmUsage[];
   llmPricing: LlmPricing;
+  /** How the model is sourced; the preset last applied. */
+  aiSourcing?: AiSourcing;
+  /** Multiplier on the token list prices: 1.3 for a private deployment, 0 when self-hosted. */
+  tokenPriceFactor?: number;
   /** Per-seat AI licences, costed from the assigned roles' FTE. */
   seatAssignments: SeatAssignment[];
   seatPricing: SeatPricing;

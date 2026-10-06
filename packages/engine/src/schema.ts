@@ -134,6 +134,8 @@ const scenarioFile = z.object({
   costLines: z.array(costLine).max(500),
   llmUsage: z.array(llmUsage).max(200).optional(),
   llmPricing: llmPricing.optional(),
+  aiSourcing: z.enum(['frontier', 'enterprise', 'local']).optional(),
+  tokenPriceFactor: z.number().finite().min(0).max(100).optional(),
   seatAssignments: z.array(seatAssignment).max(200).optional(),
   seatPricing: seatPricing.optional(),
   oneTimeInvestment: z.array(investment).max(500),

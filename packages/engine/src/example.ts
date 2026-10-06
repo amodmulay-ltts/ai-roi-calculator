@@ -56,6 +56,7 @@ export function createExampleScenario(): Scenario {
     ],
 
     llmPricing: structuredClone(DEFAULT_LLM_PRICING),
+    aiSourcing: 'frontier',
     seatAssignments: structuredClone(AUTOMOTIVE_TEMPLATE.seatAssignments),
     seatPricing: structuredClone(DEFAULT_SEAT_PRICING),
 

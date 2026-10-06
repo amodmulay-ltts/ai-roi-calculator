@@ -13,6 +13,7 @@ import SensitivityPanel from './components/SensitivityPanel';
 import CashFlowSection from './components/CashFlowSection';
 import CostsSummary from './components/CostsSummary';
 import AiEffectPanel from './components/AiEffectPanel';
+import SourcingPanel from './components/SourcingPanel';
 import ModelSelector from './components/ModelSelector';
 import ModelComparison from './components/ModelComparison';
 import AdvicePanel from './components/AdvicePanel';
@@ -460,7 +461,12 @@ export default function App() {
             </div>
           </div>
           <div id="assumptions-panel" role="tabpanel" aria-labelledby={`tab-${assumptionsTab}`}>
-            {assumptionsTab === 'ai-effect' && <AiEffectPanel scenario={scenario} onUpdate={handleScenarioUpdate} />}
+            {assumptionsTab === 'ai-effect' && (
+              <div className="space-y-6">
+                <SourcingPanel scenario={scenario} onReplace={replaceScenario} />
+                <AiEffectPanel scenario={scenario} onUpdate={handleScenarioUpdate} />
+              </div>
+            )}
             {assumptionsTab === 'team' &&
               (editingRoles ? (
                 <RolesGrid
