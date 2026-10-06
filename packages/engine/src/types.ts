@@ -24,9 +24,6 @@ export interface Role {
   bccCostPerFte?: number;
   /** Whether this role can be moved offshore in BCC models; absent = yes. */
   offshorable?: boolean;
-  billRatePerFte: number;
-  gradeLevel: 1 | 2 | 3 | 4 | 5;
-  isAiImpacted: boolean;
 }
 
 export interface CostLine {

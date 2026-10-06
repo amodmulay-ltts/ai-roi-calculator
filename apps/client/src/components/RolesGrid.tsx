@@ -48,7 +48,6 @@ export default function RolesGrid({ scenario, onUpdate, onDone, formatCurrency }
         roles: d.roles.map(r => ({
           ...r,
           costPerFte: r.costPerFte * k,
-          billRatePerFte: r.billRatePerFte * k,
           ...(r.bccCostPerFte !== undefined && { bccCostPerFte: r.bccCostPerFte * k }),
         })),
       };
@@ -64,9 +63,6 @@ export default function RolesGrid({ scenario, onUpdate, onDone, formatCurrency }
           name: 'New role',
           fte: { baseline: 1, transition: 1, mature: 1 },
           costPerFte: d.roles.length ? d.roles.reduce((s, r) => s + r.costPerFte, 0) / d.roles.length : 0,
-          billRatePerFte: 0,
-          gradeLevel: 3,
-          isAiImpacted: true,
         },
       ],
     }));
@@ -159,7 +155,6 @@ export default function RolesGrid({ scenario, onUpdate, onDone, formatCurrency }
                 <Tooltip text="Untick for roles that must stay onshore, such as safety sign-off or customer-facing leadership. They keep the onshore rate in every delivery model." />
               </span>
             </th>
-            <th className="px-2 py-2 font-normal text-center">AI-impacted</th>
             <th className="px-2 py-2" />
           </tr>
         </thead>
@@ -226,14 +221,6 @@ export default function RolesGrid({ scenario, onUpdate, onDone, formatCurrency }
                     aria-label={`${role.name} can be offshored`}
                     checked={role.offshorable !== false}
                     onChange={e => setRole(role.id, { offshorable: e.target.checked })}
-                  />
-                </td>
-                <td className="px-2 py-2 text-center">
-                  <input
-                    type="checkbox"
-                    aria-label={`${role.name} is AI-impacted`}
-                    checked={role.isAiImpacted}
-                    onChange={e => setRole(role.id, { isAiImpacted: e.target.checked })}
                   />
                 </td>
                 <td className="px-2 py-2">

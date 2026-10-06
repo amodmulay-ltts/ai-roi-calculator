@@ -374,6 +374,15 @@ function calculateBenefitLedger(
 ): BenefitLedgerLine[] {
   const ledger: BenefitLedgerLine[] = [];
 
+  // Notes are shown to the user, so they follow the scenario's currency
+  const money = (v: number) =>
+    new Intl.NumberFormat('en', {
+      style: 'currency',
+      currency: scenario.baseCurrency,
+      maximumFractionDigits: 0,
+    }).format(v);
+  const fte = (v: number) => `${Math.round(v * 10) / 10} FTE`;
+
   const baselineHeadcount = effort.staffingFte.baseline;
   const matureHeadcount = effort.staffingFte.mature;
 
@@ -385,7 +394,7 @@ function calculateBenefitLedger(
   ledger.push({
     category: 'volumeEffect',
     amount: volumeEffect,
-    notes: `(${baselineHeadcount} - ${matureHeadcount}) × ₹${Math.round(baselineBlendedRate)}`,
+    notes: `(${fte(baselineHeadcount)} − ${fte(matureHeadcount)}) × ${money(baselineBlendedRate)}`,
   });
 
   // Mix effect: FTE_M × blendedRate_B - peopleCost_M
@@ -393,9 +402,7 @@ function calculateBenefitLedger(
   ledger.push({
     category: 'mixEffect',
     amount: mixEffect,
-    notes: `${matureHeadcount} × ₹${Math.round(baselineBlendedRate)} - ₹${Math.round(
-      cost.peopleCost.mature
-    )}`,
+    notes: `${fte(matureHeadcount)} × ${money(baselineBlendedRate)} − ${money(cost.peopleCost.mature)}`,
   });
 
   // Non-people cost delta (cost lines)
@@ -412,7 +419,7 @@ function calculateBenefitLedger(
   ledger.push({
     category: 'nonPeopleCostDelta',
     amount: costLinesDelta,
-    notes: `Cost lines: ₹${Math.round(baselineCostLines)} → ₹${Math.round(matureCostLines)}`,
+    notes: `Cost lines: ${money(baselineCostLines)} → ${money(matureCostLines)}`,
   });
 
   // Overhead and risk deltas
