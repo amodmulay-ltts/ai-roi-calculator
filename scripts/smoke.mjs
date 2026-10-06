@@ -118,6 +118,13 @@ async function main() {
       await page.$eval('[aria-label="Cost basis"] [aria-checked="true"]', el => el.textContent?.includes('Client-chargeable'))
     );
     await clickByText(page, '[aria-label="Cost basis"] [role="radio"]', 'Total cost of ownership');
+    const stripBefore = await page.$eval('a[aria-label="Jump to net value"]', el => el.innerText);
+    check('the section bar carries a running result', /€/.test(stripBefore) && /month|no payback/i.test(stripBefore));
+
+    check('assumptions start collapsed, so the page opens on the argument', !(await page.$('#assumptions-body')));
+    check('the assumption tabs are hidden too', !(await page.$('[role="tablist"][aria-label="Assumptions"]')));
+    await clickByText(page, '#assumptions button', 'Show inputs');
+    check('showing inputs reveals them', !!(await page.$('#assumptions-body')));
     for (const [tab, expected] of [
       ['Workload', 'h / month'],
       ['AI seats and usage', 'Claude Sonnet 5.5'],
@@ -130,6 +137,8 @@ async function main() {
       check(`assumptions tab "${tab}" shows its content`, panelText.includes(expected.toLowerCase()));
     }
     await clickByText(page, '[aria-label="Delivery models ranked by NPV"] [role="radio"]', 'Onshore + AI');
+    const stripAfter = await page.$eval('a[aria-label="Jump to net value"]', el => el.innerText);
+    check('the running result follows the selected model', stripAfter !== stripBefore, `${stripBefore} -> ${stripAfter}`);
     await shot('01b-dashboard-after-interaction');
 
     // 1c. Currency: convert to USD via the dialog

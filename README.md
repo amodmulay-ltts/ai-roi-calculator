@@ -25,7 +25,7 @@ The L&T Technology Services logo (`apps/client/public/ltts-logo.png`) appears in
 
 The app opens with an **example calculation**, marked "Example calculation · fictional data" on screen and in every export. Use it to learn the tool; do not use its figures for a customer.
 
-The dashboard builds from inputs to outcome, with a section bar under the header to jump between parts: **Assumptions** (tabs: Team, Workload, AI seats and usage, Costs and investment) → **AI effect** (how the model is sourced, and the effort cut and review overhead it implies) → **Delivery model** → **Compare models** (all five against the same baseline) → **Cash flow** (cumulative cash position with the payback marker, monthly run cost against today, cost per stage) → **Sensitivity** → **Net value** (NPV, payback, ROI) → **Advice**, which reads the result it sits under.
+The dashboard builds from inputs to outcome. The section bar carries a **running result** — NPV, payback, ROI — so an edit anywhere shows its effect without scrolling, and clicking it jumps to the full figures. **Assumptions** starts collapsed, since it is inputs rather than argument; **Show inputs** opens it. Order: **Assumptions** (tabs: Team, Workload, AI seats and usage, Costs and investment) → **AI effect** (how the model is sourced, and the effort cut and review overhead it implies) → **Delivery model** → **Compare models** (all five against the same baseline) → **Cash flow** (cumulative cash position with the payback marker, monthly run cost against today, cost per stage) → **Sensitivity** → **Net value** (NPV, payback, ROI) → **Advice**, which reads the result it sits under.
 
 | Where | What |
 |---|---|
