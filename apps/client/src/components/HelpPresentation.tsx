@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Results } from '@ai-roi-calc/engine';
 import { calculate, compareDeliveryModels, createExampleScenario } from '@ai-roi-calc/engine';
 import { deliveryModelInfo } from '../utils/deliveryModels';
+import { compareFlavours, localBreakEven } from '../utils/aiFlavours';
 
 interface HelpPresentationProps {
   open: boolean;
@@ -49,6 +50,7 @@ function useExampleFigures() {
       return { cut, results: calculate(s) };
     });
 
+    const localGrid = localBreakEven(scenario);
     const linesMature = r.cost.directOpex.mature - r.cost.peopleCost.mature;
     const linesBaseline = r.cost.directOpex.baseline - r.cost.peopleCost.baseline;
 
@@ -66,6 +68,10 @@ function useExampleFigures() {
       breakEvenCut: sensitivity.find(x => x.results.financialMetrics.npv >= 0)?.cut ?? null,
       models,
       sensitivity,
+      flavours: compareFlavours(scenario),
+      localGrid,
+      // Smallest cut that pays back at the middle capacity cost
+      localCutNeeded: localGrid[1]!.cells.find(c => c.payback !== null)?.cut ?? null,
     };
   }, []);
 }
@@ -175,16 +181,133 @@ export default function HelpPresentation({ open, onClose, onStartNew }: HelpPres
           </Quiet>
         </Slide>
 
-        <Slide id="why" kicker="Why use it">
-          <Hero>Find out quickly what works, and what does not.</Hero>
+        <Slide id="flavours" kicker="The choice behind every AI case">
+          <Hero>AI is not one thing. It comes in three flavours.</Hero>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            {f.flavours.map((fl, i) => (
+              <div key={fl.id} className={`rounded-xl p-6 border ${i === 0 ? 'border-blue-300 bg-blue-50/50' : 'border-gray-200'}`}>
+                <p className={`text-lg font-semibold mb-2 ${i === 0 ? 'text-blue-700' : 'text-gray-900'}`}>{fl.label}</p>
+                <p className="text-sm text-gray-700 mb-3">{fl.what}</p>
+                <p className="text-xs text-gray-500 mb-1"><span className="text-gray-700">Good for:</span> {fl.fit}</p>
+                <p className="text-xs text-gray-500"><span className="text-gray-700">Watch out:</span> {fl.watchOut}</p>
+              </div>
+            ))}
+          </div>
+          <Quiet>
+            <p>
+              Most customers end up with a mix: a frontier model for the hard cases, an enterprise deployment for regulated
+              work, a local model where data cannot leave. The question is never which is best in the abstract, but which one
+              pays for the work in front of you.
+            </p>
+          </Quiet>
+        </Slide>
+
+        <Slide id="flavour-shape" kicker="What the flavour changes">
+          <Hero>The flavour changes the shape of the cost, not just its size.</Hero>
+          <div className="space-y-4 mb-10 max-w-3xl">
+            {f.flavours.map(fl => (
+              <div key={fl.id} className="flex flex-col sm:flex-row sm:items-baseline gap-x-6 border-t border-gray-200 pt-3">
+                <p className="w-56 shrink-0 text-gray-900 font-medium">{fl.label}</p>
+                <p className="text-sm text-gray-600">{fl.shape}</p>
+              </div>
+            ))}
+          </div>
           <Support
             items={[
-              { value: 'Traceable', label: 'Every result follows from inputs the customer recognises: people, hours, rates, AI costs' },
-              { value: 'Honest', label: 'AI costs, review overhead and the transition dip are counted, so weak cases show as weak' },
+              { value: 'Effort cut', label: 'A weaker model does less of the work, so the hours fall by less. This is the lever that decides the case.' },
+              { value: 'Review overhead', label: 'Output you trust less needs more checking, which adds the hours back' },
             ]}
           />
           <Quiet>
-            <p>Use it in a first conversation to size the opportunity, then refine the inputs with the customer's real data before any decision.</p>
+            <p>
+              The calculator models all three the same way: the model's effect on the work, the money it costs to run, and the
+              one-off investment to get there. Only the numbers differ.
+            </p>
+          </Quiet>
+        </Slide>
+
+        <Slide id="flavour-compare" kicker="The three flavours, same team">
+          <Hero>
+            Paying {pct(1.3 - 1)} more per token costs{' '}
+            {pct(Math.abs(1 - f.flavours[1]!.results.financialMetrics.npv / f.flavours[0]!.results.financialMetrics.npv))} of the
+            value. A weaker model costs all of it.
+          </Hero>
+          <table className="w-full max-w-4xl mb-8 text-left">
+            <thead>
+              <tr className="text-xs text-gray-500 uppercase tracking-wide">
+                <th className="py-2 font-medium">Flavour</th>
+                <th className="py-2 font-medium text-right">Effort cut</th>
+                <th className="py-2 font-medium text-right">Tokens / month</th>
+                <th className="py-2 font-medium text-right">Platform / month</th>
+                <th className="py-2 font-medium text-right">NPV</th>
+                <th className="py-2 font-medium text-right">Payback</th>
+              </tr>
+            </thead>
+            <tbody>
+              {f.flavours.map(fl => {
+                const fm = fl.results.financialMetrics;
+                return (
+                  <tr key={fl.id} className="border-t border-gray-200">
+                    <td className="py-3 text-gray-900">{fl.label}</td>
+                    <td className="py-3 text-right text-gray-700">{pct(fl.effortCut)}</td>
+                    <td className="py-3 text-right text-gray-700">{fl.tokenCost > 0 ? eur(fl.tokenCost) : 'none'}</td>
+                    <td className="py-3 text-right text-gray-700">{eur(fl.fixedAiCost)}</td>
+                    <td className={`py-3 text-right font-semibold ${fm.npv >= 0 ? 'text-blue-700' : 'text-gray-900'}`}>{eur(fm.npv)}</td>
+                    <td className="py-3 text-right text-gray-700">{payback(fl.results)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <Quiet>
+            <p>
+              Same team, same work, same investment: only the model changes. Tokens are{' '}
+              {pct(f.flavours[0]!.tokenCost / (r.cost.fullyLoaded.baseline - r.cost.fullyLoaded.mature))} of the monthly saving in
+              the frontier case, so the token price is almost never the decision. The effort cut is.
+            </p>
+            <p>
+              These are starting assumptions for the walkthrough, not vendor claims. In a real scenario you set the price table,
+              the platform cost and the effort cut with the customer.
+            </p>
+          </Quiet>
+        </Slide>
+
+        <Slide id="flavour-local" kicker="When self-hosting pays">
+          <Hero>A local model has to earn its hardware before it earns anything else.</Hero>
+          <table className="w-full max-w-3xl mb-8 text-left">
+            <thead>
+              <tr className="text-xs text-gray-500 uppercase tracking-wide">
+                <th className="py-2 font-medium">Capacity + MLOps</th>
+                {f.localGrid[0]!.cells.map(c => (
+                  <th key={c.cut} className="py-2 font-medium text-right">
+                    {pct(c.cut)} cut
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {f.localGrid.map(row => (
+                <tr key={row.infra} className="border-t border-gray-200">
+                  <td className="py-3 text-gray-900">{eur(row.infra, false)} / month</td>
+                  {row.cells.map(c => (
+                    <td key={c.cut} className={`py-3 text-right ${c.npv >= 0 ? 'text-blue-700 font-semibold' : 'text-gray-400'}`}>
+                      {c.payback === null ? 'never' : `M${c.payback}`}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <Quiet>
+            <p>
+              Payback month for the same team on open-weight models: fixed capacity cost down the side, effort cut across the
+              top. With no token bill the whole case rests on the model being good enough:{' '}
+              {f.localCutNeeded === null
+                ? 'at this capacity cost none of these cuts pays back'
+                : `it has to reach about a ${pct(f.localCutNeeded)} cut before it pays back at all`}
+              , whatever you spend on GPUs.
+            </p>
+            <p>Self-hosting is still the right answer when the data may not leave — the calculator shows what that choice costs.</p>
           </Quiet>
         </Slide>
 
@@ -204,7 +327,10 @@ export default function HelpPresentation({ open, onClose, onStartNew }: HelpPres
             ))}
           </div>
           <Quiet>
-            <p>Figures from the example on the next screens: {f.scenario.clientName}.</p>
+            <p>
+              Whichever flavour you pick, the calculator answers the same question in the same way. The rest of this walkthrough
+              follows one worked example: {f.scenario.clientName}.
+            </p>
           </Quiet>
         </Slide>
 
