@@ -170,6 +170,8 @@ async function main() {
     await clickByText(page, '#assumptions-panel button', 'Save changes');
     body = await text(page);
     check('bundled seat plus token usage raises the double-count warning', body.includes('already include model usage'));
+    aiPanel = await page.$eval('#assumptions-panel', el => el.innerText.toLowerCase());
+    check('AI panel shows cost per developer against the published band', aiPanel.includes('per developer per month'));
     await shot('01f-seats');
 
     // 1d. Roles: hourly rates, working hours, add/remove, persisted on the scenario

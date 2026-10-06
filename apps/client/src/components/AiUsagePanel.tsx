@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { LlmPricing, LlmUsage, Results, Scenario } from '@ai-roi-calc/engine';
+import { aiCostPerDeveloper } from '@ai-roi-calc/engine';
 import Tooltip from './Tooltip';
 
 interface AiUsagePanelProps {
@@ -258,6 +259,23 @@ export default function AiUsagePanel({ scenario, results, formatCurrency, onUpda
           </tbody>
         </table>
       )}
+
+      {/* Quiet: sanity rail against a published figure */}
+      {(() => {
+        const perDev = aiCostPerDeveloper(scenario, results.cost, results.effort);
+        if (!perDev) return null;
+        return (
+          <p className={`mt-6 text-sm ${perDev.implausible ? 'text-blue-800' : 'text-gray-600'}`}>
+            <span className="font-medium">
+              {formatCurrency(perDev.perDeveloper)} per developer per month
+            </span>{' '}
+            across seats and tokens, over {perDev.developers.toFixed(1)}{' '}
+            {perDev.fromSeats ? 'seats' : 'FTE (no seats modelled, so this is the whole team)'}. Published enterprise Claude
+            Code deployments run about {formatCurrency(perDev.low)}–{formatCurrency(perDev.high)}
+            {perDev.implausible ? ' — this far outside usually means an input is wrong.' : '.'}
+          </p>
+        );
+      })()}
 
       {/* Quiet: price provenance */}
       <p className="mt-4 text-xs text-gray-400">

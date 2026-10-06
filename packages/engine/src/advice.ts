@@ -1,7 +1,7 @@
 import type { Currency, Results, Scenario, State } from './types.js';
 import { calculate } from './engine.js';
 import { deliveryContext, effectiveLineAmount } from './delivery.js';
-import { seatsIncludingUsage } from './seats.js';
+import { aiCostPerDeveloper, seatsIncludingUsage } from './seats.js';
 
 export type VerdictTone = 'strong' | 'marginal' | 'negative' | 'no-change';
 export type FindingSeverity = 'warning' | 'info';
@@ -233,6 +233,17 @@ export function advise(scenario: Scenario, results: Results): Advice {
       title: `${bundled.join(', ')} already include model usage, but token usage is also costed`,
       detail:
         'The same work may be paid for twice. Either switch to a seat that bills usage separately, or remove the token usage items those seats cover.',
+    });
+  }
+
+  // Order-of-magnitude check against a published figure: the error class that wrecks hand-built models
+  const perDev = aiCostPerDeveloper(scenario, cost, effort);
+  if (perDev?.implausible) {
+    findings.push({
+      id: 'per-developer-implausible',
+      severity: 'warning',
+      title: `AI spend works out at ${money(perDev.perDeveloper)} per developer per month`,
+      detail: `Published enterprise deployments run about ${money(perDev.low)}–${money(perDev.high)}. Being outside that is not wrong by itself, but this far outside usually means a token volume, a price or a seat count is off. Check them before presenting.`,
     });
   }
 
