@@ -1,6 +1,7 @@
 import type { Currency, Results, Scenario, State } from './types.js';
 import { calculate } from './engine.js';
 import { deliveryContext, effectiveLineAmount } from './delivery.js';
+import { seatsIncludingUsage } from './seats.js';
 
 export type VerdictTone = 'strong' | 'marginal' | 'negative' | 'no-change';
 export type FindingSeverity = 'warning' | 'info';
@@ -137,7 +138,7 @@ export function advise(scenario: Scenario, results: Results): Advice {
   // ---------- AI running costs versus the saving they enable ----------
   const aiRunCost = scenario.costLines
     .filter(l => l.aiSpecific)
-    .reduce((sum, l) => sum + effectiveLineAmount(l, 'mature', ctx) - effectiveLineAmount(l, 'baseline', ctx), cost.llmCost.mature);
+    .reduce((sum, l) => sum + effectiveLineAmount(l, 'mature', ctx) - effectiveLineAmount(l, 'baseline', ctx), cost.llmCost.mature + cost.seatCost.mature);
   const peopleSaving = cost.peopleCost.baseline - cost.peopleCost.mature;
   if (aiRunCost > 0 && peopleSaving > 0 && aiRunCost / peopleSaving > AI_COST_SHARE_LIMIT) {
     findings.push({
@@ -220,6 +221,18 @@ export function advise(scenario: Scenario, results: Results): Advice {
       severity: 'warning',
       title: 'Overhead % changes without a stated reason',
       detail: `The ${missingRationale.join(' and ')} overhead differs from today. Add the rationale so the customer can follow it.`,
+    });
+  }
+
+  // Paying for a seat that bundles usage and metering the same work twice
+  const bundled = seatsIncludingUsage(scenario);
+  if (bundled.length > 0 && scenario.llmUsage.length > 0) {
+    findings.push({
+      id: 'seat-usage-double-count',
+      severity: 'warning',
+      title: `${bundled.join(', ')} already include model usage, but token usage is also costed`,
+      detail:
+        'The same work may be paid for twice. Either switch to a seat that bills usage separately, or remove the token usage items those seats cover.',
     });
   }
 

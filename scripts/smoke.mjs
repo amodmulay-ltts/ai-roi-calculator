@@ -112,7 +112,7 @@ async function main() {
     await clickByText(page, '[aria-label="Cost basis"] [role="radio"]', 'Total cost of ownership');
     for (const [tab, expected] of [
       ['Workload', 'h / month'],
-      ['AI model usage', 'Claude Sonnet 5.5'],
+      ['AI seats and usage', 'Claude Sonnet 5.5'],
       ['Costs and investment', 'One-off investment'],
       ['Team', 'Team size'],
     ]) {
@@ -145,6 +145,22 @@ async function main() {
     check('a 15% effort cut turns the advice to "does not pay back"', (await text(page)).includes('Does not pay back within'));
     await setCut(30);
     check('restoring 30% restores the verdict', (await text(page)).includes('Pays back in month 15'));
+
+    // 1c3. Seats: costed from assigned roles, editable, double-count guard
+    await clickByText(page, '[role="tab"]', 'AI seats and usage');
+    let aiPanel = await page.$eval('#assumptions-panel', el => el.innerText.toLowerCase());
+    check('seats panel shows a cost and a seat count', aiPanel.includes('ai seats') && aiPanel.includes('seats once mature'));
+    await clickByText(page, 'button', 'Edit seats and prices');
+    const seatType = await page.$('select[aria-label="AI coding assistant seats (engineers) seat type"]');
+    await seatType.select('claude-team-standard');
+    check(
+      'a bundled-usage seat warns in the editor',
+      (await page.$eval('#assumptions-panel', el => el.innerText.toLowerCase())).includes('do not also meter tokens')
+    );
+    await clickByText(page, '#assumptions-panel button', 'Save changes');
+    body = await text(page);
+    check('bundled seat plus token usage raises the double-count warning', body.includes('already include model usage'));
+    await shot('01f-seats');
 
     // 1d. Roles: hourly rates, working hours, add/remove, persisted on the scenario
     await clickByText(page, '[role="tab"]', 'Team');

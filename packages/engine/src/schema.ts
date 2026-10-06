@@ -69,6 +69,29 @@ const llmPricing = z.object({
     .max(100),
 });
 
+const seatPricing = z.object({
+  currency,
+  asOf: text,
+  source: z.string().max(500),
+  prices: z
+    .array(
+      z.object({
+        id: text,
+        label: text,
+        pricePerSeatPerMonth: money,
+        includesUsage: z.boolean(),
+      })
+    )
+    .max(100),
+});
+
+const seatAssignment = z.object({
+  id: text,
+  name: text,
+  seatPriceId: text,
+  roleIds: z.array(text).max(500),
+});
+
 const llmUsage = z.object({
   id: text,
   name: text,
@@ -111,6 +134,8 @@ const scenarioFile = z.object({
   costLines: z.array(costLine).max(500),
   llmUsage: z.array(llmUsage).max(200).optional(),
   llmPricing: llmPricing.optional(),
+  seatAssignments: z.array(seatAssignment).max(200).optional(),
+  seatPricing: seatPricing.optional(),
   oneTimeInvestment: z.array(investment).max(500),
   productivityFactor: z.union([
     z.object({ mode: z.literal('direct-factor'), transition: z.number().finite().positive(), mature: z.number().finite().positive() }),

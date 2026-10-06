@@ -8,6 +8,7 @@ import RolesGrid from './components/RolesGrid';
 import CostLinesGrid from './components/CostLinesGrid';
 import WorkloadGrid from './components/WorkloadGrid';
 import AiUsagePanel from './components/AiUsagePanel';
+import SeatsPanel from './components/SeatsPanel';
 import SensitivityPanel from './components/SensitivityPanel';
 import CashFlowSection from './components/CashFlowSection';
 import CostsSummary from './components/CostsSummary';
@@ -30,7 +31,7 @@ const ASSUMPTION_TABS: Array<[AssumptionTab, string]> = [
   ['ai-effect', 'AI effect'],
   ['team', 'Team'],
   ['workload', 'Workload'],
-  ['ai', 'AI model usage'],
+  ['ai', 'AI seats and usage'],
   ['costs', 'Costs and investment'],
 ];
 const SECTIONS: Array<[string, string]> = [
@@ -480,7 +481,10 @@ export default function App() {
               <WorkloadGrid scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
             )}
             {assumptionsTab === 'ai' && (
-              <AiUsagePanel scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
+              <div className="space-y-6">
+                <SeatsPanel scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
+                <AiUsagePanel scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
+              </div>
             )}
             {assumptionsTab === 'costs' &&
               (editingCostLines ? (
