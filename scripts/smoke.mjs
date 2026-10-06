@@ -98,15 +98,15 @@ async function main() {
     await shot('01-dashboard-example');
 
     // 1b. Story layout: section bar, delivery model selection, cost basis, assumption tabs
-    for (const id of ['assumptions', 'ai-effect', 'delivery', 'compare', 'cashflow', 'sensitivity', 'results', 'advice']) {
+    for (const id of ['assumptions', 'delivery', 'compare', 'ai-effect', 'cashflow', 'sensitivity', 'results', 'advice']) {
       check(`section #${id} present`, !!(await page.$(`#${id}`)));
     }
     const order = await page.$$eval('main [id]', els =>
-      els.map(e => e.id).filter(id => ['assumptions', 'ai-effect', 'delivery', 'compare', 'cashflow', 'sensitivity', 'results', 'advice'].includes(id))
+      els.map(e => e.id).filter(id => ['assumptions', 'delivery', 'compare', 'ai-effect', 'cashflow', 'sensitivity', 'results', 'advice'].includes(id))
     );
     check(
       'page reads from inputs to net value',
-      order.join(' ') === 'assumptions ai-effect delivery compare cashflow sensitivity results advice',
+      order.join(' ') === 'assumptions delivery compare ai-effect cashflow sensitivity results advice',
       order.join(' ')
     );
     await clickByText(page, '[aria-label="Delivery models ranked by NPV"] [role="radio"]', 'AI + BCC');
@@ -251,7 +251,7 @@ async function main() {
     await page.waitForSelector('[aria-label="How VALUEAI works"]');
     await new Promise(r => setTimeout(r, 400));
     const helpText = (await page.$eval('[aria-label="How VALUEAI works"]', el => el.innerText)).toLowerCase();
-    for (const label of ['assumptions', 'ai effect', 'delivery model', 'compare models', 'cash flow', 'sensitivity', 'net value', 'advice'])
+    for (const label of ['assumptions', 'delivery model', 'compare models', 'ai effect', 'cash flow', 'sensitivity', 'net value', 'advice'])
       check(`help explains ${label}`, helpText.includes(label));
     check('old walkthrough content is gone', !helpText.includes('three flavours') && !helpText.includes('northwind'));
 

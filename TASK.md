@@ -34,6 +34,7 @@ Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, auto
 | – | IRR no longer capped at 200% | Done, tested |
 | – | Automotive software (ECU / ADAS) use-case template; the default example is built from it; saved examples no longer restored | Done, browser-tested |
 | – | Onshore and offshore rate per role, onshore-only roles, side-by-side rates in Team | Done, browser-tested |
+| – | Delivery model and comparison moved above AI effect; sourcing card renamed Model selection | Done, browser-tested |
 | – | Running result in the section bar; Assumptions collapsed by default | Done, browser-tested |
 | – | How it works: one explanation per dashboard section, opened from and returning to that section | Done, browser-tested |
 | – | Dashboard order: assumptions → AI effect → delivery → compare → cash flow → sensitivity → net value | Done, browser-tested |

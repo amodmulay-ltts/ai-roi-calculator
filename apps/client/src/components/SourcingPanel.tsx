@@ -16,7 +16,7 @@ export default function SourcingPanel({ scenario, onReplace }: SourcingPanelProp
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-8">
       <div className="flex items-center mb-1">
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">How the model is sourced</p>
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Model selection</p>
         <Tooltip text="Applying a preset sets the AI effect (effort cut and review overhead) and the cost shape (token price, or no token bill plus a capacity line). Everything it writes stays editable, and switching back restores what it changed." />
       </div>
 
@@ -88,7 +88,7 @@ export default function SourcingPanel({ scenario, onReplace }: SourcingPanelProp
           </p>
           <p className="text-gray-400">
             Assumption, not a published figure: {preset.unsourced.join(', ')}. Applying a preset overwrites these; edit them
-            below and in Costs once applied.
+            above and in Costs once applied.
           </p>
         </div>
       )}

@@ -480,16 +480,6 @@ export default function App() {
           )}
         </section>
 
-        {/* AI effect: the assumption the whole case turns on */}
-        <section id="ai-effect" className="mb-12 space-y-6 scroll-mt-32" aria-label="AI effect">
-          <div className="flex items-baseline justify-between gap-4 mb-3">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">AI effect</h3>
-            <ExplainButton section="ai-effect" onOpen={setHelpSection} />
-          </div>
-          <SourcingPanel scenario={scenario} onReplace={replaceScenario} />
-          <AiEffectPanel scenario={scenario} onUpdate={handleScenarioUpdate} />
-        </section>
-
         {/* Delivery model: set it, then see it against the alternatives */}
         <section id="delivery" className="mb-12 scroll-mt-32" aria-label="Delivery model">
           <div className="flex items-baseline justify-between gap-4 mb-3">
@@ -509,6 +499,16 @@ export default function App() {
             formatCurrency={formatCurrency}
             onSelect={model => handleScenarioUpdate({ primaryModel: model })}
           />
+        </section>
+
+        {/* AI effect: the assumption the whole case turns on */}
+        <section id="ai-effect" className="mb-12 space-y-6 scroll-mt-32" aria-label="AI effect">
+          <div className="flex items-baseline justify-between gap-4 mb-3">
+            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">AI effect</h3>
+            <ExplainButton section="ai-effect" onOpen={setHelpSection} />
+          </div>
+          <AiEffectPanel scenario={scenario} onUpdate={handleScenarioUpdate} />
+          <SourcingPanel scenario={scenario} onReplace={replaceScenario} />
         </section>
 
         <section id="cashflow" className="mb-12 scroll-mt-32">
