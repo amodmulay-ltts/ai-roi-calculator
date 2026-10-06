@@ -18,9 +18,6 @@ const role = z.object({
   costPerFte: money,
   bccCostPerFte: money.optional(),
   offshorable: z.boolean().optional(),
-  billRatePerFte: money,
-  gradeLevel: z.number().int().min(1).max(5),
-  isAiImpacted: z.boolean(),
 });
 
 const costLine = z.object({

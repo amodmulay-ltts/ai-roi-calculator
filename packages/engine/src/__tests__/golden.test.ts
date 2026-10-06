@@ -585,6 +585,18 @@ describe('Onshore and offshore rates per role', () => {
   });
 });
 
+describe('Benefit ledger notes', () => {
+  it('formats amounts in the scenario currency, not a hardcoded symbol', () => {
+    const eur = calculate(createExampleScenario()).benefitLedger;
+    expect(eur.every(l => !l.notes.includes('₹'))).toBe(true);
+    expect(eur.some(l => l.notes.includes('€'))).toBe(true);
+
+    const inr = calculate(referenceScenario()).benefitLedger;
+    expect(inr.some(l => l.notes.includes('₹'))).toBe(true);
+    expect(inr.every(l => !l.notes.includes('€'))).toBe(true);
+  });
+});
+
 describe('Delivery model comparison', () => {
   it('calculates all five models against one baseline and ranks them by NPV', () => {
     const rows = compareDeliveryModels(createExampleScenario());
@@ -691,7 +703,6 @@ describe('Currency Conversion', () => {
     expect(back.baseCurrency).toBe('INR');
     back.roles.forEach((r, i) => {
       expect(r.costPerFte).toBeCloseTo(original.roles[i]!.costPerFte, 2);
-      expect(r.billRatePerFte).toBeCloseTo(original.roles[i]!.billRatePerFte, 2);
     });
     back.costLines.forEach((l, i) => {
       expect(l.monthlyAmount.mature).toBeCloseTo(original.costLines[i]!.monthlyAmount.mature, 2);

@@ -11,7 +11,7 @@
 
 ## Current status
 
-Engine tests: **75/75 passing** (`npm test -w packages/engine`). Build clean.
+Engine tests: **76/76 passing** (`npm test -w packages/engine`). Build clean.
 Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, autosave. Other screens checked by rendering and screenshots.
 
 | # | Fix (from REVIEW_Self_Assessment.md) | Status |
@@ -34,6 +34,7 @@ Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, auto
 | – | IRR no longer capped at 200% | Done, tested |
 | – | Automotive software (ECU / ADAS) use-case template; the default example is built from it; saved examples no longer restored | Done, browser-tested |
 | – | Onshore and offshore rate per role, onshore-only roles, side-by-side rates in Team | Done, browser-tested |
+| – | Remove dead role fields (AI-impacted checkbox, bill rate, grade); ledger notes follow scenario currency | Done, browser-tested |
 | – | How it works: three AI flavours (frontier / enterprise / local) with live comparison, then the calculator concept | Done, browser-tested |
 | – | Fix `npm run dev` for the server (Node removed `--loader`) | Done |
 | – | AI effect editable (effort cut and review overhead per stage): dashboard tab and setup step 5 | Done, browser-tested |
