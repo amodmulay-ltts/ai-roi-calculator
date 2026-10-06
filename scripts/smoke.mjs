@@ -260,6 +260,13 @@ async function main() {
         costsStep.includes(b)
       )
     );
+    await clickByText(page, '[role="dialog"] summary', 'Reference figures');
+    const infraRefs = await page.$eval('[role="dialog"]', el => el.innerText.toLowerCase());
+    check('costs step offers dated self-hosting reference figures', infraRefs.includes('mac mini m6') && infraRefs.includes('aws g6.xlarge'));
+    const linesBefore = await page.$$eval('[role="dialog"] input[aria-label$=" mature"]', els => els.length);
+    await clickByText(page, '[role="dialog"] button', 'Add as line');
+    const linesAfter = await page.$$eval('[role="dialog"] input[aria-label$=" mature"]', els => els.length);
+    check('a reference figure can be added as a cost line', linesAfter === linesBefore + 1);
     await shot('03a2-setup-costs', false);
     await clickByText(page, '[role="dialog"] button', 'Next');
     check('setup has an AI effect step with the mature cut', (await page.$eval('#cut-mature', el => Number(el.value))) === 30);

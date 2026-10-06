@@ -1,5 +1,12 @@
+import { useState } from 'react';
 import type { CostLine, Scenario } from '@ai-roi-calc/engine';
+import { fxFactor } from '@ai-roi-calc/engine';
 import Tooltip from './Tooltip';
+import {
+  INFRA_REFERENCES,
+  INFRA_REFERENCE_NOTE,
+  referenceMonthlyCost,
+} from '../utils/infraReference';
 
 interface CostsStepProps {
   scenario: Scenario;
@@ -48,6 +55,8 @@ const STAGES = [
 ] as const;
 
 export default function CostsStep({ scenario, onUpdate, formatCurrency }: CostsStepProps) {
+  const [units, setUnits] = useState<Record<string, number>>({});
+  const usdToScenario = fxFactor('USD', scenario.baseCurrency, scenario.fxRatesPerEur);
   const known = new Set(BUCKETS.map(b => b.category));
   const other = scenario.costLines.filter(l => !known.has(l.category));
 
@@ -157,6 +166,77 @@ export default function CostsStep({ scenario, onUpdate, formatCurrency }: CostsS
             <button onClick={() => addLine(bucket.category, bucket.aiSpecific)} className="mt-1 text-sm text-blue-700 hover:text-blue-900">
               Add {bucket.label.toLowerCase()} line
             </button>
+
+            {bucket.category === 'Infra' && (
+              <details className="mt-3 text-sm">
+                <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
+                  Reference figures for self-hosting a model
+                </summary>
+                <table className="mt-3 w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-gray-400 text-left">
+                      <th className="font-normal pb-1">Option</th>
+                      <th className="font-normal pb-1 text-right">Per unit / month</th>
+                      <th className="font-normal pb-1 text-right">Units</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {INFRA_REFERENCES.map(ref => {
+                      const count = units[ref.id] ?? 1;
+                      return (
+                        <tr key={ref.id} className="border-t border-gray-100">
+                          <td className="py-1.5 pr-3">
+                            <span className="text-gray-900">{ref.label}</span>
+                            <span className="block text-xs text-gray-400">
+                              {ref.basis} · {ref.source}
+                              {ref.note ? ` · ${ref.note}` : ''}
+                            </span>
+                          </td>
+                          <td className="py-1.5 text-right text-gray-700">
+                            {formatCurrency(referenceMonthlyCost(ref, 1, usdToScenario))}
+                          </td>
+                          <td className="py-1.5 text-right">
+                            <input
+                              aria-label={`${ref.label} units`}
+                              type="number"
+                              min={1}
+                              value={count}
+                              onChange={e => setUnits({ ...units, [ref.id]: Math.max(1, Number(e.target.value) || 1) })}
+                              className="w-16 px-2 py-1 text-right border border-gray-300 rounded text-sm"
+                            />
+                          </td>
+                          <td className="py-1.5 pl-2">
+                            <button
+                              onClick={() => {
+                                const amount = referenceMonthlyCost(ref, count, usdToScenario);
+                                onUpdate({
+                                  costLines: [
+                                    ...scenario.costLines,
+                                    {
+                                      id: `infra-${Date.now()}`,
+                                      name: `${count} × ${ref.label}`,
+                                      category: 'Infra',
+                                      monthlyAmount: { baseline: 0, transition: amount, mature: amount },
+                                      chargeable: true,
+                                      aiSpecific: true,
+                                    },
+                                  ],
+                                });
+                              }}
+                              className="text-xs text-blue-700 hover:text-blue-900"
+                            >
+                              Add as line
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <p className="mt-2 text-xs text-gray-400">{INFRA_REFERENCE_NOTE}</p>
+              </details>
+            )}
           </div>
         );
       })}
