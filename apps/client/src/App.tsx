@@ -60,6 +60,8 @@ export default function App() {
   const [editingRoles, setEditingRoles] = useState(false);
   const [editingCostLines, setEditingCostLines] = useState(false);
   const [assumptionsTab, setAssumptionsTab] = useState<AssumptionTab>('team');
+  // Collapsed by default: when presenting you want the argument, not the role tables
+  const [assumptionsOpen, setAssumptionsOpen] = useState(false);
   const [setupStep, setSetupStep] = useState(1);
   const [pendingCurrency, setPendingCurrency] = useState<Currency | null>(null);
 
@@ -287,6 +289,7 @@ export default function App() {
         formatCurrency={formatCurrency}
         onClose={landOn => {
           setHelpSection(null);
+          if (landOn === 'assumptions') setAssumptionsOpen(true);
           // Return the reader to the section they finished on
           window.requestAnimationFrame(() => document.getElementById(landOn)?.scrollIntoView({ behavior: 'smooth' }));
         }}
@@ -294,12 +297,36 @@ export default function App() {
       <ScenarioImport ref={fileInputRef} onImport={handleImportScenario} />
 
       <nav aria-label="Sections" className="sticky top-[73px] z-30 bg-gray-50/95 backdrop-blur border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 flex gap-6 overflow-x-auto text-sm">
-          {SECTIONS.map(section => (
-            <a key={section.id} href={`#${section.id}`} className="py-2.5 text-gray-500 hover:text-gray-900 whitespace-nowrap">
-              {section.label}
-            </a>
-          ))}
+        <div className="max-w-7xl mx-auto px-6 flex items-center gap-6 text-sm">
+          <div className="flex gap-6 overflow-x-auto">
+            {SECTIONS.map(section => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                onClick={() => section.id === 'assumptions' && setAssumptionsOpen(true)}
+                className="py-2.5 text-gray-500 hover:text-gray-900 whitespace-nowrap"
+              >
+                {section.label}
+              </a>
+            ))}
+          </div>
+
+          {/* Quiet running total, so an edit anywhere shows its effect without scrolling */}
+          <a
+            href="#results"
+            aria-label="Jump to net value"
+            className="ml-auto shrink-0 py-2 flex items-baseline gap-3 text-xs text-gray-500 hover:text-gray-900"
+          >
+            <span className="font-semibold text-blue-700 text-sm">{formatCurrency(financialMetrics.npv)}</span>
+            <span className="hidden sm:inline">
+              {financialMetrics.paybackNotInHorizon
+                ? 'no payback'
+                : financialMetrics.paybackMonth === null
+                  ? 'no change'
+                  : `month ${financialMetrics.paybackMonth}`}
+            </span>
+            <span className="hidden md:inline">ROI {financialMetrics.roiPercent.toFixed(0)}%</span>
+          </a>
         </div>
       </nav>
 
@@ -368,7 +395,18 @@ export default function App() {
               <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Assumptions</h3>
               <p className="text-sm text-gray-600">Everything the result is built from. Changes recalculate immediately.</p>
             </div>
-            <ExplainButton section="assumptions" onOpen={setHelpSection} />
+            <div className="flex items-center gap-4">
+              <ExplainButton section="assumptions" onOpen={setHelpSection} />
+              <button
+                onClick={() => setAssumptionsOpen(!assumptionsOpen)}
+                aria-expanded={assumptionsOpen}
+                aria-controls="assumptions-body"
+                className="text-sm text-blue-700 hover:text-blue-900"
+              >
+                {assumptionsOpen ? 'Hide inputs' : 'Show inputs'}
+              </button>
+            </div>
+            {assumptionsOpen && (
             <div role="tablist" aria-label="Assumptions" className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
               {ASSUMPTION_TABS.map(([id, label]) => (
                 <button
@@ -386,7 +424,10 @@ export default function App() {
                 </button>
               ))}
             </div>
+            )}
           </div>
+          {assumptionsOpen && (
+          <div id="assumptions-body">
           <div id="assumptions-panel" role="tabpanel" aria-labelledby={`tab-${assumptionsTab}`}>
             {assumptionsTab === 'team' &&
               (editingRoles ? (
@@ -434,7 +475,9 @@ export default function App() {
                   }}
                 />
               ))}
+            </div>
           </div>
+          )}
         </section>
 
         {/* AI effect: the assumption the whole case turns on */}
