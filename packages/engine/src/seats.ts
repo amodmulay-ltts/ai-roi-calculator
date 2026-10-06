@@ -1,4 +1,4 @@
-import type { EffortCalculation, Scenario, SeatPricing, State } from './types.js';
+import type { CostCalculation, EffortCalculation, Scenario, SeatPricing, State } from './types.js';
 import type { DeliveryContext } from './delivery.js';
 import { fxFactor } from './currency.js';
 
@@ -82,4 +82,52 @@ export function seatsIncludingUsage(scenario: Scenario): string[] {
   return scenario.seatAssignments
     .filter(a => scenario.seatPricing.prices.find(p => p.id === a.seatPriceId)?.includesUsage)
     .map(a => a.name);
+}
+
+/**
+ * Published reference band for AI coding assistant cost per developer per month.
+ * Source: Anthropic, "Manage costs effectively" (code.claude.com/docs/en/costs), which reports
+ * roughly $150–250 per developer per month across enterprise Claude Code deployments, around $13
+ * per active day. It is a Claude Code figure, not an industry average — a rail to check against,
+ * not a target.
+ */
+export const PER_DEVELOPER_BAND_USD = { low: 150, high: 250, source: 'Anthropic, enterprise Claude Code deployments' };
+
+/** How far outside the band counts as "something is wrong" rather than "this customer differs". */
+const IMPLAUSIBLE_FACTOR = 3;
+
+export interface PerDeveloperCost {
+  /** Monthly AI cost per developer once mature, in the scenario currency. */
+  perDeveloper: number;
+  /** Developers the cost is spread over: seats when modelled, otherwise the mature team. */
+  developers: number;
+  /** True when seats gave the denominator; otherwise it is the whole team and only an approximation. */
+  fromSeats: boolean;
+  /** The published band converted into the scenario currency. */
+  low: number;
+  high: number;
+  verdict: 'below' | 'within' | 'above';
+  /** Outside the band by more than the implausibility factor: likely an input error, not a difference. */
+  implausible: boolean;
+}
+
+/**
+ * AI spend per developer per month, for checking a scenario against the published band.
+ * This is a sanity rail: being outside the band is not wrong, but being far outside usually means
+ * a token volume or a price is off by an order of magnitude.
+ */
+export function aiCostPerDeveloper(scenario: Scenario, cost: CostCalculation, effort: EffortCalculation): PerDeveloperCost | null {
+  const fromSeats = cost.totalSeats.mature > 0;
+  const developers = fromSeats ? cost.totalSeats.mature : effort.staffingFte.mature;
+  const aiCost = cost.seatCost.mature + cost.llmCost.mature;
+  if (developers <= 0 || aiCost <= 0) return null;
+
+  const usdToScenario = fxFactor('USD', scenario.baseCurrency, scenario.fxRatesPerEur);
+  const low = PER_DEVELOPER_BAND_USD.low * usdToScenario;
+  const high = PER_DEVELOPER_BAND_USD.high * usdToScenario;
+  const perDeveloper = aiCost / developers;
+
+  const verdict = perDeveloper < low ? 'below' : perDeveloper > high ? 'above' : 'within';
+  const implausible = perDeveloper < low / IMPLAUSIBLE_FACTOR || perDeveloper > high * IMPLAUSIBLE_FACTOR;
+  return { perDeveloper, developers, fromSeats, low, high, verdict, implausible };
 }

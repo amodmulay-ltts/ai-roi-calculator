@@ -11,7 +11,7 @@
 
 ## Current status
 
-Engine tests: **87/87 passing** (`npm test -w packages/engine`). Build clean.
+Engine tests: **91/91 passing** (`npm test -w packages/engine`). Build clean.
 Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, autosave. Other screens checked by rendering and screenshots.
 
 | # | Fix (from REVIEW_Self_Assessment.md) | Status |
@@ -34,6 +34,7 @@ Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, auto
 | – | IRR no longer capped at 200% | Done, tested |
 | – | Automotive software (ECU / ADAS) use-case template; the default example is built from it; saved examples no longer restored | Done, browser-tested |
 | – | Onshore and offshore rate per role, onshore-only roles, side-by-side rates in Team | Done, browser-tested |
+| – | Cost per developer sanity rail against the published band; catches order-of-magnitude input errors | Done, browser-tested |
 | – | Self-hosting infrastructure reference figures, dated and sourced, app-level | Done, browser-tested |
 | – | AI sourcing presets (frontier / enterprise / local) seeding cost and AI effect, reversible | Done, browser-tested |
 | – | Costs step in setup: guided buckets writing into cost lines, free-form kept | Done, browser-tested |

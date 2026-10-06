@@ -23,6 +23,7 @@ import {
   normalizeScenario,
   applySourcing,
   sourcingPreset,
+  aiCostPerDeveloper,
   SELF_HOSTED_LINE_ID,
   effectiveRate,
   deliveryContext,
@@ -585,6 +586,39 @@ describe('Onshore and offshore rates per role', () => {
     const usd = convertScenarioCurrency(s, 'USD', fxFactor('EUR', 'USD', s.fxRatesPerEur));
     expect(usd.roles[0]!.bccCostPerFte).toBeCloseTo(5_000 * s.fxRatesPerEur.USD, 6);
     expect(usd.roles[1]!.bccCostPerFte).toBeUndefined();
+  });
+});
+
+describe('Cost per developer sanity rail', () => {
+  it('spreads AI spend over the seats when seats are modelled', () => {
+    const s = createExampleScenario();
+    const r = calculate(s);
+    const d = aiCostPerDeveloper(s, r.cost, r.effort)!;
+    expect(d.fromSeats).toBe(true);
+    expect(d.developers).toBeCloseTo(r.cost.totalSeats.mature, 6);
+    expect(d.perDeveloper).toBeCloseTo((r.cost.seatCost.mature + r.cost.llmCost.mature) / d.developers, 6);
+  });
+
+  it('catches an order-of-magnitude token error, the BMW failure mode', () => {
+    const s = createExampleScenario();
+    s.llmUsage = s.llmUsage.map(u => ({ ...u, inputTokensPerRequest: u.inputTokensPerRequest * 1000 }));
+    const r = calculate(s);
+    expect(aiCostPerDeveloper(s, r.cost, r.effort)!.implausible).toBe(true);
+    expect(advise(s, r).findings.some(f => f.id === 'per-developer-implausible')).toBe(true);
+  });
+
+  it('stays quiet for a plausible scenario', () => {
+    const s = createExampleScenario();
+    const r = calculate(s);
+    expect(aiCostPerDeveloper(s, r.cost, r.effort)!.implausible).toBe(false);
+    expect(advise(s, r).findings.some(f => f.id === 'per-developer-implausible')).toBe(false);
+  });
+
+  it('reports nothing when there is no AI cost at all', () => {
+    const s = createExampleScenario();
+    s.primaryModel = 'bcc-only';
+    const r = calculate(s);
+    expect(aiCostPerDeveloper(s, r.cost, r.effort)).toBeNull();
   });
 });
 

@@ -40,6 +40,7 @@ The dashboard reads top to bottom in the order of a customer conversation, with 
 | AI sourcing (Assumptions › AI effect) | Pick **Frontier**, **Enterprise** or **Local / open-weight**. A preset seeds both the cost shape (token price factor, or no token bill plus a self-hosted capacity line) *and* the AI effect (effort cut, review overhead), because a weaker model does less of the work. Everything it writes stays editable, and switching back restores the case — the dated list prices are never rewritten, the premium rides in a factor. |
 | AI effect (Assumptions › AI effect, and setup step 6) | The central assumption: how much AI cuts the effort on AI-assisted work, once mature and during the transition, and the review overhead it needs (human review, rework, dual running) per stage. Shows the effect on the monthly workload and which work items it applies to; items with fixed hours in Workload are not changed by it. The delivery model's AI adoption scales it. |
 | Roles editor (Assumptions › Team › Edit roles, FTE and rates) | Edit every role after the scenario is created: name, FTE today / transition / mature, **onshore and offshore cost rate side by side**, and whether the role can be offshored; add and remove roles. An empty offshore rate uses the default percentage from the delivery model. The Team panel lists onshore rate, offshore rate and offshore saving per role. Rates can be entered **per hour or per month** (saved with the scenario) and the **working hours per FTE per month** are editable. With hourly rates, changing the hours keeps the hourly rates and the monthly cost follows. Rates are onshore internal cost; offshore rates come from the delivery model. |
+| Cost per developer rail (Assumptions › AI seats and usage) | Seats and tokens together, divided by the seats modelled, shown against Anthropic's published $150–250 per developer per month for enterprise Claude Code deployments. Being outside the band is not wrong; being far outside raises a warning, because that is usually a volume or a price off by an order of magnitude. |
 | AI model usage panel | Token cost of the AI models: each usage item is linked to a work item, so requests follow the monthly volume (e.g. 15,000 requests per release). Cost = requests × (input tokens × input price + output tokens × output price). **Edit usage and prices** to change models, requests and tokens, and to edit the dated price table. |
 | Sensitivity panel | Which assumption the case depends on most. Each driver moves ±20% on its own and the NPV range is shown: AI effort reduction (share of the assumed reduction that materialises, costs kept), AI running costs (tools, infrastructure, model prices), role rates, overhead and risk %, transition length, one-off investment. A grid shows the payback month for AI effect (60–140%) × transition length. |
 | Cost basis (Cost Model) | **Total cost of ownership** (every cost line) or **Client-chargeable cost** (leaves out lines marked not chargeable). The choice drives savings, payback, ROI and NPV. |
@@ -133,6 +134,7 @@ Prices for other vendors' models are not shipped, because they could not be veri
 | Pyramid effect | The mature team costs more per person (negative mix effect). |
 | Overhead rationale | Overhead % changes without a stated reason (F5). |
 | Model prices | The price table is more than 90 days older than the scenario date. |
+| Cost per developer | AI spend per developer falls more than 3× outside the published $150–250 band. |
 
 ## How the calculation works
 
@@ -221,7 +223,7 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 
 ## Tests
 
-`npm test` runs the engine suite: 87 tests. They cover:
+`npm test` runs the engine suite: 91 tests. They cover:
 
 - **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story
