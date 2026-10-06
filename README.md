@@ -37,7 +37,8 @@ The dashboard reads top to bottom in the order of a customer conversation, with 
 | Delivery model comparison | Directly under the headline results: all five models calculated on the same baseline and ranked by NPV, with payback, monthly saving, mature team size and investment. The verdict names the best model and how much the selected model gives up. Select a row to make that model active. |
 | Delivery model panel | Below the comparison: edit the selected model's offshore share and AI adoption, today's offshore share, and the offshore cost level. |
 | Team panel | Choose how headcount is costed: **Derived from AI productivity** (default) or **Staffing plan as entered**. |
-| AI effect (Assumptions › AI effect, and setup step 5) | The central assumption: how much AI cuts the effort on AI-assisted work, once mature and during the transition, and the review overhead it needs (human review, rework, dual running) per stage. Shows the effect on the monthly workload and which work items it applies to; items with fixed hours in Workload are not changed by it. The delivery model's AI adoption scales it. |
+| AI sourcing (Assumptions › AI effect) | Pick **Frontier**, **Enterprise** or **Local / open-weight**. A preset seeds both the cost shape (token price factor, or no token bill plus a self-hosted capacity line) *and* the AI effect (effort cut, review overhead), because a weaker model does less of the work. Everything it writes stays editable, and switching back restores the case — the dated list prices are never rewritten, the premium rides in a factor. |
+| AI effect (Assumptions › AI effect, and setup step 6) | The central assumption: how much AI cuts the effort on AI-assisted work, once mature and during the transition, and the review overhead it needs (human review, rework, dual running) per stage. Shows the effect on the monthly workload and which work items it applies to; items with fixed hours in Workload are not changed by it. The delivery model's AI adoption scales it. |
 | Roles editor (Assumptions › Team › Edit roles, FTE and rates) | Edit every role after the scenario is created: name, FTE today / transition / mature, **onshore and offshore cost rate side by side**, and whether the role can be offshored; add and remove roles. An empty offshore rate uses the default percentage from the delivery model. The Team panel lists onshore rate, offshore rate and offshore saving per role. Rates can be entered **per hour or per month** (saved with the scenario) and the **working hours per FTE per month** are editable. With hourly rates, changing the hours keeps the hourly rates and the monthly cost follows. Rates are onshore internal cost; offshore rates come from the delivery model. |
 | AI model usage panel | Token cost of the AI models: each usage item is linked to a work item, so requests follow the monthly volume (e.g. 15,000 requests per release). Cost = requests × (input tokens × input price + output tokens × output price). **Edit usage and prices** to change models, requests and tokens, and to edit the dated price table. |
 | Sensitivity panel | Which assumption the case depends on most. Each driver moves ±20% on its own and the NPV range is shown: AI effort reduction (share of the assumed reduction that materialises, costs kept), AI running costs (tools, infrastructure, model prices), role rates, overhead and risk %, transition length, one-off investment. A grid shows the payback month for AI effect (60–140%) × transition length. |
@@ -101,7 +102,7 @@ The walkthrough frames every case as a choice between three ways of getting a mo
 | Enterprise | The same class of model inside your own cloud tenant or a private deployment | Per token plus a platform fee and qualification effort |
 | Local / open-weight | Models you run on your own hardware | No token bill; fixed hardware and MLOps cost |
 
-On the example, the comparison lands on one point: **the token price is almost never the decision, the effort cut is.** Paying 30% more per token costs about 2% of NPV, while a model that only cuts effort by 18% instead of 30% turns €753K of value into a €1.2M loss. Self-hosting has to reach roughly the same effort cut as frontier before it pays back at all. The flavour assumptions live in [aiFlavours.ts](apps/client/src/utils/aiFlavours.ts) and are illustrative starting points, not vendor claims.
+On the example, the comparison lands on one point: **the token price is almost never the decision, the effort cut is.** Paying 30% more per token costs about 2% of NPV, while a model that only cuts effort by 18% instead of 30% turns €753K of value into a €1.2M loss. Self-hosting has to reach roughly the same effort cut as frontier before it pays back at all. The presets live in [sourcing.ts](packages/engine/src/sourcing.ts), shared by the walkthrough and the scenario, and each names which of its figures are assumptions rather than published numbers.
 
 ## AI model prices
 
@@ -188,6 +189,7 @@ packages/engine/        Pure TypeScript calculation library (no I/O), shared by 
   src/advice.ts           rule-based verdict and findings
   src/llm.ts              AI model usage cost and the default price table
   src/seats.ts            per-seat licence cost and the default seat price table
+  src/sourcing.ts         frontier / enterprise / local presets, shared with the walkthrough
   src/sensitivity.ts      tornado (±20% per driver) and payback grid
   src/currency.ts         FX rates and scenario conversion
   src/templates.ts        automotive use-case template (team, workload, AI usage): single source for setup and the example
@@ -218,7 +220,7 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 
 ## Tests
 
-`npm test` runs the engine suite: 82 tests. They cover:
+`npm test` runs the engine suite: 87 tests. They cover:
 
 - **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story

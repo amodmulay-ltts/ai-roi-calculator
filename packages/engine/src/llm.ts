@@ -31,7 +31,7 @@ export interface LlmCostBreakdown {
  */
 export function llmCosts(scenario: Scenario, ctx: DeliveryContext): LlmCostBreakdown {
   const pricing = scenario.llmPricing;
-  const fx = fxFactor(pricing.currency, scenario.baseCurrency, scenario.fxRatesPerEur);
+  const fx = fxFactor(pricing.currency, scenario.baseCurrency, scenario.fxRatesPerEur) * (scenario.tokenPriceFactor ?? 1);
   const result: LlmCostBreakdown = {
     total: { baseline: 0, transition: 0, mature: 0 },
     byUsage: {},

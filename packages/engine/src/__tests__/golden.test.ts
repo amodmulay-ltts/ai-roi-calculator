@@ -21,6 +21,9 @@ import {
   DELIVERY_MODELS,
   DEFAULT_BCC_RATE_FACTOR,
   normalizeScenario,
+  applySourcing,
+  sourcingPreset,
+  SELF_HOSTED_LINE_ID,
   effectiveRate,
   deliveryContext,
   parseScenario,
@@ -582,6 +585,55 @@ describe('Onshore and offshore rates per role', () => {
     const usd = convertScenarioCurrency(s, 'USD', fxFactor('EUR', 'USD', s.fxRatesPerEur));
     expect(usd.roles[0]!.bccCostPerFte).toBeCloseTo(5_000 * s.fxRatesPerEur.USD, 6);
     expect(usd.roles[1]!.bccCostPerFte).toBeUndefined();
+  });
+});
+
+describe('AI sourcing presets', () => {
+  it('seeds the AI effect as well as the cost shape', () => {
+    const base = createExampleScenario();
+    const local = applySourcing(base, 'local');
+    const preset = sourcingPreset('local');
+
+    expect(local.aiSourcing).toBe('local');
+    expect(local.productivityFactor.mode === 'direct-factor' && local.productivityFactor.mature).toBeCloseTo(1 - preset.matureEffortCut, 6);
+    expect(local.aiOverheadPercent.mature).toEqual(preset.reviewOverheadMature);
+    expect(local.tokenPriceFactor).toBe(0);
+    expect(calculate(local).cost.llmCost.mature).toBe(0);
+    expect(local.costLines.some(l => l.id === SELF_HOSTED_LINE_ID)).toBe(true);
+  });
+
+  it('is reversible: switching away and back restores the case', () => {
+    const base = createExampleScenario();
+    const back = applySourcing(applySourcing(base, 'local'), 'frontier');
+    expect(back.llmUsage).toEqual(base.llmUsage);
+    expect(back.costLines.some(l => l.id === SELF_HOSTED_LINE_ID)).toBe(false);
+    expect(calculate(back).financialMetrics.npv).toBeCloseTo(calculate(base).financialMetrics.npv, 4);
+  });
+
+  it('leaves the dated list prices alone and carries the premium in the factor', () => {
+    const base = createExampleScenario();
+    const enterprise = applySourcing(base, 'enterprise');
+    expect(enterprise.llmPricing.prices).toEqual(base.llmPricing.prices);
+    expect(enterprise.tokenPriceFactor).toBe(sourcingPreset('enterprise').tokenPriceFactor);
+    expect(calculate(enterprise).cost.llmCost.mature).toBeCloseTo(
+      calculate(base).cost.llmCost.mature * sourcingPreset('enterprise').tokenPriceFactor,
+      6
+    );
+  });
+
+  it('makes a weaker model lose despite having no token bill', () => {
+    const base = createExampleScenario();
+    const frontier = calculate(applySourcing(base, 'frontier')).financialMetrics;
+    const local = calculate(applySourcing(base, 'local')).financialMetrics;
+    expect(local.npv).toBeLessThan(frontier.npv);
+    expect(local.paybackNotInHorizon).toBe(true);
+  });
+
+  it('survives save and load', () => {
+    const s = applySourcing(createExampleScenario(), 'enterprise');
+    const loaded = parseScenarioText(scenarioToYaml(s));
+    expect(loaded.ok && loaded.scenario.aiSourcing).toBe('enterprise');
+    expect(loaded.ok && loaded.scenario.tokenPriceFactor).toBe(s.tokenPriceFactor);
   });
 });
 

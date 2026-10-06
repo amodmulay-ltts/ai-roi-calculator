@@ -146,6 +146,16 @@ async function main() {
     await setCut(30);
     check('restoring 30% restores the verdict', (await text(page)).includes('Pays back in month 15'));
 
+    // 1c1. AI sourcing presets drive both cost and effect, and are reversible
+    await clickByText(page, '[role="tab"]', 'AI effect');
+    await clickByText(page, '[aria-label="AI sourcing"] [role="radio"]', 'Local / open-weight');
+    body = await text(page);
+    check('local sourcing flips the verdict', body.includes('Does not pay back within'));
+    check('local sourcing lowers the effort cut', (await page.$eval('#cut-mature', el => Number(el.value))) === 18);
+    await clickByText(page, '[aria-label="AI sourcing"] [role="radio"]', 'Frontier models');
+    check('switching back restores the case', (await text(page)).includes('Pays back in month 15'));
+    await shot('01c1-sourcing');
+
     // 1c3. Seats: costed from assigned roles, editable, double-count guard
     await clickByText(page, '[role="tab"]', 'AI seats and usage');
     let aiPanel = await page.$eval('#assumptions-panel', el => el.innerText.toLowerCase());
