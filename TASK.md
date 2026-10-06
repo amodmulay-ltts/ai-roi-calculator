@@ -34,6 +34,7 @@ Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, auto
 | – | IRR no longer capped at 200% | Done, tested |
 | – | Automotive software (ECU / ADAS) use-case template; the default example is built from it; saved examples no longer restored | Done, browser-tested |
 | – | Onshore and offshore rate per role, onshore-only roles, side-by-side rates in Team | Done, browser-tested |
+| – | Costs step in setup: guided buckets writing into cost lines, free-form kept | Done, browser-tested |
 | – | Per-seat AI pricing: seats follow assigned roles' FTE, dated price list, double-count guard | Done, browser-tested |
 | – | Remove dead role fields (AI-impacted checkbox, bill rate, grade); ledger notes follow scenario currency | Done, browser-tested |
 | – | How it works: three AI flavours (frontier / enterprise / local) with live comparison, then the calculator concept | Done, browser-tested |

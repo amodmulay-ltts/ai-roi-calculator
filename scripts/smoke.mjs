@@ -243,6 +243,15 @@ async function main() {
     check('automotive template sets the workload', (await text(page)).includes('5,280 h of work a month'));
     await shot('03a-setup-automotive-template', false);
     await clickByText(page, '[role="dialog"] button', 'Next');
+    const costsStep = await page.$eval('[role="dialog"]', el => el.innerText.toLowerCase());
+    check(
+      'setup has a Costs step with the guided buckets',
+      ['tools and licences', 'ai tools and licences', 'infrastructure', 'governance and compliance', 'transition'].every(b =>
+        costsStep.includes(b)
+      )
+    );
+    await shot('03a2-setup-costs', false);
+    await clickByText(page, '[role="dialog"] button', 'Next');
     check('setup has an AI effect step with the mature cut', (await page.$eval('#cut-mature', el => Number(el.value))) === 30);
     await shot('03b-setup-ai-effect', false);
     for (let i = 0; i < 3; i++) await clickByText(page, '[role="dialog"] button', 'Next');
