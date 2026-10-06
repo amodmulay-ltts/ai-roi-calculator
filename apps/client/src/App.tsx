@@ -27,21 +27,22 @@ import Tooltip from './components/Tooltip';
 const exportFileName = (scenario: Scenario, ext: string) =>
   `VALUEAI_${scenario.name.replace(/[^A-Za-z0-9.-]+/g, '_').slice(0, 80)}_${new Date().toISOString().split('T')[0]}.${ext}`;
 
-type AssumptionTab = 'ai-effect' | 'team' | 'workload' | 'ai' | 'costs';
+type AssumptionTab = 'team' | 'workload' | 'ai' | 'costs';
 const ASSUMPTION_TABS: Array<[AssumptionTab, string]> = [
-  ['ai-effect', 'AI effect'],
   ['team', 'Team'],
   ['workload', 'Workload'],
   ['ai', 'AI seats and usage'],
   ['costs', 'Costs and investment'],
 ];
+// Reads as a build-up: what you assume, what AI does, how you deliver, what it is worth
 const SECTIONS: Array<[string, string]> = [
-  ['results', 'Results'],
-  ['advice', 'Advice'],
+  ['assumptions', 'Assumptions'],
+  ['ai-effect', 'AI effect'],
   ['delivery', 'Delivery model'],
+  ['compare', 'Compare models'],
   ['cashflow', 'Cash flow'],
   ['sensitivity', 'Sensitivity'],
-  ['assumptions', 'Assumptions'],
+  ['results', 'Net value'],
 ];
 
 export default function App() {
@@ -53,7 +54,7 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingRoles, setEditingRoles] = useState(false);
   const [editingCostLines, setEditingCostLines] = useState(false);
-  const [assumptionsTab, setAssumptionsTab] = useState<AssumptionTab>('ai-effect');
+  const [assumptionsTab, setAssumptionsTab] = useState<AssumptionTab>('team');
   const [setupStep, setSetupStep] = useState(1);
   const [pendingCurrency, setPendingCurrency] = useState<Currency | null>(null);
 
@@ -345,6 +346,108 @@ export default function App() {
         )}
 
         {/* Key Metrics Grid */}
+        {/* Assumptions: every input in one place, one tab at a time */}
+        <section id="assumptions" className="mb-12 scroll-mt-32" aria-label="Assumptions">
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Assumptions</h3>
+              <p className="text-sm text-gray-600">Everything the result is built from. Changes recalculate immediately.</p>
+            </div>
+            <div role="tablist" aria-label="Assumptions" className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+              {ASSUMPTION_TABS.map(([id, label]) => (
+                <button
+                  key={id}
+                  role="tab"
+                  id={`tab-${id}`}
+                  aria-selected={assumptionsTab === id}
+                  aria-controls="assumptions-panel"
+                  onClick={() => setAssumptionsTab(id)}
+                  className={`px-3 py-1.5 rounded-md text-sm transition ${
+                    assumptionsTab === id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div id="assumptions-panel" role="tabpanel" aria-labelledby={`tab-${assumptionsTab}`}>
+            {assumptionsTab === 'team' &&
+              (editingRoles ? (
+                <RolesGrid
+                  scenario={scenario}
+                  onUpdate={handleScenarioUpdate}
+                  onDone={() => setEditingRoles(false)}
+                  formatCurrency={formatCurrency}
+                />
+              ) : (
+                <div className="space-y-3">
+                  <TeamSummary scenario={scenario} results={results} onUpdate={handleScenarioUpdate} />
+                  <button onClick={() => setEditingRoles(true)} className="text-sm text-blue-700 hover:text-blue-900">
+                    Edit roles, FTE and rates
+                  </button>
+                </div>
+              ))}
+            {assumptionsTab === 'workload' && (
+              <WorkloadGrid scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
+            )}
+            {assumptionsTab === 'ai' && (
+              <div className="space-y-6">
+                <SeatsPanel scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
+                <AiUsagePanel scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
+              </div>
+            )}
+            {assumptionsTab === 'costs' &&
+              (editingCostLines ? (
+                <CostLinesGrid
+                  costLines={scenario.costLines}
+                  onUpdate={updatedLines => handleScenarioUpdate({ costLines: updatedLines })}
+                  isEditing={editingCostLines}
+                  onDone={() => setEditingCostLines(false)}
+                  formatCurrency={formatCurrency}
+                />
+              ) : (
+                <CostsSummary
+                  scenario={scenario}
+                  results={results}
+                  formatCurrency={formatCurrency}
+                  onEditLines={() => setEditingCostLines(true)}
+                  onEditInvestment={() => {
+                    setSetupStep(INVESTMENT_STEP);
+                    setSetupMode('edit');
+                  }}
+                />
+              ))}
+          </div>
+        </section>
+
+        {/* AI effect: the assumption the whole case turns on */}
+        <section id="ai-effect" className="mb-12 space-y-6 scroll-mt-32" aria-label="AI effect">
+          <SourcingPanel scenario={scenario} onReplace={replaceScenario} />
+          <AiEffectPanel scenario={scenario} onUpdate={handleScenarioUpdate} />
+        </section>
+
+        {/* Delivery model: set it, then see it against the alternatives */}
+        <section id="delivery" className="mb-12 scroll-mt-32" aria-label="Delivery model">
+          <ModelSelector scenario={scenario} onUpdate={handleScenarioUpdate} />
+        </section>
+
+        <section id="compare" className="mb-12 scroll-mt-32" aria-label="Compare delivery models">
+          <ModelComparison
+            scenario={scenario}
+            formatCurrency={formatCurrency}
+            onSelect={model => handleScenarioUpdate({ primaryModel: model })}
+          />
+        </section>
+
+        <section id="cashflow" className="mb-12 scroll-mt-32">
+          <CashFlowSection scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
+        </section>
+
+        <section id="sensitivity" className="mb-12 scroll-mt-32">
+          <SensitivityPanel scenario={scenario} formatCurrency={formatCurrency} />
+        </section>
+
         <section id="results" className="mb-12 scroll-mt-32">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Hero */}
@@ -416,105 +519,6 @@ export default function App() {
         <div id="advice" className="scroll-mt-32">
           <AdvicePanel scenario={scenario} results={results} />
         </div>
-
-        {/* Delivery model: which model, then its parameters */}
-        <section id="delivery" className="mb-12 space-y-6 scroll-mt-32" aria-label="Delivery model">
-          <ModelComparison
-            scenario={scenario}
-            formatCurrency={formatCurrency}
-            onSelect={model => handleScenarioUpdate({ primaryModel: model })}
-          />
-          <ModelSelector scenario={scenario} onUpdate={handleScenarioUpdate} />
-        </section>
-
-        <section id="cashflow" className="mb-12 scroll-mt-32">
-          <CashFlowSection scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
-        </section>
-
-        <section id="sensitivity" className="mb-12 scroll-mt-32">
-          <SensitivityPanel scenario={scenario} formatCurrency={formatCurrency} />
-        </section>
-
-        {/* Assumptions: every input in one place, one tab at a time */}
-        <section id="assumptions" className="mb-12 scroll-mt-32" aria-label="Assumptions">
-          <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
-            <div>
-              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Assumptions</h3>
-              <p className="text-sm text-gray-600">The inputs behind every figure above. Changes recalculate immediately.</p>
-            </div>
-            <div role="tablist" aria-label="Assumptions" className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
-              {ASSUMPTION_TABS.map(([id, label]) => (
-                <button
-                  key={id}
-                  role="tab"
-                  id={`tab-${id}`}
-                  aria-selected={assumptionsTab === id}
-                  aria-controls="assumptions-panel"
-                  onClick={() => setAssumptionsTab(id)}
-                  className={`px-3 py-1.5 rounded-md text-sm transition ${
-                    assumptionsTab === id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div id="assumptions-panel" role="tabpanel" aria-labelledby={`tab-${assumptionsTab}`}>
-            {assumptionsTab === 'ai-effect' && (
-              <div className="space-y-6">
-                <SourcingPanel scenario={scenario} onReplace={replaceScenario} />
-                <AiEffectPanel scenario={scenario} onUpdate={handleScenarioUpdate} />
-              </div>
-            )}
-            {assumptionsTab === 'team' &&
-              (editingRoles ? (
-                <RolesGrid
-                  scenario={scenario}
-                  onUpdate={handleScenarioUpdate}
-                  onDone={() => setEditingRoles(false)}
-                  formatCurrency={formatCurrency}
-                />
-              ) : (
-                <div className="space-y-3">
-                  <TeamSummary scenario={scenario} results={results} onUpdate={handleScenarioUpdate} />
-                  <button onClick={() => setEditingRoles(true)} className="text-sm text-blue-700 hover:text-blue-900">
-                    Edit roles, FTE and rates
-                  </button>
-                </div>
-              ))}
-            {assumptionsTab === 'workload' && (
-              <WorkloadGrid scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
-            )}
-            {assumptionsTab === 'ai' && (
-              <div className="space-y-6">
-                <SeatsPanel scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
-                <AiUsagePanel scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
-              </div>
-            )}
-            {assumptionsTab === 'costs' &&
-              (editingCostLines ? (
-                <CostLinesGrid
-                  costLines={scenario.costLines}
-                  onUpdate={updatedLines => handleScenarioUpdate({ costLines: updatedLines })}
-                  isEditing={editingCostLines}
-                  onDone={() => setEditingCostLines(false)}
-                  formatCurrency={formatCurrency}
-                />
-              ) : (
-                <CostsSummary
-                  scenario={scenario}
-                  results={results}
-                  formatCurrency={formatCurrency}
-                  onEditLines={() => setEditingCostLines(true)}
-                  onEditInvestment={() => {
-                    setSetupStep(INVESTMENT_STEP);
-                    setSetupMode('edit');
-                  }}
-                />
-              ))}
-          </div>
-        </section>
 
         {/* Footer */}
         <footer className="border-t border-gray-200 pt-8 text-center text-sm text-gray-500">
