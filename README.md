@@ -29,7 +29,7 @@ The dashboard builds from inputs to outcome, with a section bar under the header
 
 | Where | What |
 |---|---|
-| **How it works** (header) | Full-screen walkthrough you scroll screen by screen: the three flavours of AI (frontier, enterprise, local/open-weight) and what each one does to the cost, the idea, the example step by step, when AI does *not* pay off, and which delivery model works best. All figures are calculated live from the example. Also opened from "How this is calculated" on the example banner. Esc closes it. |
+| **How it works** | One explanation per dashboard section, in the same order as the page: what it is, how to read it, what to watch for, and a line about your current scenario. Every section carries a **How this works** link that opens the help at that section, and closing returns you to the section you were reading about. Also reachable from the header and from "How this is calculated" on the example banner. Esc closes it. |
 | **Scenario** menu | **New scenario** (guided setup for a customer) · **Edit setup** (the same steps, prefilled; jump to any step and apply) · **Open file** (.yaml / .json) · **Load example** |
 | **Export** menu | **Save scenario (.yaml)** to reopen later · **PDF report** (HTML, print to PDF) · **Excel workbook** · **JSON** (scenario + results) |
 | Currency (header) | Choose **Convert** (multiply every amount by an editable FX rate) or **Relabel** (keep the numbers). Rates are indicative, not live. |
@@ -104,7 +104,7 @@ The walkthrough frames every case as a choice between three ways of getting a mo
 | Enterprise | The same class of model inside your own cloud tenant or a private deployment | Per token plus a platform fee and qualification effort |
 | Local / open-weight | Models you run on your own hardware | No token bill; fixed hardware and MLOps cost |
 
-On the example, the comparison lands on one point: **the token price is almost never the decision, the effort cut is.** Paying 30% more per token costs about 2% of NPV, while a model that only cuts effort by 18% instead of 30% turns €753K of value into a €1.2M loss. Self-hosting has to reach roughly the same effort cut as frontier before it pays back at all. The presets live in [sourcing.ts](packages/engine/src/sourcing.ts), shared by the walkthrough and the scenario, and each names which of its figures are assumptions rather than published numbers.
+The point the numbers make: **the token price is almost never the decision, the effort cut is.** Paying 30% more per token costs about 2% of NPV, while a model that only cuts effort by 18% instead of 30% turns €753K of value into a loss that never pays back. Self-hosting has to reach roughly the same effort cut as frontier before it pays back at all. The presets live in [sourcing.ts](packages/engine/src/sourcing.ts) and each names which of its figures are assumptions rather than published numbers.
 
 ## AI model prices
 
@@ -192,7 +192,7 @@ packages/engine/        Pure TypeScript calculation library (no I/O), shared by 
   src/advice.ts           rule-based verdict and findings
   src/llm.ts              AI model usage cost and the default price table
   src/seats.ts            per-seat licence cost and the default seat price table
-  src/sourcing.ts         frontier / enterprise / local presets, shared with the walkthrough
+  src/sourcing.ts         frontier / enterprise / local presets
   src/sensitivity.ts      tornado (±20% per driver) and payback grid
   src/currency.ts         FX rates and scenario conversion
   src/templates.ts        automotive use-case template (team, workload, AI usage): single source for setup and the example

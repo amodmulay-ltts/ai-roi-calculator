@@ -20,6 +20,7 @@ import AdvicePanel from './components/AdvicePanel';
 import ScenarioSetup, { INVESTMENT_STEP, type SetupMode } from './components/ScenarioSetup';
 import ExampleBanner from './components/ExampleBanner';
 import HelpPresentation from './components/HelpPresentation';
+import { SECTIONS } from './utils/sections';
 import { loadSavedScenario, saveScenario } from './utils/autosave';
 import ScenarioImport from './components/ScenarioImport';
 import Tooltip from './components/Tooltip';
@@ -34,23 +35,27 @@ const ASSUMPTION_TABS: Array<[AssumptionTab, string]> = [
   ['ai', 'AI seats and usage'],
   ['costs', 'Costs and investment'],
 ];
-// Reads as a build-up: what you assume, what AI does, how you deliver, what it is worth
-const SECTIONS: Array<[string, string]> = [
-  ['assumptions', 'Assumptions'],
-  ['ai-effect', 'AI effect'],
-  ['delivery', 'Delivery model'],
-  ['compare', 'Compare models'],
-  ['cashflow', 'Cash flow'],
-  ['sensitivity', 'Sensitivity'],
-  ['results', 'Net value'],
-];
+
+
+/** Opens the explanation for one section. */
+function ExplainButton({ section, onOpen }: { section: string; onOpen: (id: string) => void }) {
+  return (
+    <button
+      onClick={() => onOpen(section)}
+      className="text-xs text-blue-700 hover:text-blue-900 whitespace-nowrap"
+      aria-label={`How the ${section} section works`}
+    >
+      How this works
+    </button>
+  );
+}
 
 export default function App() {
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [results, setResults] = useState<Results | null>(null);
   const [loading, setLoading] = useState(true);
   const [setupMode, setSetupMode] = useState<SetupMode | null>(null);
-  const [showHelp, setShowHelp] = useState(false);
+  const [helpSection, setHelpSection] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingRoles, setEditingRoles] = useState(false);
   const [editingCostLines, setEditingCostLines] = useState(false);
@@ -273,16 +278,26 @@ export default function App() {
         onExportPdf={handleExportPdf}
         onExportExcel={handleExportExcel}
         onExportJson={handleExport}
-        onHelp={() => setShowHelp(true)}
+        onHelp={() => setHelpSection(SECTIONS[0]!.id)}
       />
-      <HelpPresentation open={showHelp} onClose={() => setShowHelp(false)} onStartNew={() => setSetupMode('new')} />
+      <HelpPresentation
+        openAt={helpSection}
+        scenario={scenario}
+        results={results}
+        formatCurrency={formatCurrency}
+        onClose={landOn => {
+          setHelpSection(null);
+          // Return the reader to the section they finished on
+          window.requestAnimationFrame(() => document.getElementById(landOn)?.scrollIntoView({ behavior: 'smooth' }));
+        }}
+      />
       <ScenarioImport ref={fileInputRef} onImport={handleImportScenario} />
 
       <nav aria-label="Sections" className="sticky top-[73px] z-30 bg-gray-50/95 backdrop-blur border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 flex gap-6 overflow-x-auto text-sm">
-          {SECTIONS.map(([id, label]) => (
-            <a key={id} href={`#${id}`} className="py-2.5 text-gray-500 hover:text-gray-900 whitespace-nowrap">
-              {label}
+          {SECTIONS.map(section => (
+            <a key={section.id} href={`#${section.id}`} className="py-2.5 text-gray-500 hover:text-gray-900 whitespace-nowrap">
+              {section.label}
             </a>
           ))}
         </div>
@@ -341,7 +356,7 @@ export default function App() {
             results={results}
             formatCurrency={formatCurrency}
             onStartNew={() => setSetupMode('new')}
-            onHelp={() => setShowHelp(true)}
+            onHelp={() => setHelpSection('assumptions')}
           />
         )}
 
@@ -353,6 +368,7 @@ export default function App() {
               <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Assumptions</h3>
               <p className="text-sm text-gray-600">Everything the result is built from. Changes recalculate immediately.</p>
             </div>
+            <ExplainButton section="assumptions" onOpen={setHelpSection} />
             <div role="tablist" aria-label="Assumptions" className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
               {ASSUMPTION_TABS.map(([id, label]) => (
                 <button
@@ -423,16 +439,28 @@ export default function App() {
 
         {/* AI effect: the assumption the whole case turns on */}
         <section id="ai-effect" className="mb-12 space-y-6 scroll-mt-32" aria-label="AI effect">
+          <div className="flex items-baseline justify-between gap-4 mb-3">
+            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">AI effect</h3>
+            <ExplainButton section="ai-effect" onOpen={setHelpSection} />
+          </div>
           <SourcingPanel scenario={scenario} onReplace={replaceScenario} />
           <AiEffectPanel scenario={scenario} onUpdate={handleScenarioUpdate} />
         </section>
 
         {/* Delivery model: set it, then see it against the alternatives */}
         <section id="delivery" className="mb-12 scroll-mt-32" aria-label="Delivery model">
+          <div className="flex items-baseline justify-between gap-4 mb-3">
+            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Delivery model</h3>
+            <ExplainButton section="delivery" onOpen={setHelpSection} />
+          </div>
           <ModelSelector scenario={scenario} onUpdate={handleScenarioUpdate} />
         </section>
 
         <section id="compare" className="mb-12 scroll-mt-32" aria-label="Compare delivery models">
+          <div className="flex items-baseline justify-between gap-4 mb-3">
+            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Compare models</h3>
+            <ExplainButton section="compare" onOpen={setHelpSection} />
+          </div>
           <ModelComparison
             scenario={scenario}
             formatCurrency={formatCurrency}
@@ -441,14 +469,26 @@ export default function App() {
         </section>
 
         <section id="cashflow" className="mb-12 scroll-mt-32">
+          <div className="flex items-baseline justify-between gap-4 mb-3">
+            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Cash flow</h3>
+            <ExplainButton section="cashflow" onOpen={setHelpSection} />
+          </div>
           <CashFlowSection scenario={scenario} results={results} formatCurrency={formatCurrency} onUpdate={handleScenarioUpdate} />
         </section>
 
         <section id="sensitivity" className="mb-12 scroll-mt-32">
+          <div className="flex items-baseline justify-between gap-4 mb-3">
+            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Sensitivity</h3>
+            <ExplainButton section="sensitivity" onOpen={setHelpSection} />
+          </div>
           <SensitivityPanel scenario={scenario} formatCurrency={formatCurrency} />
         </section>
 
         <section id="results" className="mb-12 scroll-mt-32">
+          <div className="flex items-baseline justify-between gap-4 mb-3">
+            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Net value</h3>
+            <ExplainButton section="results" onOpen={setHelpSection} />
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Hero */}
             <div className="lg:col-span-2 bg-white rounded-xl border border-blue-200 p-8 flex flex-col justify-center">
@@ -517,6 +557,9 @@ export default function App() {
         </section>
 
         <div id="advice" className="scroll-mt-32">
+          <div className="flex justify-end mb-2">
+            <ExplainButton section="advice" onOpen={setHelpSection} />
+          </div>
           <AdvicePanel scenario={scenario} results={results} />
         </div>
 

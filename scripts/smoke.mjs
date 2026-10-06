@@ -233,21 +233,38 @@ async function main() {
     check('team panel shows onshore and offshore rates side by side', teamPanel.includes('offshore saving') && teamPanel.includes('stays onshore'));
     await shot('01e-onshore-offshore');
 
-    // 2. Help presentation opens and closes with Escape
-    await clickByText(page, 'button', 'How it works');
+    // 2. Help: one explanation per section, opened from the section, returning to it on close
+    await page.evaluate(() => document.getElementById('cashflow')?.scrollIntoView());
+    const explainers = await page.$$('button[aria-label^="How the"]');
+    check('every section offers its own explanation', explainers.length >= 7, `${explainers.length} found`);
+
+    await clickByText(page, 'button[aria-label="How the cashflow section works"]', 'How this works');
     await page.waitForSelector('[aria-label="How VALUEAI works"]');
-    await shot('02-help');
-    // innerText reflects CSS text-transform (slide kickers are uppercased), so compare case-insensitively
+    await new Promise(r => setTimeout(r, 400));
     const helpText = (await page.$eval('[aria-label="How VALUEAI works"]', el => el.innerText)).toLowerCase();
-    for (const flavour of ['Frontier models', 'Enterprise models', 'Local / open-weight models'])
-      check(`help covers ${flavour}`, helpText.includes(flavour.toLowerCase()));
-    check('help compares the flavours on the same team', helpText.includes('the three flavours, same team'));
-    check(
-      'help keeps the calculator walkthrough',
-      helpText.includes('three moments in time') && helpText.includes('of value created over')
-    );
-    await page.keyboard.press('Escape');
-    check('help opens and closes', !(await page.$('[aria-label="How VALUEAI works"]')));
+    for (const label of ['assumptions', 'ai effect', 'delivery model', 'compare models', 'cash flow', 'sensitivity', 'net value', 'advice'])
+      check(`help explains ${label}`, helpText.includes(label));
+    check('old walkthrough content is gone', !helpText.includes('three flavours') && !helpText.includes('northwind'));
+
+    const openedOn = await page.evaluate(() => {
+      const slides = [...document.querySelectorAll('[data-section]')];
+      const top = slides.find(el => el.getBoundingClientRect().top > -200 && el.getBoundingClientRect().top < 300);
+      return top?.getAttribute('data-section');
+    });
+    check('help opens at the section it was launched from', openedOn === 'cashflow', String(openedOn));
+    await shot('02-help', false);
+
+    await clickByText(page, '[aria-label="How VALUEAI works"] button', 'Close');
+    check('help closes', !(await page.$('[aria-label="How VALUEAI works"]')));
+    await new Promise(r => setTimeout(r, 900));
+    const landedOn = await page.evaluate(() => {
+      const ids = ['assumptions', 'ai-effect', 'delivery', 'compare', 'cashflow', 'sensitivity', 'results'];
+      return ids.find(id => {
+        const r = document.getElementById(id)?.getBoundingClientRect();
+        return r && r.top > -150 && r.top < 250;
+      });
+    });
+    check('closing returns to the section explained', landedOn === 'cashflow', String(landedOn));
 
     // 3. New customer scenario through the guided setup
     await clickByText(page, 'button', 'Scenario');
