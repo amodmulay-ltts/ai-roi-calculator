@@ -191,6 +191,8 @@ export const AUTOMOTIVE_SEATS: SeatAssignment[] = [
     name: 'AI coding assistant seats (engineers)',
     seatPriceId: 'claude-enterprise',
     roleIds: ['sw-architect', 'senior-embedded', 'embedded-dev', 'validation-eng', 'safety-eng', 'devops', 'ai-engineer'],
+    // A vendor product: self-hosting an open-weight model does not buy these
+    sourcing: ['frontier', 'enterprise'],
   },
 ];
 

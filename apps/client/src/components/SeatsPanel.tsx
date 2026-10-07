@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Results, Scenario, SeatAssignment, SeatPricing } from '@ai-roi-calc/engine';
 import Tooltip from './Tooltip';
+import { inactiveNote } from '../utils/sourcingNote';
 
 interface SeatsPanelProps {
   scenario: Scenario;
@@ -251,7 +252,10 @@ export default function SeatsPanel({ scenario, results, formatCurrency, onUpdate
                 <tr key={a.id} className="border-t border-gray-100">
                   <td className="py-1.5 text-gray-900">
                     {a.name}
-                    <span className="block text-xs text-gray-400">{a.roleIds.length} roles</span>
+                    <span className="block text-xs text-gray-400">
+                      {a.roleIds.length} roles
+                      {inactiveNote(a, scenario) ? ` · ${inactiveNote(a, scenario)}` : ''}
+                    </span>
                   </td>
                   <td className="py-1.5 text-gray-600">
                     {price?.label ?? 'Unknown seat'}

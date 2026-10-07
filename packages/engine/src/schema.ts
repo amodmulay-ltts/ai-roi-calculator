@@ -27,6 +27,7 @@ const costLine = z.object({
   monthlyAmount: perState(money),
   chargeable: z.boolean(),
   aiSpecific: z.boolean().optional(),
+  sourcing: z.array(z.enum(['frontier', 'enterprise', 'local'])).max(3).optional(),
 });
 
 const investment = z.object({
@@ -35,6 +36,7 @@ const investment = z.object({
   amount: money,
   month: z.number().int().min(0).max(60),
   aiSpecific: z.boolean().optional(),
+  sourcing: z.array(z.enum(['frontier', 'enterprise', 'local'])).max(3).optional(),
 });
 
 const kpi = z.object({
@@ -90,6 +92,7 @@ const seatAssignment = z.object({
   name: text,
   seatPriceId: text,
   roleIds: z.array(text).max(500),
+  sourcing: z.array(z.enum(['frontier', 'enterprise', 'local'])).max(3).optional(),
 });
 
 const llmUsage = z.object({

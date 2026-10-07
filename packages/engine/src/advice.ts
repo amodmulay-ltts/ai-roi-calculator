@@ -2,6 +2,7 @@ import type { Currency, Results, Scenario, State } from './types.js';
 import { calculate } from './engine.js';
 import { deliveryContext, effectiveLineAmount } from './delivery.js';
 import { aiCostPerDeveloper, seatsIncludingUsage } from './seats.js';
+import { activeForSourcing } from './sourcing.js';
 
 export type VerdictTone = 'strong' | 'marginal' | 'negative' | 'no-change';
 export type FindingSeverity = 'warning' | 'info';
@@ -72,7 +73,9 @@ export function breakEvenRealisation(scenario: Scenario): number | null {
   return high;
 }
 
-export function advise(scenario: Scenario, results: Results): Advice {
+export function advise(input: Scenario, results: Results): Advice {
+  // Judge the same items the engine costs: nothing tagged for another sourcing option
+  const scenario = activeForSourcing(input);
   const money = (v: number) => formatMoney(v, scenario.baseCurrency);
   const { financialMetrics: fm, cost, effort } = results;
   const horizon = scenario.timeValue.horizonMonths;
@@ -93,7 +96,7 @@ export function advise(scenario: Scenario, results: Results): Advice {
     summary = 'Choose a delivery model with AI or offshoring to see a business case.';
   } else if (fm.paybackNotInHorizon || fm.npv <= 0) {
     tone = 'negative';
-    headline = `Does not pay back within ${horizon} months.`;
+    headline = saving > 0 ? `Does not pay back within ${horizon} months.` : 'Costs more than today: it never pays back.';
     summary =
       saving > 0
         ? `It saves ${money(saving)} a month once mature, but that does not recover the ${money(fm.totalInvestment)} investment and the transition costs in time.`
@@ -178,11 +181,14 @@ export function advise(scenario: Scenario, results: Results): Advice {
   const beforePayback = results.monthlyForecast.filter(m => fm.paybackMonth !== null && m.month < fm.paybackMonth);
   const lowestCash = Math.min(0, ...beforePayback.map(m => m.cumulativeCashFlow));
   if (transitionExtra > 0 && fm.paybackMonth !== null && !fm.paybackNotInHorizon) {
+    const monthlySavings = results.monthlyForecast.filter(m => m.month > 0).map(m => m.netCashFlow + m.investmentOutflow);
+    const worstMonth = Math.max(0, ...monthlySavings.map(v => -v));
+    const monthsAbove = monthlySavings.filter(v => v < 0).length;
     findings.push({
       id: 'transition-dip',
       severity: 'info',
-      title: `Budget for the transition: up to ${money(-lowestCash)} out of pocket`,
-      detail: `During the ${scenario.globalAssumptions.transitionLengthMonths}-month transition the run cost is ${money(transitionExtra)} a month above today, on top of the investment.`,
+      title: `Budget for up to ${money(-lowestCash)} out of pocket before it pays back`,
+      detail: `That includes the ${money(fm.totalInvestment)} investment. On top of it, the run cost starts up to ${money(worstMonth)} a month above today and stays above it for ${monthsAbove} month${monthsAbove === 1 ? '' : 's'}, falling as the change beds in.`,
     });
   }
 

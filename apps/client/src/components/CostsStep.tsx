@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CostLine, Scenario } from '@ai-roi-calc/engine';
 import { fxFactor } from '@ai-roi-calc/engine';
 import Tooltip from './Tooltip';
+import { inactiveNote } from '../utils/sourcingNote';
 import {
   INFRA_REFERENCES,
   INFRA_REFERENCE_NOTE,
@@ -79,7 +80,7 @@ export default function CostsStep({ scenario, onUpdate, formatCurrency }: CostsS
     });
 
   const total = (stage: 'baseline' | 'transition' | 'mature') =>
-    scenario.costLines.reduce((sum, l) => sum + l.monthlyAmount[stage], 0);
+    scenario.costLines.filter(l => !inactiveNote(l, scenario)).reduce((sum, l) => sum + l.monthlyAmount[stage], 0);
 
   const renderLines = (lines: CostLine[]) =>
     lines.map(line => (
@@ -91,6 +92,9 @@ export default function CostsStep({ scenario, onUpdate, formatCurrency }: CostsS
             onChange={e => setLine(line.id, { name: e.target.value })}
             className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
           />
+          {inactiveNote(line, scenario) && (
+            <span className="block text-xs text-gray-400 mt-0.5">{inactiveNote(line, scenario)}</span>
+          )}
         </td>
         {STAGES.map(([stage]) => (
           <td key={stage} className="py-1.5 px-1">

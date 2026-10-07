@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { ImplementationModel, Results, Scenario } from '@ai-roi-calc/engine';
-import { compareDeliveryModels } from '@ai-roi-calc/engine';
+import { compareDeliveryModels, paybackLabel } from '@ai-roi-calc/engine';
 import { deliveryModelInfo } from '../utils/deliveryModels';
 import Tooltip from './Tooltip';
 
@@ -10,12 +10,7 @@ interface ModelComparisonProps {
   onSelect: (model: ImplementationModel) => void;
 }
 
-const paybackText = (r: Results) =>
-  r.financialMetrics.paybackNotInHorizon
-    ? 'Not within horizon'
-    : r.financialMetrics.paybackMonth === null
-      ? 'No change'
-      : `Month ${r.financialMetrics.paybackMonth}`;
+const paybackText = (r: Results) => paybackLabel(r);
 
 export default function ModelComparison({ scenario, formatCurrency, onSelect }: ModelComparisonProps) {
   const rows = useMemo(() => compareDeliveryModels(scenario), [scenario]);

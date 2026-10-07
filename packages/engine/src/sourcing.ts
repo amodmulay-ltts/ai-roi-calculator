@@ -1,4 +1,5 @@
 import type { AiSourcing, Scenario } from './types.js';
+import { fxFactor } from './currency.js';
 
 export interface SourcingPreset {
   id: AiSourcing;
@@ -18,8 +19,8 @@ export interface SourcingPreset {
   tokenPriceFactor: number;
   /** False when there is no token bill at all, as with self-hosted models. */
   usesTokens: boolean;
-  /** Monthly self-hosted capacity and MLOps cost, when usesTokens is false (scenario currency). */
-  infraPerMonth: number;
+  /** Monthly self-hosted capacity and MLOps cost in EUR, when usesTokens is false; converted on apply. */
+  infraPerMonthEur: number;
   /** Set on values that are assumptions rather than published figures. */
   unsourced: string[];
 }
@@ -43,7 +44,7 @@ export const SOURCING_PRESETS: SourcingPreset[] = [
     reviewOverheadTransition: { hitl: 0.12, rework: 0.06, dualRun: 0.05 },
     tokenPriceFactor: 1,
     usesTokens: true,
-    infraPerMonth: 0,
+    infraPerMonthEur: 0,
     unsourced: ['effort cut', 'review overhead'],
   },
   {
@@ -59,7 +60,7 @@ export const SOURCING_PRESETS: SourcingPreset[] = [
     reviewOverheadTransition: { hitl: 0.12, rework: 0.06, dualRun: 0.05 },
     tokenPriceFactor: 1.3,
     usesTokens: true,
-    infraPerMonth: 0,
+    infraPerMonthEur: 0,
     unsourced: ['effort cut', 'review overhead', 'token price premium'],
   },
   {
@@ -76,7 +77,7 @@ export const SOURCING_PRESETS: SourcingPreset[] = [
     reviewOverheadTransition: { hitl: 0.15, rework: 0.08, dualRun: 0.05 },
     tokenPriceFactor: 0,
     usesTokens: false,
-    infraPerMonth: 12_000,
+    infraPerMonthEur: 12_000,
     unsourced: ['effort cut', 'review overhead', 'capacity cost'],
   },
 ];
@@ -109,22 +110,45 @@ export function applySourcing(scenario: Scenario, id: AiSourcing): Scenario {
   // The dated list prices are left alone; the factor carries the difference, so switching is reversible
   s.tokenPriceFactor = preset.tokenPriceFactor;
 
-  const others = s.costLines.filter(l => l.id !== SELF_HOSTED_LINE_ID);
-  if (preset.usesTokens) {
-    s.costLines = others;
-  } else {
-    // Usage items describe the work, which does not change — they simply cost nothing per token
-    s.costLines = [
-      ...others,
-      {
-        id: SELF_HOSTED_LINE_ID,
-        name: 'Self-hosted GPU capacity and MLOps',
-        category: 'Infra',
-        monthlyAmount: { baseline: 0, transition: preset.infraPerMonth, mature: preset.infraPerMonth },
-        chargeable: true,
-        aiSpecific: true,
-      },
-    ];
+  // The capacity line is created once and tagged local-only, so under any other option it costs
+  // nothing yet keeps whatever the consultant typed into it. Usage items stay too: they describe
+  // the work, which does not change. Self-hosted, they simply cost nothing per token.
+  const existing = s.costLines.find(l => l.id === SELF_HOSTED_LINE_ID);
+  if (existing) {
+    existing.sourcing = ['local'];
+  } else if (!preset.usesTokens) {
+    const amount = preset.infraPerMonthEur * fxFactor('EUR', s.baseCurrency, s.fxRatesPerEur);
+    s.costLines.push({
+      id: SELF_HOSTED_LINE_ID,
+      name: 'Self-hosted GPU capacity and MLOps',
+      category: 'Infra',
+      monthlyAmount: { baseline: 0, transition: amount, mature: amount },
+      chargeable: true,
+      aiSpecific: true,
+      sourcing: ['local'],
+    });
   }
   return s;
+}
+
+/** Whether a line, seat group or investment item applies under the scenario's sourcing. */
+export function appliesUnder(item: { sourcing?: AiSourcing[] }, sourcing: AiSourcing | undefined): boolean {
+  return !sourcing || !item.sourcing || item.sourcing.length === 0 || item.sourcing.includes(sourcing);
+}
+
+/**
+ * The scenario as the engine should cost it: items tagged for other sourcing options removed.
+ * Self-hosting does not pay for vendor seats or a private cloud platform; a vendor API does not pay
+ * for GPUs. Untagged items apply everywhere, so scenarios that never set sourcing are unchanged.
+ */
+export function activeForSourcing(scenario: Scenario): Scenario {
+  const sourcing = scenario.aiSourcing;
+  if (!sourcing) return scenario;
+  const keep = <T extends { sourcing?: AiSourcing[] }>(items: T[]) => items.filter(i => appliesUnder(i, sourcing));
+  return {
+    ...scenario,
+    costLines: keep(scenario.costLines),
+    oneTimeInvestment: keep(scenario.oneTimeInvestment),
+    seatAssignments: keep(scenario.seatAssignments),
+  };
 }
