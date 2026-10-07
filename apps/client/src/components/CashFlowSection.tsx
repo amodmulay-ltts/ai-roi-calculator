@@ -45,6 +45,39 @@ export default function CashFlowSection({ scenario, results, formatCurrency, onU
       <p className="text-sm text-gray-600 mb-6">
         Cumulative cash position: savings minus the investment, month by month. The dip is the investment plus the transition.
       </p>
+
+      {/* Transition period control */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              Transition period
+              <Tooltip text="Time to ramp up from baseline to mature state. Includes training, dual-run, integration. Typically 2–6 months." />
+            </label>
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min="1"
+                max="12"
+                value={scenario.globalAssumptions.transitionLengthMonths}
+                onChange={(e) =>
+                  onUpdate({
+                    globalAssumptions: {
+                      ...scenario.globalAssumptions,
+                      transitionLengthMonths: parseInt(e.target.value),
+                    },
+                  })
+                }
+                className="flex-1"
+              />
+              <span className="w-12 text-right font-semibold text-lg text-gray-900">
+                {scenario.globalAssumptions.transitionLengthMonths}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="h-80 mb-10" role="img" aria-label={`Cumulative cash position chart. ${headline}.`}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={cumulative} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
