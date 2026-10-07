@@ -3,6 +3,7 @@
  */
 
 export { calculate } from './engine.js';
+export { matureMonthlySaving, paybackStatus, paybackLabel, paybackHeadline, type PaybackStatus } from './payback.js';
 export type {
   State,
   Currency,
@@ -43,7 +44,15 @@ export {
   PER_DEVELOPER_BAND_USD,
   type PerDeveloperCost,
 } from './seats.js';
-export { SOURCING_PRESETS, sourcingPreset, applySourcing, SELF_HOSTED_LINE_ID, type SourcingPreset } from './sourcing.js';
+export {
+  SOURCING_PRESETS,
+  sourcingPreset,
+  applySourcing,
+  appliesUnder,
+  activeForSourcing,
+  SELF_HOSTED_LINE_ID,
+  type SourcingPreset,
+} from './sourcing.js';
 export { compareDeliveryModels, type ModelComparison } from './compare.js';
 export { tornado, paybackGrid, type TornadoResult, type TornadoRow, type PaybackGrid } from './sensitivity.js';
 export {

@@ -1,5 +1,6 @@
 import type { Results, Scenario } from '@ai-roi-calc/engine';
 import Tooltip from './Tooltip';
+import { inactiveNote } from '../utils/sourcingNote';
 
 interface CostsSummaryProps {
   scenario: Scenario;
@@ -44,20 +45,24 @@ export default function CostsSummary({ scenario, results, formatCurrency, onEdit
             </tr>
           </thead>
           <tbody>
-            {scenario.costLines.map(l => (
-              <tr key={l.id} className="border-t border-gray-100">
+            {scenario.costLines.map(l => {
+              const off = inactiveNote(l, scenario);
+              return (
+              <tr key={l.id} className={`border-t border-gray-100 ${off ? 'opacity-50' : ''}`}>
                 <td className="py-1.5">
                   <span className="text-gray-900">{l.name}</span>
                   <span className="ml-2 text-xs text-gray-400">
                     {l.category}
                     {l.aiSpecific ? ' · AI-specific' : ''}
                     {l.chargeable ? '' : ' · not chargeable'}
+                    {off ? ` · ${off}` : ''}
                   </span>
                 </td>
                 <td className="py-1.5 text-right text-gray-700">{formatCurrency(l.monthlyAmount.baseline)}</td>
                 <td className="py-1.5 text-right text-gray-700">{formatCurrency(l.monthlyAmount.mature)}</td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
 

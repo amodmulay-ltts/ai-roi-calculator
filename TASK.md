@@ -11,7 +11,7 @@
 
 ## Current status
 
-Engine tests: **91/91 passing** (`npm test -w packages/engine`). Build clean.
+Engine tests: **100/100 passing** (`npm test -w packages/engine`). Build clean.
 Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, autosave. Other screens checked by rendering and screenshots.
 
 | # | Fix (from REVIEW_Self_Assessment.md) | Status |
@@ -34,6 +34,7 @@ Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, auto
 | – | IRR no longer capped at 200% | Done, tested |
 | – | Automotive software (ECU / ADAS) use-case template; the default example is built from it; saved examples no longer restored | Done, browser-tested |
 | – | Onshore and offshore rate per role, onshore-only roles, side-by-side rates in Team | Done, browser-tested |
+| – | Calculation audit: sourcing pays only for what applies, never-pays-back wording, chargeable ledger, net work reduction, seat cap, currency of self-hosted capacity, example relabelled Enterprise | Done, browser-tested |
 | – | Delivery model and comparison moved above AI effect; sourcing card renamed Model selection | Done, browser-tested |
 | – | Running result in the section bar; Assumptions collapsed by default | Done, browser-tested |
 | – | How it works: one explanation per dashboard section, opened from and returning to that section | Done, browser-tested |

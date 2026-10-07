@@ -25,12 +25,15 @@ import {
 } from './delivery.js';
 import { llmCosts } from './llm.js';
 import { seatCosts } from './seats.js';
+import { activeForSourcing } from './sourcing.js';
 
 /**
  * Main entry point: calculate(scenario) -> Results
  * Section 5 of the build prompt
  */
-export function calculate(scenario: Scenario): Results {
+export function calculate(input: Scenario): Results {
+  // Cost only what applies under the chosen sourcing; the scenario returned is the one passed in
+  const scenario = activeForSourcing(input);
   const ctx = deliveryContext(scenario);
   const effort = calculateEffort(scenario, ctx);
   const cost = calculateCost(scenario, ctx, effort);
@@ -39,7 +42,7 @@ export function calculate(scenario: Scenario): Results {
   const financialMetrics = calculateFinancialMetrics(scenario, monthlyForecast);
 
   return {
-    scenario,
+    scenario: input,
     effort,
     cost,
     monthlyForecast,
@@ -68,6 +71,7 @@ function calculateEffort(scenario: Scenario, ctx: DeliveryContext): EffortCalcul
     staffingFte: { baseline: 0, transition: 0, mature: 0 },
     fteGap: { baseline: 0, transition: 0, mature: 0 },
     effortSavingPercent: { baseline: 0, transition: 0, mature: 0 },
+    netEffortReductionPercent: { baseline: 0, transition: 0, mature: 0 },
   };
 
   // Productivity factor (Section 5.2), scaled by the delivery model's AI adoption
@@ -160,6 +164,9 @@ function calculateEffort(scenario: Scenario, ctx: DeliveryContext): EffortCalcul
     : { baseline: result.otherEffort.baseline, transition: result.otherEffort.transition, mature: result.otherEffort.mature };
   for (const state of states) {
     result.effortSavingPercent[state] = savingBasis.baseline > 0 ? 1 - savingBasis[state] / savingBasis.baseline : 0;
+    // After review overhead and across all work, including what AI does not touch: what the team feels
+    result.netEffortReductionPercent[state] =
+      result.totalEffort.baseline > 0 ? 1 - result.totalEffort[state] / result.totalEffort.baseline : 0;
   }
 
   return result;
@@ -393,6 +400,11 @@ function calculateBenefitLedger(
       maximumFractionDigits: 0,
     }).format(v);
   const fte = (v: number) => `${Math.round(v * 10) / 10} FTE`;
+  // Reconcile to the saving the case actually uses: chargeable mode leaves out non-chargeable lines
+  const chargeableOnly = scenario.costChargeable === 'chargeable';
+  const opex = chargeableOnly ? cost.chargeableDirectOpex : cost.directOpex;
+  const overhead = chargeableOnly ? cost.chargeableOverhead : cost.overhead;
+  const risk = chargeableOnly ? cost.chargeableRisk : cost.risk;
 
   const baselineHeadcount = effort.staffingFte.baseline;
   const matureHeadcount = effort.staffingFte.mature;
@@ -420,6 +432,7 @@ function calculateBenefitLedger(
   let baselineCostLines = 0;
   let matureCostLines = 0;
   for (const line of scenario.costLines) {
+    if (chargeableOnly && !line.chargeable) continue;
     baselineCostLines += effectiveLineAmount(line, 'baseline', ctx);
     matureCostLines += effectiveLineAmount(line, 'mature', ctx);
   }
@@ -435,8 +448,7 @@ function calculateBenefitLedger(
 
   // Overhead and risk deltas
   const overheadDelta =
-    cost.overhead.baseline -
-    (cost.directOpex.mature * scenario.globalAssumptions.corporateOverheadPercent.mature);
+    overhead.baseline - opex.mature * scenario.globalAssumptions.corporateOverheadPercent.mature;
   ledger.push({
     category: 'overheadDelta',
     amount: overheadDelta,
@@ -455,9 +467,7 @@ function calculateBenefitLedger(
     });
   }
 
-  const riskDelta =
-    cost.risk.baseline -
-    (cost.directOpex.mature * scenario.globalAssumptions.riskReservePercent.mature);
+  const riskDelta = risk.baseline - opex.mature * scenario.globalAssumptions.riskReservePercent.mature;
   ledger.push({
     category: 'riskDelta',
     amount: riskDelta,
@@ -551,7 +561,8 @@ function calculateFinancialMetrics(
       ((metrics.totalSavingsOverHorizon - metrics.totalInvestment) / metrics.totalInvestment) * 100;
   }
 
-  // Steady-state annual ROI = (12 × mature monthly saving - total invest) / total invest
+  // First-year return at the mature run rate: (12 × mature monthly saving − investment) / investment.
+  // Not a steady-state ROI: it charges the whole investment against a single year.
   const matureMonthlyForecasts = monthlyForecast.filter(m => m.month > horizonMonths - 12 && m.month > 0);
   const matureMonthlySaving = matureMonthlyForecasts.length > 0
     ? matureMonthlyForecasts.reduce((sum, m) => sum + m.netCashFlow + m.investmentOutflow, 0) / matureMonthlyForecasts.length

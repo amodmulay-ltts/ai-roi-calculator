@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Scenario, Results, Currency } from '@ai-roi-calc/engine';
-import { calculate, createExampleScenario, convertScenarioCurrency, scenarioToYaml } from '@ai-roi-calc/engine';
+import { calculate, createExampleScenario, convertScenarioCurrency, paybackLabel, paybackStatus, scenarioToYaml } from '@ai-roi-calc/engine';
 import CurrencyChangeDialog from './components/CurrencyChangeDialog';
 import TeamSummary from './components/TeamSummary';
 import Header from './components/Header';
@@ -319,11 +319,7 @@ export default function App() {
           >
             <span className="font-semibold text-blue-700 text-sm">{formatCurrency(financialMetrics.npv)}</span>
             <span className="hidden sm:inline">
-              {financialMetrics.paybackNotInHorizon
-                ? 'no payback'
-                : financialMetrics.paybackMonth === null
-                  ? 'no change'
-                  : `month ${financialMetrics.paybackMonth}`}
+              {paybackStatus(results) === 'never' ? 'never pays back' : paybackLabel(results).toLowerCase()}
             </span>
             <span className="hidden md:inline">ROI {financialMetrics.roiPercent.toFixed(0)}%</span>
           </a>
@@ -555,11 +551,7 @@ export default function App() {
                   <Tooltip text="First month in which cumulative savings minus investment turns positive, read from the monthly cash-flow series." />
                 </div>
                 <p className="text-3xl font-semibold text-gray-900">
-                  {financialMetrics.paybackNotInHorizon
-                    ? 'Not within horizon'
-                    : financialMetrics.paybackMonth === null
-                      ? 'No change'
-                      : `Month ${financialMetrics.paybackMonth}`}
+                  {paybackLabel(results)}
                 </p>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -587,8 +579,8 @@ export default function App() {
               <dd className="text-gray-700 font-medium">{financialMetrics.irr === null ? '—' : `${(financialMetrics.irr * 100).toFixed(0)}%`}</dd>
             </div>
             <div>
-              <dt className="text-xs text-gray-500">Effort saving (mature)</dt>
-              <dd className="text-gray-700 font-medium">{(effort.effortSavingPercent.mature * 100).toFixed(1)}%</dd>
+              <dt className="text-xs text-gray-500">Less work, net (mature)</dt>
+              <dd className="text-gray-700 font-medium">{(effort.netEffortReductionPercent.mature * 100).toFixed(1)}%</dd>
             </div>
             <div>
               <dt className="text-xs text-gray-500">Team FTE</dt>

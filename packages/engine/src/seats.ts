@@ -63,7 +63,8 @@ export function seatCosts(scenario: Scenario, ctx: DeliveryContext, effort: Effo
         const index = scenario.roles.findIndex(r => r.id === roleId);
         return index === -1 ? sum : sum + (effort.roleFte[index]?.[state] ?? 0);
       }, 0);
-      seats[state] = fte * ctx.adoption[state];
+      // Heavier-than-planned AI use (adoption above 1) cannot create more seats than people
+      seats[state] = fte * Math.min(1, ctx.adoption[state]);
       cost[state] = seats[state] * price * fx;
     }
 

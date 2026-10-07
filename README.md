@@ -37,6 +37,7 @@ The dashboard builds from inputs to outcome. The section bar carries a **running
 | Delivery model comparison | Directly under the headline results: all five models calculated on the same baseline and ranked by NPV, with payback, monthly saving, mature team size and investment. The verdict names the best model and how much the selected model gives up. Select a row to make that model active. |
 | Delivery model panel | Below the comparison: edit the selected model's offshore share and AI adoption, today's offshore share, and the offshore cost level. |
 | Team panel | Choose how headcount is costed: **Derived from AI productivity** (default) or **Staffing plan as entered**. |
+| What each sourcing option pays for | Cost lines, seat groups and investment items can be tagged with the sourcing options they apply under. Untagged items apply everywhere. Self-hosting pays for its own GPU capacity but not for vendor seats or a private cloud platform, and a vendor API pays for neither GPUs nor a platform. Items that don't apply stay in the scenario, dimmed and marked *not costed with …*, so switching back loses nothing. |
 | Model selection (AI effect section) | Pick **Frontier**, **Enterprise** or **Local / open-weight**. A preset seeds both the cost shape (token price factor, or no token bill plus a self-hosted capacity line) *and* the AI effect (effort cut, review overhead), because a weaker model does less of the work. Everything it writes stays editable, and switching back restores the case — the dated list prices are never rewritten, the premium rides in a factor. |
 | AI effect (own section, and setup step 6) | The central assumption: how much AI cuts the effort on AI-assisted work, once mature and during the transition, and the review overhead it needs (human review, rework, dual running) per stage. Shows the effect on the monthly workload and which work items it applies to; items with fixed hours in Workload are not changed by it. The delivery model's AI adoption scales it. |
 | Roles editor (Assumptions › Team › Edit roles, FTE and rates) | Edit every role after the scenario is created: name, FTE today / transition / mature, **onshore and offshore cost rate side by side**, and whether the role can be offshored; add and remove roles. An empty offshore rate uses the default percentage from the delivery model. The Team panel lists onshore rate, offshore rate and offshore saving per role. Rates can be entered **per hour or per month** (saved with the scenario) and the **working hours per FTE per month** are editable. With hourly rates, changing the hours keeps the hourly rates and the monthly cost follows. Rates are onshore internal cost; offshore rates come from the delivery model. |
@@ -75,24 +76,25 @@ Vantara Motors (fictional) has a 33-person onshore embedded software team buildi
 | Team | 33 × 4,259 / 5,280 = **26.6 FTE**, spread by the staffing plan's mix (now including 1.5 AI engineers) |
 | AI model usage | coding assistant on Claude Sonnet 5.5 (20,000 requests, €759) + SIL test generation on Sonnet 5.5 (6,000, €186) + MISRA and safety review agent on Claude Opus 5.5 (800, €110) + safety work product drafting on Opus 5.5 (2,000, €414) = **€1,469** a month, from tokens × list price |
 | AI seats | 24.6 engineer seats at Claude Enterprise ($20/seat/month, usage billed separately) = **€425** a month. Seats follow the roles that hold them: 32.3 during the transition, 24.6 once mature |
-| Run cost | people + cost lines of €17,000 (toolchain €6,000, AI coding assistant licences €4,000, private IP-protected AI platform €5,000, AI tool qualification and governance €2,000) + model usage + seats = **€323,140** fully loaded |
+| Sourcing | **Enterprise**: a private, IP-protected deployment, so a €5,000 platform fee and a 1.3× premium on token list prices |
+| Run cost | people + cost lines of €13,000 (toolchain €6,000, private IP-protected AI platform €5,000, AI tool qualification and governance €2,000) + model usage €1,910 + seats €425 = **€318,975** fully loaded |
 
 **3. Result**
 
 | Metric | Value | Meaning |
 |---|---|---|
-| Monthly saving (mature) | €44,825 | €367,965 − €323,140 |
+| Monthly saving (mature) | €48,990 | €367,965 − €318,975 |
 | One-off investment | €430,000 | Private AI platform and toolchain integration €250K, AI tool qualification and process update €80K, training €60K, contingency €40K |
-| Payback | Month 15 | First month where cumulative savings minus investment is ≥ 0. The transition months cost more than today. |
-| NPV (36 months, 10%) | €753K | All monthly cash flows discounted to today |
-| ROI (36 months) | 224% | (total savings − investment) ÷ investment, undiscounted |
-| IRR | 111% / year | Discount rate at which NPV = 0 |
+| Payback | Month 14 | First month where cumulative savings minus investment is ≥ 0. The transition months cost more than today. |
+| NPV (36 months, 10%) | €883K | All monthly cash flows discounted to today |
+| ROI (36 months) | 259% | (total savings − investment) ÷ investment, undiscounted |
+| IRR | 132% / year | Discount rate at which NPV = 0 |
 
-The advice flags that the case needs about 77% of the assumed effort reduction to break even, so the 30% assumption should be validated with a pilot before it is presented as a commitment.
+The advice flags that the case needs about 73% of the assumed effort reduction to break even, so the 30% assumption should be validated with a pilot before it is presented as a commitment.
 
-Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €3.9M (payback month 6) and BCC only about €3.8M, because offshore rates dominate for a team at German-level onshore cost, even with functional safety and project leadership kept onshore.
+Switching the delivery model on the same data shows the trade-offs: AI + BCC reaches an NPV of about €4.0M (payback month 6) and BCC only about €3.8M, because offshore rates dominate for a team at German-level onshore cost, even with functional safety and project leadership kept onshore.
 
-**What does not work:** the AI running costs, the tool qualification and the investment have to be covered first. With the same example, an effort cut of 10% loses about €1.39M over 36 months, 15% and 20% never pay back, 25% pays back only in month 23, and 30% pays back in month 15. Token costs are small (€1.5K a month); licences, the private platform, qualification and the investment are what the effort reduction has to cover.
+**What does not work:** the AI running costs, the tool qualification and the investment have to be covered first. With the same example, an effort cut of 10% or 15% costs more every month than today and never pays back, 20% saves too little to recover the investment within 36 months, 25% pays back in month 21, and 30% in month 14. Token costs are small (€1.9K a month); the private platform, qualification and the investment are what the effort reduction has to cover.
 
 ## The three flavours of AI
 
@@ -104,7 +106,7 @@ The walkthrough frames every case as a choice between three ways of getting a mo
 | Enterprise | The same class of model inside your own cloud tenant or a private deployment | Per token plus a platform fee and qualification effort |
 | Local / open-weight | Models you run on your own hardware | No token bill; fixed hardware and MLOps cost |
 
-The point the numbers make: **the token price is almost never the decision, the effort cut is.** Paying 30% more per token costs about 2% of NPV, while a model that only cuts effort by 18% instead of 30% turns €753K of value into a loss that never pays back. Self-hosting has to reach roughly the same effort cut as frontier before it pays back at all. The presets live in [sourcing.ts](packages/engine/src/sourcing.ts) and each names which of its figures are assumptions rather than published numbers.
+The point the numbers make: **the token price is almost never the decision, the effort cut is.** Paying 30% more per token costs about 2% of NPV, while a model that only cuts effort by 18% instead of 30% turns €883K of value into a loss that never pays back. On the example, Frontier (no private platform) reaches €1.08M and Enterprise €883K. Self-hosting pays only for its own GPUs, not for vendor seats or a cloud platform, yet still needs about a 30% cut before it pays back, and then only in month 22, because the preset also assumes more review of a weaker model's output. The presets live in [sourcing.ts](packages/engine/src/sourcing.ts) and each names which of its figures are assumptions rather than published numbers.
 
 ## AI model prices
 
@@ -135,6 +137,7 @@ Prices for other vendors' models are not shipped, because they could not be veri
 | Overhead rationale | Overhead % changes without a stated reason (F5). |
 | Model prices | The price table is more than 90 days older than the scenario date. |
 | Cost per developer | AI spend per developer falls more than 3× outside the published $150–250 band. |
+| Never pays back | When the change costs more every month than today, the verdict, the cash-flow headline and the payback tiles say **never pays back**. *Not within 36 months* is reserved for a case that saves money but too slowly. |
 
 ## How the calculation works
 
@@ -223,7 +226,7 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 
 ## Tests
 
-`npm test` runs the engine suite: 91 tests. They cover:
+`npm test` runs the engine suite: 100 tests. They cover:
 
 - **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story

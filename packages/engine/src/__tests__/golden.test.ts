@@ -25,6 +25,10 @@ import {
   sourcingPreset,
   aiCostPerDeveloper,
   SELF_HOSTED_LINE_ID,
+  matureMonthlySaving,
+  paybackStatus,
+  paybackLabel,
+  paybackHeadline,
   effectiveRate,
   deliveryContext,
   parseScenario,
@@ -445,6 +449,7 @@ describe('Sensitivity (5.7)', () => {
 describe('AI model usage cost', () => {
   it('costs requests × tokens × price, converted from USD and following the workload volume', () => {
     const s = createExampleScenario();
+    s.tokenPriceFactor = 1;
     s.llmUsage = [
       { id: 'u', name: 'Generation', priceId: 'claude-sonnet-5-5', kpiId: 'requirements', requestsPerUnit: 1_000, inputTokensPerRequest: 1_000_000, outputTokensPerRequest: 0 },
     ];
@@ -510,7 +515,7 @@ describe('Advice', () => {
   });
 
   it('separates strong, marginal and negative cases by the effort cut', () => {
-    expect(adviceFor(cut(0.25)).tone).toBe('marginal');
+    expect(adviceFor(cut(0.22)).tone).toBe('marginal');
     const negative = adviceFor(cut(0.15));
     expect(negative.tone).toBe('negative');
     expect(negative.findings[0]!.severity).toBe('warning');
@@ -622,6 +627,97 @@ describe('Cost per developer sanity rail', () => {
   });
 });
 
+describe('Calculation audit fixes', () => {
+  const money = (v: number) => `€${Math.round(v)}`;
+
+  it('self-hosting pays for its own capacity, not for vendor seats or a private cloud platform', () => {
+    const local = calculate(applySourcing(createExampleScenario(), 'local'));
+    expect(local.cost.seatCost.mature).toBe(0);
+    expect(local.cost.llmCost.mature).toBe(0);
+    const s = local.scenario;
+    const lineCost = (id: string) => calculate({ ...s, costLines: s.costLines.filter(l => l.id !== id) }).cost.directOpex.mature;
+    // Removing the private platform changes nothing under local: it was never costed
+    expect(lineCost('private-ai-platform')).toBeCloseTo(local.cost.directOpex.mature, 6);
+    // Removing the GPU line does change it: that one is
+    expect(lineCost(SELF_HOSTED_LINE_ID)).toBeLessThan(local.cost.directOpex.mature - 1000);
+  });
+
+  it('a vendor API does not pay for a private platform', () => {
+    const base = createExampleScenario();
+    const frontier = calculate(applySourcing(base, 'frontier'));
+    const enterprise = calculate(applySourcing(base, 'enterprise'));
+    const platform = base.costLines.find(l => l.id === 'private-ai-platform')!.monthlyAmount.mature;
+    const tokensDelta = enterprise.cost.llmCost.mature - frontier.cost.llmCost.mature;
+    expect(enterprise.cost.directOpex.mature - frontier.cost.directOpex.mature).toBeCloseTo(platform + tokensDelta, 6);
+  });
+
+  it('converts the self-hosted capacity into the scenario currency', () => {
+    const eur = applySourcing(createExampleScenario(), 'local');
+    const inr = createExampleScenario();
+    inr.baseCurrency = 'INR';
+    const local = applySourcing(inr, 'local');
+    const line = (x: typeof eur) => x.costLines.find(l => l.id === SELF_HOSTED_LINE_ID)!.monthlyAmount.mature;
+    expect(line(local)).toBeCloseTo(line(eur) * inr.fxRatesPerEur.INR, 6);
+  });
+
+  it('never buys more seats than there are people, even with heavier-than-planned AI use', () => {
+    const s = createExampleScenario();
+    s.primaryModel = 'ai-first';
+    const r = calculate(s);
+    const eligible = s.seatAssignments[0]!.roleIds.reduce((sum, id) => {
+      const i = s.roles.findIndex(role => role.id === id);
+      return sum + (r.effort.roleFte[i]?.mature ?? 0);
+    }, 0);
+    expect(r.cost.totalSeats.mature).toBeLessThanOrEqual(eligible + 1e-9);
+  });
+
+  it('says "never pays back" when the change costs more than today, not "not recovered within the horizon"', () => {
+    const s = applySourcing(createExampleScenario(), 'local');
+    const r = calculate(s);
+    expect(matureMonthlySaving(r)).toBeLessThan(0);
+    expect(paybackStatus(r)).toBe('never');
+    expect(paybackLabel(r)).toBe('Never');
+    expect(paybackHeadline(r, money)).toMatch(/more than today, so it never pays back/);
+    expect(paybackHeadline(r, money)).not.toMatch(/not recovered/);
+    expect(advise(s, r).headline).toMatch(/never pays back/);
+  });
+
+  it('says "not within the horizon" only when there is a saving that is too small', () => {
+    const s = createExampleScenario();
+    s.oneTimeInvestment = s.oneTimeInvestment.map(i => ({ ...i, amount: i.amount * 6 }));
+    const r = calculate(s);
+    expect(matureMonthlySaving(r)).toBeGreaterThan(0);
+    expect(paybackStatus(r)).toBe('too-slow');
+    expect(paybackHeadline(r, money)).toMatch(/does not recover the investment within 36 months/);
+  });
+
+  it('reconciles the ledger to the chargeable saving in chargeable mode', () => {
+    const s = createExampleScenario();
+    s.costChargeable = 'chargeable';
+    s.costLines = s.costLines.map(l => (l.id === 'toolchain' ? { ...l, chargeable: false } : l));
+    s.costLines = s.costLines.map(l =>
+      l.id === 'tool-qualification' ? { ...l, chargeable: false } : l
+    );
+    const r = calculate(s);
+    const ledger = r.benefitLedger.filter(l => l.category !== 'costAvoidance').reduce((sum, l) => sum + l.amount, 0);
+    expect(ledger).toBeCloseTo(matureMonthlySaving(r), 2);
+  });
+
+  it('reports the net fall in work alongside the gross cut on AI-assisted work', () => {
+    const r = calculate(createExampleScenario());
+    const net = 1 - r.effort.totalEffort.mature / r.effort.totalEffort.baseline;
+    expect(r.effort.netEffortReductionPercent.mature).toBeCloseTo(net, 9);
+    expect(r.effort.netEffortReductionPercent.mature).toBeLessThan(r.effort.effortSavingPercent.mature);
+  });
+
+  it('separates the investment from the transition in the out-of-pocket finding', () => {
+    const s = createExampleScenario();
+    const dip = advise(s, calculate(s)).findings.find(f => f.id === 'transition-dip');
+    expect(dip?.detail).toMatch(/includes the .* investment/);
+    expect(dip?.detail).toMatch(/falling as the change beds in/);
+  });
+});
+
 describe('AI sourcing presets', () => {
   it('seeds the AI effect as well as the cost shape', () => {
     const base = createExampleScenario();
@@ -638,19 +734,21 @@ describe('AI sourcing presets', () => {
 
   it('is reversible: switching away and back restores the case', () => {
     const base = createExampleScenario();
-    const back = applySourcing(applySourcing(base, 'local'), 'frontier');
+    const back = applySourcing(applySourcing(base, 'local'), 'enterprise');
     expect(back.llmUsage).toEqual(base.llmUsage);
-    expect(back.costLines.some(l => l.id === SELF_HOSTED_LINE_ID)).toBe(false);
+    // Kept, so a consultant's figure survives the round trip, but not costed outside local
+    expect(back.costLines.find(l => l.id === SELF_HOSTED_LINE_ID)?.sourcing).toEqual(['local']);
     expect(calculate(back).financialMetrics.npv).toBeCloseTo(calculate(base).financialMetrics.npv, 4);
   });
 
   it('leaves the dated list prices alone and carries the premium in the factor', () => {
     const base = createExampleScenario();
     const enterprise = applySourcing(base, 'enterprise');
-    expect(enterprise.llmPricing.prices).toEqual(base.llmPricing.prices);
+    const frontier = applySourcing(base, 'frontier');
+    expect(enterprise.llmPricing.prices).toEqual(frontier.llmPricing.prices);
     expect(enterprise.tokenPriceFactor).toBe(sourcingPreset('enterprise').tokenPriceFactor);
     expect(calculate(enterprise).cost.llmCost.mature).toBeCloseTo(
-      calculate(base).cost.llmCost.mature * sourcingPreset('enterprise').tokenPriceFactor,
+      calculate(frontier).cost.llmCost.mature * sourcingPreset('enterprise').tokenPriceFactor,
       6
     );
   });

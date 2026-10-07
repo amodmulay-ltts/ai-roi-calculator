@@ -49,14 +49,15 @@ export function createExampleScenario(): Scenario {
 
     costLines: [
       { id: 'toolchain', name: 'Existing toolchain licences (compilers, static analysis, ALM)', category: 'Tools', monthlyAmount: { baseline: 6_000, transition: 6_000, mature: 6_000 }, chargeable: true, aiSpecific: false },
-      { id: 'ai-assistant-seats', name: 'AI coding assistant licences', category: 'AI', monthlyAmount: { baseline: 0, transition: 4_000, mature: 4_000 }, chargeable: true, aiSpecific: true },
-      { id: 'private-ai-platform', name: 'Private AI platform (IP-protected hosting)', category: 'Infra', monthlyAmount: { baseline: 0, transition: 5_000, mature: 5_000 }, chargeable: true, aiSpecific: true },
+      { id: 'private-ai-platform', name: 'Private AI platform (IP-protected hosting)', category: 'Infra', monthlyAmount: { baseline: 0, transition: 5_000, mature: 5_000 }, chargeable: true, aiSpecific: true, sourcing: ['enterprise'] },
       { id: 'tool-qualification', name: 'AI tool qualification and governance (ISO 26262)', category: 'Governance', monthlyAmount: { baseline: 0, transition: 4_000, mature: 2_000 }, chargeable: true, aiSpecific: true },
       { id: 'training', name: 'Training and change management', category: 'Transition', monthlyAmount: { baseline: 0, transition: 6_000, mature: 0 }, chargeable: true, aiSpecific: false },
     ],
 
     llmPricing: structuredClone(DEFAULT_LLM_PRICING),
-    aiSourcing: 'frontier',
+    // A private, IP-protected deployment: the enterprise option, platform fee and token premium included
+    aiSourcing: 'enterprise',
+    tokenPriceFactor: 1.3,
     seatAssignments: structuredClone(AUTOMOTIVE_TEMPLATE.seatAssignments),
     seatPricing: structuredClone(DEFAULT_SEAT_PRICING),
 

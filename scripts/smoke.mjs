@@ -159,18 +159,26 @@ async function main() {
       await input.type(String(value));
     };
     await setCut(15);
-    check('a 15% effort cut turns the advice to "does not pay back"', (await text(page)).includes('Does not pay back within'));
+    body = await text(page);
+    check('a 15% effort cut that costs more than today says it never pays back', body.includes('it never pays back'));
+    check('...and never claims the investment is merely "not recovered"', !body.includes('investment is not recovered'));
     await setCut(30);
-    check('restoring 30% restores the verdict', (await text(page)).includes('Pays back in month 15'));
+    check('restoring 30% restores the verdict', (await text(page)).includes('Pays back in month 14'));
 
     // 1c1. AI sourcing presets drive both cost and effect, and are reversible
     await page.evaluate(() => document.getElementById('ai-effect')?.scrollIntoView());
     await clickByText(page, '[aria-label="AI sourcing"] [role="radio"]', 'Local / open-weight');
     body = await text(page);
-    check('local sourcing flips the verdict', body.includes('Does not pay back within'));
+    check('local sourcing states the real position: costs more than today', body.includes('more than today, so it never pays back'));
+    const cashHeadline = await page.$eval('#cashflow h3.text-3xl', el => el.innerText);
+    check(
+      'the cash-flow headline under local says it never pays back, not "not recovered"',
+      /never pays back/.test(cashHeadline) && !/not recovered/.test(cashHeadline),
+      cashHeadline
+    );
     check('local sourcing lowers the effort cut', (await page.$eval('#cut-mature', el => Number(el.value))) === 18);
-    await clickByText(page, '[aria-label="AI sourcing"] [role="radio"]', 'Frontier models');
-    check('switching back restores the case', (await text(page)).includes('Pays back in month 15'));
+    await clickByText(page, '[aria-label="AI sourcing"] [role="radio"]', 'Enterprise models');
+    check('switching back to the example\'s own sourcing restores the case', (await text(page)).includes('Pays back in month 14'));
     await shot('01c1-sourcing');
 
     // 1c3. Seats: costed from assigned roles, editable, double-count guard

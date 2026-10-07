@@ -68,7 +68,7 @@ export default function SourcingPanel({ scenario, onReplace }: SourcingPanelProp
                 {!p.usesTokens && (
                   <div className="flex justify-between">
                     <dt>Capacity</dt>
-                    <dd className="text-gray-700">{p.infraPerMonth.toLocaleString('en')} / month</dd>
+                    <dd className="text-gray-700">€{p.infraPerMonthEur.toLocaleString('en')} / month</dd>
                   </div>
                 )}
               </dl>

@@ -34,6 +34,8 @@ export interface CostLine {
   chargeable: boolean;
   /** AI-specific lines scale with AI adoption; others apply whenever the delivery model changes anything. */
   aiSpecific: boolean;
+  /** Applies only under these sourcing options; absent = all of them. */
+  sourcing?: AiSourcing[];
 }
 
 export interface OneTimeInvestmentItem {
@@ -42,6 +44,8 @@ export interface OneTimeInvestmentItem {
   amount: number;
   month: number;
   aiSpecific: boolean;
+  /** Applies only under these sourcing options; absent = all of them. */
+  sourcing?: AiSourcing[];
 }
 
 export interface LlmPrice {
@@ -85,6 +89,8 @@ export interface SeatAssignment {
   seatPriceId: string;
   /** Roles that get this seat; the seat count follows their FTE through every state. */
   roleIds: string[];
+  /** Applies only under these sourcing options; absent = all of them. */
+  sourcing?: AiSourcing[];
 }
 
 export interface LlmUsage {
@@ -253,6 +259,8 @@ export interface EffortCalculation {
   staffingFte: Record<State, number>;
   fteGap: Record<State, number>;
   effortSavingPercent: Record<State, number>;
+  /** Fall in total hours versus today, after review overhead and including work AI does not touch. */
+  netEffortReductionPercent: Record<State, number>;
 }
 
 export interface CostCalculation {

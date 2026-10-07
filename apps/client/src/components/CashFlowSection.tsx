@@ -1,5 +1,6 @@
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts';
 import type { Results, Scenario } from '@ai-roi-calc/engine';
+import { paybackHeadline } from '@ai-roi-calc/engine';
 import Tooltip from './Tooltip';
 
 interface CashFlowSectionProps {
@@ -30,11 +31,7 @@ export default function CashFlowSection({ scenario, results, formatCurrency, onU
     }));
   const lowest = Math.min(...monthlyForecast.map(m => m.cumulativeCashFlow));
 
-  const headline = fm.paybackNotInHorizon
-    ? `The investment is not recovered within ${scenario.timeValue.horizonMonths} months`
-    : fm.paybackMonth === null
-      ? 'No cash moves: this model keeps today’s setup'
-      : `The investment is recovered in month ${fm.paybackMonth}`;
+  const headline = paybackHeadline(results, formatCurrency);
 
   const axis = { stroke: '#6b7280', fontSize: 12 };
   const tooltipStyle = { backgroundColor: '#fff', border: `1px solid ${GRID}`, borderRadius: 8, fontSize: 12 };
