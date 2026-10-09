@@ -60,8 +60,8 @@ export default function App() {
   const [editingRoles, setEditingRoles] = useState(false);
   const [editingCostLines, setEditingCostLines] = useState(false);
   const [assumptionsTab, setAssumptionsTab] = useState<AssumptionTab>('team');
-  // Collapsed by default: when presenting you want the argument, not the role tables
-  const [assumptionsOpen, setAssumptionsOpen] = useState(false);
+  // Expanded by default: users can see and edit assumptions immediately on load
+  const [assumptionsOpen, setAssumptionsOpen] = useState(true);
   const [setupStep, setSetupStep] = useState(1);
   const [pendingCurrency, setPendingCurrency] = useState<Currency | null>(null);
 
