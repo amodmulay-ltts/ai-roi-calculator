@@ -8,10 +8,14 @@ Web application for estimating the cost, savings, payback and ROI of introducing
 
 Prerequisites: Node.js 20 LTS, npm 10+.
 
+For a one-command start, run `scripts/start-ubuntu.sh` on Ubuntu or
+`scripts\start-windows.bat` on Windows. The launchers check the required
+runtime, install workspace dependencies if they are missing, and start the
+development servers.
+
 ```bash
 npm install
-npm run build -w packages/engine   # the client and server import the built engine
-npm run dev                        # client http://localhost:5173, server http://localhost:3001
+npm run dev                        # builds the engine, then starts client and server
 npm test                           # engine tests (Vitest, runs once)
 npm run smoke                      # browser smoke test on the built app (needs Chrome or Edge installed)
 npm run build                      # production build of engine, server and client

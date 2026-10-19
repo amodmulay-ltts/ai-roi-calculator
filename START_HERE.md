@@ -26,25 +26,27 @@
 
 ## Quick Start (Testing)
 
-### Step 1: Install Dependencies
+### Step 1: Start the Application
+
+On Ubuntu:
 ```bash
-cd D:/dev/ai-roi-calculator
-npm install
+./scripts/start-ubuntu.sh
 ```
+
+On Windows, run `scripts\start-windows.bat` from File Explorer or a terminal.
+The launchers check that Node.js 20+ and npm 10+ are available, install
+dependencies if needed, build the engine, and start both development servers.
+
+You can also start it manually with `npm install` followed by `npm run dev`.
 
 ### Step 2: Run Golden Tests
 ```bash
 npm test
 ```
 
-**Expected**: 24/27 tests passing (see `PHASE_1_REPORT.md` for details)
+**Expected**: all engine tests pass.
 
-### Step 3: Start Development Environment
-```bash
-npm run dev
-```
-
-This starts:
+The development environment starts:
 - **Server**: http://localhost:3001 (API)
 - **Client**: http://localhost:5173 (Dashboard)
 
