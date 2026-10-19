@@ -1,6 +1,6 @@
 /**
  * Golden tests from Section 10 of the build prompt
- * These must pass with the default values (INR, in-house, staffing-plan mode)
+ * These verify source-Excel parity in INR, in-house, staffing-plan mode.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -928,6 +928,25 @@ describe('Scenario save and load', () => {
 });
 
 describe('Currency Conversion', () => {
+  it('defaults to EUR and converts monetary reference values', () => {
+    const eur = createDefaultScenario();
+    const inr = createDefaultScenario('INR');
+    const factor = 1 / DEFAULT_FX_RATES_PER_EUR.INR;
+
+    expect(eur.baseCurrency).toBe('EUR');
+    eur.roles.forEach((role, i) =>
+      expect(role.costPerFte).toBeCloseTo(inr.roles[i]!.costPerFte * factor, 6),
+    );
+    eur.costLines.forEach((line, i) => {
+      for (const state of ['baseline', 'transition', 'mature'] as const) {
+        expect(line.monthlyAmount[state]).toBeCloseTo(inr.costLines[i]!.monthlyAmount[state] * factor, 6);
+      }
+    });
+    eur.oneTimeInvestment.forEach((item, i) =>
+      expect(item.amount).toBeCloseTo(inr.oneTimeInvestment[i]!.amount * factor, 6),
+    );
+  });
+
   it('should return to original inputs when converting INR → USD → INR at reciprocal rates', () => {
     const original = referenceScenario();
     const rates = original.fxRatesPerEur;

@@ -3,7 +3,9 @@
 
 **Date**: 2024-10-04  
 **Status**: ✅ COMPLETE  
-**Test Coverage**: 24/27 golden tests passing (with fixes applied)
+**Test Coverage**: Historical snapshot: 24/27 golden tests passing at the time of writing. The current suite has 101 passing engine tests.
+
+> **Historical currency note:** Amounts in this original Excel-comparison report are source-model INR figures, not application defaults. The app's default currency is EUR; source inputs are converted at the indicative default rate of 100 INR per EUR. See `TESTING_GUIDE.md` for EUR equivalents.
 
 ---
 

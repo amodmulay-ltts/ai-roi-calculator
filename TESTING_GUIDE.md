@@ -2,7 +2,7 @@
 
 ## Phase 1: Engine Tests ✅
 
-**Status**: Golden tests running (24/27 last check, fixes applied)
+**Status**: 101 engine tests pass. Source-Excel golden scenarios use INR internally for historical parity; the reference default exposed to users is EUR.
 
 ### How to Run
 ```bash
@@ -10,13 +10,13 @@ npm test
 ```
 
 ### Expected Results
-All 27 golden tests should pass with the default scenario:
-- ✅ Baseline people cost: ₹1.96 Cr
-- ✅ Transition people cost: ₹2.13 Cr  
-- ✅ Mature people cost: ₹1.74 Cr
+The source-Excel reference values below are converted to EUR at the default reference rate of 100 INR/EUR:
+- ✅ Baseline people cost: €196,400
+- ✅ Transition people cost: €212,900
+- ✅ Mature people cost: €174,050
 - ✅ Payback month: 13
 - ✅ ROI %: 370.87%
-- ✅ NPV: ₹29.61 Cr (±1)
+- ✅ NPV: €296,102 (±1)
 - ✅ FTE analysis: Baseline 71.13
 - ✅ Effort saving: 17.85%
 
@@ -118,7 +118,7 @@ Open http://localhost:5173
 **Test 2: Key Metrics Display**
 - [ ] Payback Month shows: 13
 - [ ] ROI % shows: 370.87%
-- [ ] NPV shows: ₹29.61 Cr (formatted)
+- [ ] NPV shows: €296,102 (formatted, source-Excel parity scenario)
 - [ ] Mature Monthly Saving shows correct value
 
 **Test 3: Cost Table**
@@ -134,9 +134,9 @@ Open http://localhost:5173
 - [ ] Effort Saving: 17.85% shown for mature state
 
 **Test 5: Financial Summary**
-- [ ] Total Investment: ₹1 Cr
-- [ ] Total Savings: ₹4.71 Cr (36 months)
-- [ ] Net Benefit: ₹3.71 Cr
+- [ ] Total Investment: €100,000
+- [ ] Total Savings: €470,869 (36 months)
+- [ ] Net Benefit: €370,869
 - [ ] Break-even Month: 7
 - [ ] Payback Month: 13
 - [ ] IRR: ~37% (if calculated)
@@ -182,17 +182,17 @@ Open http://localhost:5173
 - **Company**: LTTS (default)
 - **Use Case**: AI-Augmented Software Testing
 - **Baseline FTE**: 72 (mix of roles)
-- **Baseline Monthly Cost**: ₹23.57 Cr
+- **Baseline Monthly Cost**: €235,680
 - **Transition Length**: 3 months
-- **Investment**: ₹1 Cr (setup, training, other)
+- **Investment**: €100,000 (setup, training, other)
 - **Horizon**: 36 months
 - **Discount Rate**: 10% per year
 
 ### Key Calculations
 | Metric | Baseline | Transition | Mature |
 |--------|----------|-----------|--------|
-| Monthly Cost | ₹23.57 Cr | ₹26.88 Cr | ₹21.99 Cr |
-| Savings/Month | - | -₹3.31 Cr | +₹1.58 Cr |
+| Monthly Cost | €235,680 | €268,840 | €219,880 |
+| Savings/Month | - | -€33,160 | +€15,800 |
 | FTE | 72 | 75.2 | 62 |
 | Effort Saving % | - | - | 17.85% |
 
@@ -272,7 +272,7 @@ Open http://localhost:5173
 
 ```
 PHASE 1: ENGINE
-- [ ] npm test passes all 27 golden tests
+- [ ] npm test passes all 101 engine tests
 - [ ] All calculations within ±0.5% of expected values
 
 PHASE 2: SERVER API

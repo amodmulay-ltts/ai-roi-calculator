@@ -28,6 +28,7 @@ The L&T Technology Services logo (`apps/client/public/ltts-logo.png`) appears in
 ## Using the app
 
 The app opens with an **example calculation**, marked "Example calculation · fictional data" on screen and in every export. Use it to learn the tool; do not use its figures for a customer.
+New scenarios and the API reference defaults use **EUR**. The reference scenario is converted from the source Excel's INR inputs at the configured default rate; switching to INR is an explicit currency choice.
 
 The dashboard builds from inputs to outcome. The section bar carries a **running result** — NPV, payback, ROI — so an edit anywhere shows its effect without scrolling, and clicking it jumps to the full figures. **Assumptions** starts collapsed, since it is inputs rather than argument; **Show inputs** opens it. Order: **Assumptions** (tabs: Team, Workload, AI seats and usage, Costs and investment) → **Delivery model** → **Compare models** (all five against the same baseline) → **AI effect** (the effort cut and review overhead, then **Model selection**: frontier, enterprise or local) → **Cash flow** (cumulative cash position with the payback marker, monthly run cost against today, cost per stage) → **Sensitivity** → **Net value** (NPV, payback, ROI) → **Advice**, which reads the result it sits under.
 
@@ -204,7 +205,7 @@ packages/engine/        Pure TypeScript calculation library (no I/O), shared by 
   src/currency.ts         FX rates and scenario conversion
   src/templates.ts        automotive use-case template (team, workload, AI usage): single source for setup and the example
   src/example.ts          the Vantara Motors example, built from the automotive template
-  src/defaults.ts         reference scenario from the source Excel (INR), legacy-file normalisation
+  src/defaults.ts         EUR reference defaults converted from the source Excel, legacy-file normalisation
   src/schema.ts           zod validation for any untrusted scenario (files, API)
   src/serialize.ts        YAML save / YAML+JSON load
   src/__tests__/          Vitest suite
@@ -230,9 +231,9 @@ Security: helmet, CORS locked to the client origin, rate limiting, 1 MB body lim
 
 ## Tests
 
-`npm test` runs the engine suite: 100 tests. They cover:
+`npm test` runs the engine suite: 101 tests. They cover:
 
-- **Golden values** from the source Excel (INR, staffing-plan mode): payback month 13, NPV ≈ 29,610,225, mature saving 1,579,971.60
+- **Source-Excel golden values** (tests retain the original INR inputs in staffing-plan mode): payback month 13, NPV ≈ €296,102.25 and mature saving ≈ €15,799.72 after conversion at 100 INR/EUR. These are reference-test values, not the loaded Vantara example's results.
 - **Calculation behaviour:** delivery models, effort-derived headcount, currency round trips, IRR above 200%, the example's story
 - **Files:** save/load round trips and rejection of invalid files
 

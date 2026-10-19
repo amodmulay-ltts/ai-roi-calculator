@@ -11,7 +11,7 @@
 
 ## Current status
 
-Engine tests: **100/100 passing** (`npm test -w packages/engine`). Build clean.
+Engine tests: **101/101 passing** (`npm test -w packages/engine`). Build clean.
 Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, autosave. Other screens checked by rendering and screenshots.
 
 | # | Fix (from REVIEW_Self_Assessment.md) | Status |

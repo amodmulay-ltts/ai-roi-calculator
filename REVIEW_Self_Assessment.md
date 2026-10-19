@@ -3,6 +3,8 @@
 Date: 2026-10-04
 Scope: the calculation engine (`packages/engine/src/engine.ts`), how the client feeds it (wizard, role templates, delivery model, currency), and whether a consultant could put the output in front of a customer.
 
+> **Currency follow-up (2026-10-19):** The historical issue below is resolved. New/reference defaults are converted from source INR to EUR at the configured indicative rate (100 INR/EUR); the loaded Vantara example is also authored in EUR. INR figures below describe the earlier defect, not current defaults.
+
 ---
 
 ## Verdict
@@ -12,7 +14,7 @@ Scope: the calculation engine (`packages/engine/src/engine.ts`), how the client 
 The cost model works. So do the transition ramp, the NPV and the ROI formulas, and they reproduce the reference Excel to the cent. The problems are in what surrounds that core:
 
 - One bug makes every payback month wrong.
-- Default amounts are in INR but are labelled EUR.
+- The historical currency issue described in section 2 has been fixed.
 - The delivery-model choice either does nothing or pushes the result the wrong way.
 - The headline ROI comes from headcount the user typed in, not from the AI productivity model. A customer who asks "why does AI save 10 FTE?" gets no answer the tool can trace.
 
@@ -50,14 +52,10 @@ payback: month 19                                         (spec: month 13)
 - NPV and ROI are not affected, because they don't read the cumulative series.
 - **Fix:** delete the extra assignment. This is a one-line change.
 
-### 2. Currency is a label only, so default amounts are INR shown as EUR
+### 2. Resolved: the earlier defaults labelled INR amounts as EUR
 
-- The default changed to EUR, but every default amount is still the INR figure from the Excel. A QA tester shows as **€260,000 per month**, and baseline OPEX for a 72-person team as **€23.6M per month**. The role templates in `roleTemplates.ts` use the same INR-scale numbers.
-- Switching currency in the header only changes the symbol (`handleCurrencyChange` sets `baseCurrency` and nothing else).
-- A customer would lose trust in the tool on the first screen.
-- **Fix:**
-  - Hold a rate card per currency, or store defaults in one currency and convert.
-  - On currency change, ask "relabel or convert" (spec §6) with an editable FX table.
+- At the time of this assessment, defaults were labelled EUR while retaining source-Excel INR-scale amounts. This could show a QA tester as **€260,000 per month** and baseline OPEX as **€23.6M per month**. These were examples of the defect, not valid current EUR defaults.
+- **Resolution:** The reference scenario is converted from INR to EUR during default creation. For example, the source rate ₹260,000/FTE/month is €2,600/FTE/month at the default 100 INR/EUR rate. Currency changes offer convert or relabel, with editable FX rates.
 
 ### 3. The delivery model is cosmetic on the dashboard, and wrong in the wizard
 

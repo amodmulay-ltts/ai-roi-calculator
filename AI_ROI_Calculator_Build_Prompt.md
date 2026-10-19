@@ -10,6 +10,8 @@ You are a senior full-stack engineer. Build a production-quality **AI ROI Calcul
 
 The first use case is **AI-augmented software testing (STLC)**. It is based on an existing Excel model, and the defaults below come from that model. Keep the KPI layer generic so other use cases can be added later.
 
+**Currency rule:** EUR is the application's default currency. The source Excel is denominated in INR; convert its default monetary inputs to EUR using the configured indicative FX rate (default: 100 INR per EUR). INR figures below are source-model references unless explicitly labelled as converted app defaults. The application and its default-value documentation must use EUR.
+
 The application must:
 
 1. Ship with **default values** (Section 4) so it produces a full result as soon as it opens.
@@ -99,7 +101,7 @@ Implement every item below. Add a unit test for each fix where possible.
 
 | # | Defect in the Excel | Required behaviour in the app |
 |---|---|---|
-| F1 | ROI % used the baseline-column implementation cost (₹1 Cr) for every state, while payback used different per-state values (₹20 L and ₹2 L). | One **one-time investment** input with itemized lines (setup, integration, training, other) and a **phasing schedule** (month 0 … month N, default 100% in month 0). Payback, ROI, NPV and IRR all use this same investment. |
+| F1 | ROI % used the baseline-column implementation cost (source Excel ₹1 Cr / €100,000 equivalent) for every state, while payback used different per-state values (₹20 L / €20,000 and ₹2 L / €2,000). | One **one-time investment** input with itemized lines (setup, integration, training, other) and a **phasing schedule** (month 0 … month N, default 100% in month 0). Payback, ROI, NPV and IRR all use this same investment. |
 | F2 | Payback divided by the absolute value of a *negative* saving (transition) and ignored transition losses (mature). | **Payback month** = first month in which cumulative (savings − investment outflows) ≥ 0, read from the monthly cash-flow series. If it never happens within H, show "Not within horizon". Never compute payback from a single month's saving. |
 | F3 | Hardcoded values in Monthly OPEX overrode the assumptions tab (LLM tokens mature, transition premium, training). | Every cost line has **one input per state**, stored in one place. Nothing derived is hardcoded. The UI shows each line's source. |
 | F4 | Mature effort saving was typed as 18.4%, but the effort numbers give 17.8%. | Compute effort saving % as `1 − state effort / baseline effort` and never accept it as an input. |
@@ -116,7 +118,7 @@ Implement every item below. Add a unit test for each fix where possible.
 
 ## 4. Default values (pre-load these and reproduce the Excel)
 
-All monetary defaults are in **INR**. The default scenario name is "AI-Augmented Testing – Reference (LTTS)".
+All application monetary defaults are in **EUR**, converted from the source Excel at the default indicative rate of 100 INR per EUR. The default scenario name is "AI-Augmented Testing – Reference (LTTS)".
 
 ### 4.1 Global assumptions
 
@@ -141,45 +143,45 @@ Default rationale for F5: "Higher shared-services allocation for the AI CoC, pla
 
 | Item | Default | Month |
 |---|---|---|
-| Setup and integration | ₹7,000,000 | 0 |
-| Training and enablement | ₹2,000,000 | 0 |
-| Other / contingency | ₹1,000,000 | 0 |
-| **Total** | **₹10,000,000** | |
+| Setup and integration | €70,000 | 0 |
+| Training and enablement | €20,000 | 0 |
+| Other / contingency | €10,000 | 0 |
+| **Total** | **€100,000** | |
 
-### 4.3 Monthly cost lines (₹ per month)
+### 4.3 Monthly cost lines (€ per month)
 
 | Line | Category | Baseline | Transition | Mature | Chargeable |
 |---|---|---|---|---|---|
-| LLM tokens | AI | 0 | 5,039 | 10,000 | Yes |
+| LLM tokens | AI | 0 | 50.39 | 100 | Yes |
 | Agent orchestrator licence | AI | 0 | 0 | 0 | Yes |
 | Vector DB / knowledge base | AI | 0 | 0 | 0 | Yes |
-| AI monitoring and evaluation | AI | 0 | 8,332 | 8,332 | Yes |
-| Cloud compute (AI/automation) | Infra | 0 | 149,043 | 149,043 | Yes |
-| Storage / backup / DR | Infra | 0 | 150,982 | 150,982 | Yes |
+| AI monitoring and evaluation | AI | 0 | 83.32 | 83.32 | Yes |
+| Cloud compute (AI/automation) | Infra | 0 | 1,490.43 | 1,490.43 | Yes |
+| Storage / backup / DR | Infra | 0 | 1,509.82 | 1,509.82 | Yes |
 | Test management / automation licences | Tools | 0 | 0 | 0 | Yes |
 | Security / compliance tools | Tools | 0 | 0 | 0 | Yes |
-| Governance and client reporting | Governance | 0 | 300,000 | 300,000 | Yes |
-| Capex amortization | Capex | 0 | 100,000 | 100,000 | **No** |
-| Transition premium | Transition | 0 | 300,000 | 150,000 | Yes |
-| Training and change management | Transition | 0 | 100,000 | 50,000 | Yes |
+| Governance and client reporting | Governance | 0 | 3,000 | 3,000 | Yes |
+| Capex amortization | Capex | 0 | 1,000 | 1,000 | **No** |
+| Transition premium | Transition | 0 | 3,000 | 1,500 | Yes |
+| Training and change management | Transition | 0 | 1,000 | 500 | Yes |
 
-These are the values that actually drove the Excel results. The assumptions tab held different values for three lines (LLM tokens mature ₹5,039, transition premium transition ₹15 L, training transition ₹2.5 L). Show those three as **"Alternative value from source model"** hints next to the field.
+These are the source-Excel values converted to EUR at 100 INR per EUR. The assumptions tab held different source values for three lines (LLM tokens mature ₹5,039 / €50.39, transition premium transition ₹15 L / €15,000, training transition ₹2.5 L / €2,500). Show those three as **"Alternative value from source model"** hints next to the field.
 
 Users can add custom cost lines with their own name, category, per-state values and chargeable flag.
 
 ### 4.4 Role rate card
 
-| Role | Baseline FTE | Transition FTE | Mature FTE | Cost/FTE/month (₹) | Vendor bill rate/FTE/month (₹) |
+| Role | Baseline FTE | Transition FTE | Mature FTE | Cost/FTE/month (€) | Vendor bill rate/FTE/month (€) |
 |---|---|---|---|---|---|
-| Test Manager / Delivery Lead | 1 | 1.2 | 1 | 350,000 | 600,000 |
-| QA Functional Tester | 44 | 42 | 36 | 260,000 | 380,000 |
-| Automation Engineer | 15 | 15 | 12 | 260,000 | 450,000 |
-| SDET / Framework Engineer | 4 | 4 | 3 | 320,000 | 520,000 |
-| Domain SME | 6 | 5 | 4 | 350,000 | 600,000 |
-| AI Engineer / Prompt Engineer | 0 | 3 | 2 | 420,000 | 700,000 |
-| Data / Knowledge Engineer | 0 | 2 | 1.5 | 420,000 | 650,000 |
-| DevOps / Cloud Engineer | 1 | 2 | 1.5 | 350,000 | 600,000 |
-| PMO / Reporting Analyst | 1 | 1 | 1 | 220,000 | 420,000 |
+| Test Manager / Delivery Lead | 1 | 1.2 | 1 | 3,500 | 6,000 |
+| QA Functional Tester | 44 | 42 | 36 | 2,600 | 3,800 |
+| Automation Engineer | 15 | 15 | 12 | 2,600 | 4,500 |
+| SDET / Framework Engineer | 4 | 4 | 3 | 3,200 | 5,200 |
+| Domain SME | 6 | 5 | 4 | 3,500 | 6,000 |
+| AI Engineer / Prompt Engineer | 0 | 3 | 2 | 4,200 | 7,000 |
+| Data / Knowledge Engineer | 0 | 2 | 1.5 | 4,200 | 6,500 |
+| DevOps / Cloud Engineer | 1 | 2 | 1.5 | 3,500 | 6,000 |
+| PMO / Reporting Analyst | 1 | 1 | 1 | 2,200 | 4,200 |
 | **Total** | **72** | **75.2** | **62** | | |
 
 Roles can be added and removed. Each role also has a grade level (1–5, used for the pyramid chart) and an AI-impacted flag.
@@ -346,13 +348,13 @@ The baseline can also be set as in-house or outsourced (default in-house), so a 
 ## 6. Currency handling
 
 - Currency selector in the header with at least INR, USD, EUR, GBP, JPY, AED, SGD, AUD, CAD and CHF.
-- Each scenario stores a **base currency** (default INR) in which all amounts are entered.
+- Each scenario stores a **base currency** (default EUR) in which all amounts are entered.
 - On a currency change, ask the user which of two behaviours they want:
   1. **Relabel**: keep the numbers and change the currency (use this when re-entering client data in its own currency).
   2. **Convert**: multiply every monetary input by an FX rate.
 - FX rates come from an **editable FX table** in Settings. Ship static default rates with an "as of" date, and warn that they are indicative. An optional live-rate fetch can be a later enhancement; don't call any external API by default.
 - Format with `Intl.NumberFormat` and the currency's locale.
-  - INR supports **lakh/crore** notation (₹2.36 Cr, ₹15.8 L) or a full number.
+  - INR, when selected, supports **lakh/crore** notation (e.g. ₹2.36 Cr, ₹15.8 L) or a full number. These are not the default scenario amounts.
   - Other currencies use K/M/B compact notation.
   - The user toggles between compact and full.
 - The report and exports use the selected currency and state the FX rate used, if any.
@@ -398,7 +400,7 @@ The **Export** menu offers four options:
 
 1. **PDF report** (server-side Puppeteer, A4 landscape, company-neutral styling with a logo upload option). Sections:
    1. Cover: scenario name, client, date, currency, implementation model.
-   2. Executive summary: KPI tiles plus a 3–5 sentence auto-generated narrative from the numbers, e.g. "Mature-state savings of ₹15.8 L per month; payback in month 13 …".
+   2. Executive summary: KPI tiles plus a 3–5 sentence auto-generated narrative from the numbers, e.g. "Mature-state savings of €15,800 per month; payback in month 13 …".
    3. Cumulative cash-flow chart and the monthly forecast table.
    4. Monthly OPEX by state with cost-line detail (TCO and chargeable).
    5. Benefit ledger with reconciliation.
@@ -437,7 +439,7 @@ Export file names follow the pattern `AI-ROI_<ScenarioName>_<YYYY-MM-DD>.<ext>`.
 
 ---
 
-## 10. Golden tests (must pass, defaults, INR, in-house, staffing-plan mode)
+## 10. Golden tests (source-Excel compatibility values run in INR, in-house, staffing-plan mode; app defaults are EUR)
 
 | Check | Expected |
 |---|---|
@@ -450,7 +452,7 @@ Export file names follow the pattern `AI-ROI_<ScenarioName>_<YYYY-MM-DD>.<ext>`.
 | Cumulative saving at M12 (no investment) | 9,167,565.60 |
 | Lowest cumulative (no investment) | −5,052,178.80 at M3 |
 | Breakeven month without investment | 7 |
-| Payback month (₹1 Cr in M0) | **13** |
+| Payback month (€100,000 equivalent investment in M0) | **13** |
 | Total savings over 36 months | 47,086,884.00 |
 | ROI % over 36 months | 370.87% |
 | NPV at 10% per year, 36 months | ≈ 29,610,225 (±1) |

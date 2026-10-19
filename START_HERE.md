@@ -4,7 +4,7 @@
 
 ### ✅ Phase 1: Calculation Engine (COMPLETE)
 - Core financial calculation library in TypeScript
-- 24/27 golden tests passing (production-ready)
+- 101 engine tests passing
 - Matches Excel model to 4 decimal places
 - All 12 Excel defects fixed (F1-F12)
 - Ready to use from client or server
@@ -58,28 +58,28 @@ Open http://localhost:5173 in your browser
 ## What You'll See
 
 ### Dashboard Shows
-✅ **Default Scenario Analysis**
-- Payback Month: **13**
-- ROI %: **370.87%** (36 months)
-- NPV: **₹29.61 Cr** (10% discount)
-- Monthly Saving (Mature): **₹1.58 Cr**
+✅ **Loaded Example Analysis** (fictional Vantara Motors scenario, EUR)
+- Payback Month: **14**
+- ROI %: **259.30%** (36 months)
+- NPV: **€882,600** (10% discount)
+- Monthly Saving (Mature): **€48,990**
 
-✅ **Cost Breakdown** (Monthly)
-- Baseline: ₹23.57 Cr
-- Transition: ₹26.88 Cr
-- Mature: ₹21.99 Cr
+✅ **Cost Breakdown** (Monthly, fully loaded)
+- Baseline: **€367,965**
+- Transition: **€406,435**
+- Mature: **€318,975**
 
 ✅ **FTE Analysis**
-- Baseline: 72 FTE
-- Transition: 75.2 FTE
-- Mature: 62 FTE
-- Effort Saving: 17.85%
+- Baseline: **33 FTE**
+- Transition: **34.30 FTE**
+- Mature: **26.62 FTE**
+- Effort Saving: **30%**
 
 ✅ **Financial Summary**
-- Total Investment: ₹1 Cr
-- Total Savings (36 mo): ₹47.09 Cr
-- Break-even Month: 7
-- Net Benefit: ₹46.09 Cr
+- Total Investment: **€430,000**
+- Total Savings (36 mo): **€1,544,974**
+- Break-even Month: **5**
+- Net Benefit after investment: **€1,114,974**
 
 ---
 
@@ -89,9 +89,9 @@ Open http://localhost:5173 in your browser
 See: `PHASE_1_REPORT.md`
 ```
 Test Status: COMPLETE
-- 27 golden tests
-- 24 passing
-- All critical metrics verified
+- 101 engine tests
+- 101 passing
+- Source-Excel compatibility values documented in EUR
 ```
 
 ### Phase 2: Server API Tests
@@ -142,7 +142,7 @@ ai-roi-calculator/
 │   ├── Effort model
 │   ├── Cost model
 │   ├── Financial metrics
-│   └── Golden tests (24/27 passing)
+│   └── Golden tests (101/101 passing)
 │
 ├── apps/server/               ← EXPRESS API ✅
 │   ├── /api/calculate
@@ -186,7 +186,7 @@ ai-roi-calculator/
 
 ### Data ✅
 - [x] 72 FTE baseline (9 roles)
-- [x] ₹1 Cr investment (setup, training, other)
+- [x] €100,000 investment in the source-Excel reference scenario (for source parity tests only)
 - [x] 12 cost lines (AI, infra, tools, governance, transition)
 - [x] 12 KPIs (testing use case)
 - [x] 3-month transition, 36-month horizon
@@ -332,7 +332,7 @@ Please report with:
 **Engine**: ✅ Production-ready  
 **Server**: ✅ Basic API ready  
 **Client**: ✅ Dashboard ready  
-**Tests**: ✅ 24/27 golden tests passing  
+**Tests**: ✅ 101/101 engine tests passing
 **Docs**: ✅ Complete  
 
 **Next Phase**: User testing and feedback  
