@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Scenario, Currency, KpiInput } from '@ai-roi-calc/engine';
-import { createExampleScenario, convertScenarioCurrency, fxFactor, CURRENCIES } from '@ai-roi-calc/engine';
+import { createDefaultScenario, convertScenarioCurrency, fxFactor, CURRENCIES } from '@ai-roi-calc/engine';
 import {
   USE_CASES,
   applyUseCaseTemplate,
@@ -33,10 +33,10 @@ interface ScenarioSetupProps {
 const STEPS = ['Basics', 'Delivery model', 'Timeline', 'Team and workload', 'Costs', 'AI effect', 'Investment', 'Team preview', 'Review'];
 export const INVESTMENT_STEP = STEPS.indexOf('Investment') + 1;
 
-/** A new customer scenario starts from the example's realistic structure, without its identity. */
+/** A new customer scenario starts from the software-testing reference structure, without its identity. */
 function blankScenario(): Scenario {
   return {
-    ...createExampleScenario(),
+    ...createDefaultScenario(),
     id: `scenario-${Date.now()}`,
     name: '',
     clientName: '',

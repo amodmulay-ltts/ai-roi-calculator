@@ -27,7 +27,7 @@ The L&T Technology Services logo (`apps/client/public/ltts-logo.png`) appears in
 
 ## Using the app
 
-The app opens with an **example calculation**, marked "Example calculation · fictional data" on screen and in every export. Use it to learn the tool; do not use its figures for a customer.
+The app opens on the **software testing reference** (the first use case), converted from the source Excel model into EUR. A fictional automotive **example calculation** is one click away under **Load example**; it is marked "Example calculation · fictional data" on screen and in every export. Use the example to learn the tool; do not use its figures for a customer.
 New scenarios and the API reference defaults use **EUR**. The reference scenario is converted from the source Excel's INR inputs at the configured default rate; switching to INR is an explicit currency choice.
 
 The calculator's business logic and the process for adding future requirements are documented in [CONCEPT.md](./CONCEPT.md).
