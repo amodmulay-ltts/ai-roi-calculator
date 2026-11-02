@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Scenario, Results, Currency } from '@ai-roi-calc/engine';
-import { calculate, createExampleScenario, convertScenarioCurrency, paybackLabel, paybackStatus, roiLabel, scenarioToYaml } from '@ai-roi-calc/engine';
+import { calculate, createDefaultScenario, createExampleScenario, convertScenarioCurrency, paybackLabel, paybackStatus, roiLabel, scenarioToYaml } from '@ai-roi-calc/engine';
 import CurrencyChangeDialog from './components/CurrencyChangeDialog';
 import TeamSummary from './components/TeamSummary';
 import Header from './components/Header';
@@ -68,11 +68,11 @@ export default function App() {
   const [restoredAt, setRestoredAt] = useState<string | null>(null);
 
   useEffect(() => {
-    // A saved example is not user work: always start from the current built-in example instead,
-    // so a changed example is not hidden behind an old copy kept in the browser
+    // The first use case is software testing, so the app opens on its reference scenario.
+    // A saved example is not user work: it is never restored, so a changed example is not hidden behind an old copy
     const saved = loadSavedScenario();
     const restore = saved && !saved.scenario.isExample ? saved : null;
-    const initial = restore?.scenario ?? createExampleScenario();
+    const initial = restore?.scenario ?? createDefaultScenario();
     if (restore) setRestoredAt(restore.savedAt);
     setScenario(initial);
     setResults(calculate(initial));

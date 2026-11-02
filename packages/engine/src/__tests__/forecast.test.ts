@@ -221,3 +221,12 @@ describe('ROI with no investment', () => {
     expect(roiLabel(r.financialMetrics.roiPercent)).toMatch(/%$/);
   });
 });
+
+describe('First use case: software testing', () => {
+  it('the reference scenario is a testing scenario, not a labelled example', () => {
+    const s = createDefaultScenario();
+    expect(s.isExample).toBeFalsy();
+    expect(s.roles.some(r => r.name === 'QA Functional Tester')).toBe(true);
+    expect(s.kpis.some(k => k.id === 'testing-effort-per-release')).toBe(true);
+  });
+});

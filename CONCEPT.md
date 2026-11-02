@@ -107,7 +107,7 @@ The following maps the concept to the current implementation. It records materia
 
 | Concept area | Current implementation |
 |---|---|
-| Scenario and currency | The dashboard starts with a fictional automotive example authored in EUR. New/reference scenarios default to EUR by converting the source Excel inputs. Vendor price lists keep their own currency. Currency conversion and relabelling are distinct operations. |
+| Scenario and currency | The first use case is software testing. The dashboard opens on the testing reference scenario, and new scenarios start from its structure. New/reference scenarios default to EUR by converting the source Excel inputs. A fictional automotive example, authored in EUR, is available from the menu and labelled as an example. Vendor price lists keep their own currency. Currency conversion and relabelling are distinct operations. |
 | Baseline and target | Baseline FTE and today's delivery share are separate from the selected target delivery profile. Target AI adoption and location mix affect the proposed case. |
 | Workload and AI effect | Work items are represented by KPI/workload entries with volume, effort, optional overrides, and a review-overhead flag. AI review, rework, and dual-running overhead are tracked separately from core work. |
 | Team | The staffing plan is the default for new scenarios. Effort-derived mode is opt-in: it keeps the baseline as the customer's actual team and scales later states by the workload ratio, which matches an effort-based team size only when baseline staffing matches baseline effort. The FTE gap is shown for review. Released labour is cashed only for the realised share (default 100%); the rest is kept as redeployed capacity and never counted as saving. |
