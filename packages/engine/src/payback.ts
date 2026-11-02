@@ -1,9 +1,10 @@
 import type { Results } from './types.js';
+import { selectedFullyLoaded } from './basis.js';
 
 /** Monthly saving once mature, on the cost basis the scenario uses. Negative = costs more than today. */
 export function matureMonthlySaving(results: Results): number {
   const { scenario, cost } = results;
-  const runCost = scenario.costChargeable === 'chargeable' ? cost.chargeableFullyLoaded : cost.fullyLoaded;
+  const runCost = selectedFullyLoaded(cost, scenario);
   return runCost.baseline - runCost.mature;
 }
 
@@ -19,6 +20,11 @@ export function paybackStatus(results: Results): PaybackStatus {
   if (fm.paybackMonth === null && !fm.paybackNotInHorizon) return 'no-change';
   if (!fm.paybackNotInHorizon) return 'pays-back';
   return matureMonthlySaving(results) > 0 ? 'too-slow' : 'never';
+}
+
+/** ROI as text. Zero investment has no defined ROI, so it reads n/a rather than 0%. */
+export function roiLabel(roiPercent: number | null, digits = 0): string {
+  return roiPercent === null ? 'n/a' : `${roiPercent.toFixed(digits)}%`;
 }
 
 /** Short label for tiles and tables. */

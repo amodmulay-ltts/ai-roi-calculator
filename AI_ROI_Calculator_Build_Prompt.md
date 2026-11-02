@@ -17,7 +17,7 @@ The application must:
 1. Ship with **default values** (Section 4) so it produces a full result as soon as it opens.
 2. Let users **edit any input**, add or remove roles and cost lines, reset to defaults, and see which values differ from the defaults.
 3. Let users **select the currency** (Section 6).
-4. Compare **implementation models**: in-house, outsourced and hybrid.
+4. Compare **delivery models** by location mix and AI adoption. The outsourced and hybrid vendor rules in §5.6 are deferred (scope decision, 2026-11-02).
 5. **Export a report** to PDF and Excel, and save or load scenarios as JSON.
 6. Fix all the known defects of the original Excel model (Section 3).
 
@@ -325,6 +325,8 @@ cumulative_m = Σ net_0..m
 The ledger lines (excluding Cost Avoidance) must reconcile exactly to the total monthly saving. Show a reconciliation row.
 
 ### 5.6 Implementation models
+
+> **Scope decision (2026-11-02):** the product compares location mix (onshore vs best-cost country) and AI adoption, as described in `CONCEPT.md` Step 6. The vendor bill-rate, retained-organisation, platform-fee and transition-fee rules below are **not implemented** and are deferred. The UI and reports do not describe outsourced or hybrid delivery as compared options.
 
 The user selects one model as the primary scenario, and a comparison view shows all three side by side.
 

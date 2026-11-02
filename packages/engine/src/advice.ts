@@ -3,6 +3,7 @@ import { calculate } from './engine.js';
 import { deliveryContext, effectiveLineAmount } from './delivery.js';
 import { aiCostPerDeveloper, seatsIncludingUsage } from './seats.js';
 import { activeForSourcing } from './sourcing.js';
+import { selectedFullyLoaded } from './basis.js';
 
 export type VerdictTone = 'strong' | 'marginal' | 'negative' | 'no-change';
 export type FindingSeverity = 'warning' | 'info';
@@ -37,6 +38,8 @@ export function formatMoney(value: number, currency: Currency): string {
 }
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
+/** ROI wording for summaries; omitted when there is no investment to measure it against. */
+const roiPhrase = (roi: number | null) => (roi === null ? '' : ` (ROI ${Math.round(roi)}%)`);
 
 /**
  * Scales only the effort reduction (productivity factor and KPI overrides) by `share`, keeping every cost.
@@ -79,7 +82,7 @@ export function advise(input: Scenario, results: Results): Advice {
   const money = (v: number) => formatMoney(v, scenario.baseCurrency);
   const { financialMetrics: fm, cost, effort } = results;
   const horizon = scenario.timeValue.horizonMonths;
-  const runCost = scenario.costChargeable === 'chargeable' ? cost.chargeableFullyLoaded : cost.fullyLoaded;
+  const runCost = selectedFullyLoaded(cost, scenario);
   const saving = runCost.baseline - runCost.mature;
   const derived = scenario.peopleMode.mode === 'effort-derived';
   const ctx = deliveryContext(scenario);
@@ -101,14 +104,14 @@ export function advise(input: Scenario, results: Results): Advice {
       saving > 0
         ? `It saves ${money(saving)} a month once mature, but that does not recover the ${money(fm.totalInvestment)} investment and the transition costs in time.`
         : `Once mature it costs ${money(-saving)} a month more than today, so it never pays back.`;
-  } else if (fm.roiPercent < MARGINAL_ROI_PERCENT || (fm.paybackMonth ?? 0) > horizon * 0.6) {
+  } else if ((fm.roiPercent !== null && fm.roiPercent < MARGINAL_ROI_PERCENT) || (fm.paybackMonth ?? 0) > horizon * 0.6) {
     tone = 'marginal';
     headline = `Pays back in month ${fm.paybackMonth}, with a thin margin.`;
-    summary = `${money(fm.npv)} of value over ${horizon} months (ROI ${Math.round(fm.roiPercent)}%). Small changes in the assumptions can turn it negative.`;
+    summary = `${money(fm.npv)} of value over ${horizon} months${roiPhrase(fm.roiPercent)}. Small changes in the assumptions can turn it negative.`;
   } else {
     tone = 'strong';
     headline = `Pays back in month ${fm.paybackMonth} and creates ${money(fm.npv)} over ${horizon} months.`;
-    summary = `Saves ${money(saving)} a month once mature, for a ${money(fm.totalInvestment)} investment (ROI ${Math.round(fm.roiPercent)}%).`;
+    summary = `Saves ${money(saving)} a month once mature, for a ${money(fm.totalInvestment)} investment${roiPhrase(fm.roiPercent)}.`;
   }
 
   if (nothingChanges) return { tone, headline, summary, findings };
@@ -152,6 +155,16 @@ export function advise(input: Scenario, results: Results): Advice {
     });
   }
 
+  // ---------- Released labour not cashed (labour realisation) ----------
+  if (cost.redeployedLaborCost.mature > 0) {
+    findings.push({
+      id: 'labour-realisation',
+      severity: 'info',
+      title: `Only ${pct(scenario.laborRealizationShare)} of released labour is counted as cash`,
+      detail: `${money(cost.redeployedLaborCost.mature)} a month of released labour stays as redeployed capacity and is not counted as saving. Raise the share only when the released hours will leave payroll.`,
+    });
+  }
+
   // ---------- Headcount backed by effort (F9 FTE gap) ----------
   const plan = effort.planFte.mature;
   const costed = effort.staffingFte.mature;
@@ -177,7 +190,8 @@ export function advise(input: Scenario, results: Results): Advice {
 
   // ---------- Transition dip ----------
   // Only meaningful when the case recovers; for losing cases the lowest point is simply the final loss.
-  const transitionExtra = cost.fullyLoaded.transition - cost.fullyLoaded.baseline;
+  const runCostBasis = selectedFullyLoaded(cost, scenario);
+  const transitionExtra = runCostBasis.transition - runCostBasis.baseline;
   const beforePayback = results.monthlyForecast.filter(m => fm.paybackMonth !== null && m.month < fm.paybackMonth);
   const lowestCash = Math.min(0, ...beforePayback.map(m => m.cumulativeCashFlow));
   if (transitionExtra > 0 && fm.paybackMonth !== null && !fm.paybackNotInHorizon) {

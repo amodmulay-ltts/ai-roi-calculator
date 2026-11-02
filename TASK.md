@@ -20,7 +20,7 @@ Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, auto
 | 2 | Currency: convert vs relabel, editable FX rates, EUR default converted from INR reference | Done, engine-tested |
 | 3 | Delivery models drive the engine (BCC share × AI adoption), baseline fixed | Done, engine-tested |
 | – | YAML/JSON save and load (full scenario, validated on import) | Done, engine-tested |
-| 4 | Effort-derived FTE as default (productivity drives cost) | Done, engine-tested |
+| 4 | Effort-derived FTE as default (productivity drives cost) | Superseded 2026-11-02: staffing plan is the default (brief F9); effort-derived is opt-in |
 | 5 | Side-by-side delivery-model comparison | Done, engine-tested + render-tested |
 | 6 | Per-use-case templates: generic workload (volume × hours), testing / development / support | Done, engine-tested + render-tested |
 | 7 | Warnings panel + rule-based advice (dashboard and PDF) | Done, engine-tested + render-tested |
@@ -148,7 +148,9 @@ UI rule for all screens: one hero element, two supporting, everything else small
   - [ ] 2-way sensitivity table (productivity vs transition)
   - [ ] Interactive highlighting
 
-### Feature 5: Implementation Model Selector
+### Feature 5: Implementation Model Selector (deferred)
+
+> Scope decision (2026-11-02): the product compares location mix and AI adoption. In-house / outsourced / hybrid vendor rules are deferred; see Build Prompt §5.6.
 - **Priority**: Medium
 - **Estimated Time**: 20-25 minutes
 - **Components**: ModelSelector.tsx, ModelComparison.tsx
@@ -336,7 +338,7 @@ npm run dev
 **4. Analyze results:**
 - View charts: cumulative cash flow, monthly OPEX, FTE comparison
 - Run sensitivity: tornado chart and 2-way table
-- Choose implementation: In-house, Outsourced, or Hybrid
+- Choose the target delivery model (location mix and AI adoption)
 
 **5. Export your analysis:**
 - JSON file (for data integration)

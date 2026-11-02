@@ -146,6 +146,23 @@ export default function CashFlowSection({ scenario, results, formatCurrency, onU
                   </button>
                 ))}
               </div>
+              <label className="flex items-center gap-1 text-xs text-gray-600" title="Released labour is counted as cash only for this share. The rest stays as redeployed capacity.">
+                Released labour cashed
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={5}
+                  aria-label="Released labour cashed, percent"
+                  value={Math.round(scenario.laborRealizationShare * 100)}
+                  onChange={e => {
+                    const pctValue = Number(e.target.value);
+                    if (Number.isFinite(pctValue)) onUpdate({ laborRealizationShare: Math.min(100, Math.max(0, pctValue)) / 100 });
+                  }}
+                  className="w-16 rounded border border-gray-200 px-1.5 py-0.5 text-right text-gray-900"
+                />
+                %
+              </label>
               <Tooltip text="Total cost of ownership counts every cost line. Client-chargeable leaves out lines marked as not chargeable (for example internal capex amortisation). The choice drives savings, payback, ROI and NPV." />
             </div>
           </div>

@@ -32,6 +32,7 @@ export function normalizeScenario(input: Scenario): Scenario {
     deliveryProfiles: { ...JSON.parse(JSON.stringify(DEFAULT_DELIVERY_PROFILES)), ...legacy.deliveryProfiles },
     bccRateFactor: legacy.bccRateFactor ?? DEFAULT_BCC_RATE_FACTOR,
     baselineBccShare: legacy.baselineBccShare ?? 0,
+    laborRealizationShare: legacy.laborRealizationShare ?? 1,
     kpis: migrateLegacyWorkload(legacy),
     llmUsage: legacy.llmUsage ?? [],
     llmPricing: legacy.llmPricing ?? structuredClone(DEFAULT_LLM_PRICING),
@@ -417,7 +418,8 @@ function createInrReferenceScenario(): Scenario {
     },
 
     roles: JSON.parse(JSON.stringify(DEFAULT_ROLES)),
-    peopleMode: { mode: 'effort-derived' },
+    // Brief F9: the staffing plan is the default and matches the source model; effort-derived is opt-in
+    peopleMode: { mode: 'staffing-plan' },
 
     kpis: JSON.parse(JSON.stringify(DEFAULT_KPIS)),
 
@@ -442,5 +444,6 @@ function createInrReferenceScenario(): Scenario {
 
     costChargeable: 'tco',
     costAvoidanceIncludedInRoi: false,
+    laborRealizationShare: 1,
   };
 }

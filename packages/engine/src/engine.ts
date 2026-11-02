@@ -26,6 +26,8 @@ import {
 import { llmCosts } from './llm.js';
 import { seatCosts } from './seats.js';
 import { activeForSourcing } from './sourcing.js';
+import { selectedFullyLoaded } from './basis.js';
+import { evaluationFactor } from './evaluation.js';
 
 /**
  * Main entry point: calculate(scenario) -> Results
@@ -48,7 +50,7 @@ export function calculate(input: Scenario): Results {
     monthlyForecast,
     benefitLedger,
     financialMetrics,
-    matureMonthlyAverage: cost.fullyLoaded.mature,
+    matureMonthlyAverage: selectedFullyLoaded(cost, scenario).mature,
   };
 }
 
@@ -185,13 +187,7 @@ function getProductivityFactor(scenario: Scenario): Record<State, number> {
     };
   }
 
-  // Evaluation-derived mode (not fully implemented in v1, but structure in place)
-  // For now, return direct factor defaults
-  return {
-    baseline: 1,
-    transition: 0.5801,
-    mature: 0.3864,
-  };
+  return evaluationFactor(scenario.productivityFactor);
 }
 
 /**
@@ -201,6 +197,8 @@ function getProductivityFactor(scenario: Scenario): Record<State, number> {
 function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortCalculation): CostCalculation {
   const result: CostCalculation = {
     peopleCost: { baseline: 0, transition: 0, mature: 0 },
+    peopleCostBeforeRealization: { baseline: 0, transition: 0, mature: 0 },
+    redeployedLaborCost: { baseline: 0, transition: 0, mature: 0 },
     llmCost: { baseline: 0, transition: 0, mature: 0 },
     llmCostByUsage: {},
     llmRequestsPerMonth: {},
@@ -237,7 +235,11 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
     scenario.roles.forEach((role, i) => {
       peopleCost += effort.roleFte[i]![state] * effectiveRate(role, state, ctx);
     });
-    result.peopleCost[state] = peopleCost;
+    result.peopleCostBeforeRealization[state] = peopleCost;
+    // Labour realisation (concept step on released capacity): only released cost is shared out; cost increases stay
+    const realizedLabour = state === 'baseline' ? peopleCost : realizeLabour(peopleCost, result.peopleCostBeforeRealization.baseline, scenario.laborRealizationShare);
+    result.peopleCost[state] = realizedLabour;
+    result.redeployedLaborCost[state] = realizedLabour - peopleCost;
 
     // Cost lines
     let costLinesTotal = 0;
@@ -251,8 +253,8 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
     }
 
     // Direct OPEX (model usage and seats are chargeable, like the AI cost lines)
-    result.directOpex[state] = peopleCost + costLinesTotal + llm.total[state] + seats.total[state];
-    result.chargeableDirectOpex[state] = peopleCost + costLinesChargeable + llm.total[state] + seats.total[state];
+    result.directOpex[state] = realizedLabour + costLinesTotal + llm.total[state] + seats.total[state];
+    result.chargeableDirectOpex[state] = realizedLabour + costLinesChargeable + llm.total[state] + seats.total[state];
 
     // Overhead and risk
     const overheadPercent = scenario.globalAssumptions.corporateOverheadPercent[state];
@@ -275,6 +277,14 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
 }
 
 /**
+ * Labour realisation: a released-cost reduction is counted only for the realised share; a cost increase is kept whole.
+ */
+function realizeLabour(unrealized: number, baseline: number, realizationShare: number): number {
+  if (unrealized >= baseline) return unrealized;
+  return baseline - realizationShare * (baseline - unrealized);
+}
+
+/**
  * Section 5.4: Monthly cash-flow series
  * runCost_m = ramp(m) using fullyLoaded_T and fullyLoaded_M
  * saving_m = baseline_m - runCost_m
@@ -291,6 +301,21 @@ function calculateMonthlyCashFlow(scenario: Scenario, cost: CostCalculation, ctx
   for (const item of scenario.oneTimeInvestment) {
     investmentByMonth[item.month] = (investmentByMonth[item.month] || 0) + effectiveInvestment(item, ctx);
   }
+
+  // Wage escalation applies to labour only. Non-labour lines keep their stated amounts, and overhead and
+  // risk are recalculated on the escalated direct base.
+  const fullBasis: RunCostBasis = {
+    labour: cost.peopleCost,
+    nonLabour: subtractStates(cost.directOpex, cost.peopleCost),
+    overheadPercent: scenario.globalAssumptions.corporateOverheadPercent,
+    riskPercent: scenario.globalAssumptions.riskReservePercent,
+  };
+  const chargeableBasis: RunCostBasis = {
+    labour: cost.peopleCost,
+    nonLabour: subtractStates(cost.chargeableDirectOpex, cost.peopleCost),
+    overheadPercent: scenario.globalAssumptions.corporateOverheadPercent,
+    riskPercent: scenario.globalAssumptions.riskReservePercent,
+  };
 
   let cumulativeCashFlow = 0;
   let cumulativeSavingOnly = 0;
@@ -315,17 +340,14 @@ function calculateMonthlyCashFlow(scenario: Scenario, cost: CostCalculation, ctx
       month.investmentOutflow = investmentByMonth[0] || 0;
       month.netCashFlow = -month.investmentOutflow;
     } else {
-      // Ramp between transition and mature (Section 2)
-      const runCostFull = getRampedCost(m, transitionMonths, cost.fullyLoaded, wageEscalationAnnual);
-      const runCostChargeable = getRampedCost(m, transitionMonths, cost.chargeableFullyLoaded, wageEscalationAnnual);
+      // Ramp between transition and mature (Section 2); the baseline is flat, so it uses the same path
       const escalationFactor = Math.pow(1 + wageEscalationAnnual, Math.floor((m - 1) / 12));
-
-      month.runCostFull = runCostFull;
-      month.baselineCostFull = cost.fullyLoaded.baseline * escalationFactor;
+      month.runCostFull = monthlyRunCost(m, transitionMonths, fullBasis, wageEscalationAnnual);
+      month.baselineCostFull = monthlyRunCost(m, transitionMonths, baselineOnly(fullBasis), wageEscalationAnnual);
       month.savingFull = month.baselineCostFull - month.runCostFull;
 
-      month.runCostChargeable = runCostChargeable;
-      month.baselineCostChargeable = cost.chargeableFullyLoaded.baseline * escalationFactor;
+      month.runCostChargeable = monthlyRunCost(m, transitionMonths, chargeableBasis, wageEscalationAnnual);
+      month.baselineCostChargeable = monthlyRunCost(m, transitionMonths, baselineOnly(chargeableBasis), wageEscalationAnnual);
       month.savingChargeable = month.baselineCostChargeable - month.runCostChargeable;
 
       month.investmentOutflow = investmentByMonth[m] || 0;
@@ -353,31 +375,60 @@ function calculateMonthlyCashFlow(scenario: Scenario, cost: CostCalculation, ctx
   return forecast;
 }
 
+/** Cost of one operating view split by what escalates: labour is escalated; non-labour, overhead and risk follow the base. */
+interface RunCostBasis {
+  labour: Record<State, number>;
+  nonLabour: Record<State, number>;
+  overheadPercent: Record<State, number>;
+  riskPercent: Record<State, number>;
+}
+
+/** The baseline is flat over time, so every state takes its baseline value. */
+function baselineOnly(basis: RunCostBasis): RunCostBasis {
+  const flat = (v: Record<State, number>): Record<State, number> => ({
+    baseline: v.baseline,
+    transition: v.baseline,
+    mature: v.baseline,
+  });
+  return {
+    labour: flat(basis.labour),
+    nonLabour: flat(basis.nonLabour),
+    overheadPercent: flat(basis.overheadPercent),
+    riskPercent: flat(basis.riskPercent),
+  };
+}
+
+function subtractStates(a: Record<State, number>, b: Record<State, number>): Record<State, number> {
+  return { baseline: a.baseline - b.baseline, transition: a.transition - b.transition, mature: a.mature - b.mature };
+}
+
 /**
- * Get ramped cost between transition and mature
- * Month k (1..N) = T + (M - T) × (k - 1) / N
+ * Run cost in month m (m ≥ 1), labour escalated annually, everything else on the escalated direct base.
+ * Ramp: month k (1..N) = T + (M - T) × (k - 1) / N; months after N run at the mature level.
+ * Overhead and risk keep their stated percentages but are applied to escalated labour plus non-labour.
  */
-function getRampedCost(
-  month: number,
-  transitionMonths: number,
-  costByState: Record<State, number>,
-  wageEscalationAnnual: number
-): number {
-  const escalationFactor = Math.pow(1 + wageEscalationAnnual, Math.floor((month - 1) / 12));
+function monthlyRunCost(month: number, transitionMonths: number, basis: RunCostBasis, wageEscalationAnnual: number): number {
+  const weight = transitionMonths > 0 ? Math.min((month - 1) / transitionMonths, 1) : 1;
+  const ramp = (byState: Record<State, number>) => byState.transition + (byState.mature - byState.transition) * weight;
 
-  if (month <= transitionMonths) {
-    // Linear ramp from transition to mature over N months
-    // Section 2: Month k (1..N) = T + (M - T) × (k - 1) / N
-    const k = month;
-    const rampedCost =
-      costByState.transition +
-      (costByState.mature - costByState.transition) * ((k - 1) / transitionMonths);
+  // Overhead and risk amounts ramp with the direct cost they are charged on; their implied rate is then reapplied
+  // to the escalated base, so an unescalated run reproduces the state-level fully loaded cost exactly
+  const directState: Record<State, number> = {
+    baseline: basis.labour.baseline + basis.nonLabour.baseline,
+    transition: basis.labour.transition + basis.nonLabour.transition,
+    mature: basis.labour.mature + basis.nonLabour.mature,
+  };
+  const directRaw = ramp(directState);
+  const overheadRate = directRaw > 0 ? ramp(stateProduct(directState, basis.overheadPercent)) / directRaw : 0;
+  const riskRate = directRaw > 0 ? ramp(stateProduct(directState, basis.riskPercent)) / directRaw : 0;
 
-    return rampedCost * escalationFactor;
-  } else {
-    // Mature phase (month > N)
-    return costByState.mature * escalationFactor;
-  }
+  const escalation = Math.pow(1 + wageEscalationAnnual, Math.floor((month - 1) / 12));
+  const direct = ramp(basis.labour) * escalation + ramp(basis.nonLabour);
+  return direct * (1 + overheadRate + riskRate);
+}
+
+function stateProduct(a: Record<State, number>, b: Record<State, number>): Record<State, number> {
+  return { baseline: a.baseline * b.baseline, transition: a.transition * b.transition, mature: a.mature * b.mature };
 }
 
 /**
@@ -421,12 +472,23 @@ function calculateBenefitLedger(
   });
 
   // Mix effect: FTE_M × blendedRate_B - peopleCost_M
-  const mixEffect = matureHeadcount * baselineBlendedRate - cost.peopleCost.mature;
+  const releasedMatureLabour = cost.peopleCostBeforeRealization.mature;
+  const mixEffect = matureHeadcount * baselineBlendedRate - releasedMatureLabour;
   ledger.push({
     category: 'mixEffect',
     amount: mixEffect,
-    notes: `${fte(matureHeadcount)} × ${money(baselineBlendedRate)} − ${money(cost.peopleCost.mature)}`,
+    notes: `${fte(matureHeadcount)} × ${money(baselineBlendedRate)} − ${money(releasedMatureLabour)}`,
   });
+
+  // Released labour that is kept as redeployed capacity: the cost stays, so it is not a cash saving
+  const redeployed = cost.redeployedLaborCost.mature;
+  if (redeployed !== 0) {
+    ledger.push({
+      category: 'redeployedLabour',
+      amount: -redeployed,
+      notes: `${(scenario.laborRealizationShare * 100).toFixed(0)}% of released labour cashed; ${money(redeployed)} kept as redeployed capacity`,
+    });
+  }
 
   // Non-people cost delta (cost lines)
   let baselineCostLines = 0;
@@ -497,8 +559,8 @@ function calculateFinancialMetrics(
     breakEvenMonth: null,
     totalSavingsOverHorizon: 0,
     totalInvestment: 0,
-    roiPercent: 0,
-    steadyStateAnnualRoi: 0,
+    roiPercent: null,
+    steadyStateAnnualRoi: null,
     npv: 0,
     irr: null,
     lowestCumulativePosition: 0,
@@ -520,7 +582,8 @@ function calculateFinancialMetrics(
       metrics.paybackMonth = month.month;
     }
   }
-  const nothingChanges = monthlyForecast.every(m => m.netCashFlow === 0);
+  // Tolerance absorbs floating-point residue from the ramp when the scenario has no change at all
+  const nothingChanges = monthlyForecast.every(m => Math.abs(m.netCashFlow) < 1e-6);
   if (nothingChanges) metrics.paybackMonth = null;
   metrics.paybackNotInHorizon =
     !nothingChanges && (metrics.paybackMonth === null || metrics.paybackMonth > horizonMonths);

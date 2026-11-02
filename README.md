@@ -2,7 +2,7 @@
 
 Web application for estimating the cost, savings, payback and ROI of introducing AI into an enterprise delivery function (first use case: software testing). Consultants use it with a customer to compare delivery models, from onshore to AI-first, against the customer's current team.
 
-> **Status:** under active development and not yet customer-ready. Done and planned work is tracked in [TASK.md](TASK.md); the reasoning behind the fix order is in [REVIEW_Self_Assessment.md](REVIEW_Self_Assessment.md).
+> **Status:** under active development and not yet customer-ready. Done and planned work is tracked in [TASK.md](TASK.md); historical review notes and the follow-up review checklist are in [REVIEW_Self_Assessment.md](REVIEW_Self_Assessment.md).
 
 ## Quick start
 
@@ -43,7 +43,7 @@ The dashboard builds from inputs to outcome. The section bar carries a **running
 | Advice | Directly under the headline results: a verdict (worth pursuing, marginal, does not pay back, no change), the two most important findings, and further notes. Rule-based, so every statement traces to an input. Also included in the PDF report. |
 | Delivery model comparison | Directly under the headline results: all five models calculated on the same baseline and ranked by NPV, with payback, monthly saving, mature team size and investment. The verdict names the best model and how much the selected model gives up. Select a row to make that model active. |
 | Delivery model panel | Below the comparison: edit the selected model's offshore share and AI adoption, today's offshore share, and the offshore cost level. |
-| Team panel | Choose how headcount is costed: **Derived from AI productivity** (default) or **Staffing plan as entered**. |
+| Team panel | Choose how headcount is costed: **Staffing plan as entered** (default, as in the source model) or **Derived from AI productivity** (opt-in). |
 | What each sourcing option pays for | Cost lines, seat groups and investment items can be tagged with the sourcing options they apply under. Untagged items apply everywhere. Self-hosting pays for its own GPU capacity but not for vendor seats or a private cloud platform, and a vendor API pays for neither GPUs nor a platform. Items that don't apply stay in the scenario, dimmed and marked *not costed with …*, so switching back loses nothing. |
 | Model selection (AI effect section) | Pick **Frontier**, **Enterprise** or **Local / open-weight**. A preset seeds both the cost shape (token price factor, or no token bill plus a self-hosted capacity line) *and* the AI effect (effort cut, review overhead), because a weaker model does less of the work. Everything it writes stays editable, and switching back restores the case — the dated list prices are never rewritten, the premium rides in a factor. |
 | AI effect (own section, and setup step 6) | The central assumption: how much AI cuts the effort on AI-assisted work, once mature and during the transition, and the review overhead it needs (human review, rework, dual running) per stage. Shows the effect on the monthly workload and which work items it applies to; items with fixed hours in Workload are not changed by it. The delivery model's AI adoption scales it. |
@@ -166,9 +166,11 @@ Workload            hours_s(item) = volume × hoursEach_s,  hoursEach_s = overri
                     effort saving % = 1 − core_s / core_baseline
 AI model usage      requests = volume(linked item) × requestsPerUnit
                     cost_s   = requests × (inTokens × inPrice + outTokens × outPrice) / 1e6 × FX × aiAdoption
-Headcount           effort-derived (default): team_s = baselineTeam × totalEffort_s / totalEffort_B,
-                    spread across roles by the staffing plan mix
-                    staffing plan: role FTE as entered
+Headcount           staffing plan (default): role FTE as entered
+                    effort-derived (opt-in): team_s = baselineTeam × totalEffort_s / totalEffort_B,
+                    spread across roles by the staffing plan mix. The baseline stays the customer's
+                    actual team, so this is effort ÷ working hours only when baseline staffing matches baseline effort;
+                    the FTE gap shows the difference.
 Cost                direct = people + cost lines;  fully loaded = direct × (1 + overhead% + risk%)
 Monthly ramp        month k ≤ N: T + (M − T) × (k − 1) / N;  month > N: M
 Cash flow           saving_m = baseline − run cost   (TCO or client-chargeable basis)

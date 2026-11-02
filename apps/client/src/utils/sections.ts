@@ -100,7 +100,7 @@ export const SECTIONS: SectionInfo[] = [
     live: (s, r, money) =>
       `This scenario: ${money(r.financialMetrics.npv)} over ${s.timeValue.horizonMonths} months, ${
         r.financialMetrics.paybackMonth === null ? 'no payback' : `payback in month ${r.financialMetrics.paybackMonth}`
-      }, ROI ${num(r.financialMetrics.roiPercent)}%.`,
+      }, ROI ${r.financialMetrics.roiPercent === null ? 'not defined without an investment' : `${num(r.financialMetrics.roiPercent)}%`}.`,
   },
   {
     id: 'advice',

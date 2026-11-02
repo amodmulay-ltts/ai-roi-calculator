@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { LlmPricing, LlmUsage, Results, Scenario } from '@ai-roi-calc/engine';
-import { aiCostPerDeveloper } from '@ai-roi-calc/engine';
+import { aiCostPerDeveloper, selectedFullyLoaded } from '@ai-roi-calc/engine';
 import Tooltip from './Tooltip';
 
 interface AiUsagePanelProps {
@@ -18,7 +18,8 @@ export default function AiUsagePanel({ scenario, results, formatCurrency, onUpda
   const { cost } = results;
   const pricing = scenario.llmPricing;
   const workload = scenario.kpis.filter(k => k.volumePerMonth !== undefined);
-  const saving = cost.fullyLoaded.baseline - cost.fullyLoaded.mature;
+  const runCost = selectedFullyLoaded(cost, scenario);
+  const saving = runCost.baseline - runCost.mature;
   const priceLabel = (id: string) => pricing.prices.find(p => p.id === id)?.label ?? 'Unknown model';
 
   if (draft) {

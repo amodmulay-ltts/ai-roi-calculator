@@ -3,7 +3,16 @@
  */
 
 export { calculate } from './engine.js';
-export { matureMonthlySaving, paybackStatus, paybackLabel, paybackHeadline, type PaybackStatus } from './payback.js';
+export { DEFAULT_EVALUATION_FACTOR, evaluationComposite, evaluationFactor } from './evaluation.js';
+export {
+  selectedFullyLoaded,
+  selectedDirectOpex,
+  selectedCostView,
+  costBasisLabel,
+  usesChargeableBasis,
+  type SelectedCostView,
+} from './basis.js';
+export { matureMonthlySaving, paybackStatus, paybackLabel, paybackHeadline, roiLabel, type PaybackStatus } from './payback.js';
 export type {
   State,
   Currency,

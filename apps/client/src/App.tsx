@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Scenario, Results, Currency } from '@ai-roi-calc/engine';
-import { calculate, createExampleScenario, convertScenarioCurrency, paybackLabel, paybackStatus, scenarioToYaml } from '@ai-roi-calc/engine';
+import { calculate, createExampleScenario, convertScenarioCurrency, paybackLabel, paybackStatus, roiLabel, scenarioToYaml } from '@ai-roi-calc/engine';
 import CurrencyChangeDialog from './components/CurrencyChangeDialog';
 import TeamSummary from './components/TeamSummary';
 import Header from './components/Header';
@@ -134,12 +134,16 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(scenario),
       });
-      const html = await response.text();
-      const blob = new Blob([html], { type: 'text/html' });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        alert(body?.error ?? 'Failed to export PDF.');
+        return;
+      }
+      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = exportFileName(scenario, 'html');
+      link.download = exportFileName(scenario, 'pdf');
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -321,7 +325,7 @@ export default function App() {
             <span className="hidden sm:inline">
               {paybackStatus(results) === 'never' ? 'never pays back' : paybackLabel(results).toLowerCase()}
             </span>
-            <span className="hidden md:inline">ROI {financialMetrics.roiPercent.toFixed(0)}%</span>
+            <span className="hidden md:inline">ROI {roiLabel(financialMetrics.roiPercent)}</span>
           </a>
         </div>
       </nav>
@@ -559,7 +563,7 @@ export default function App() {
                   <p className="text-sm font-medium text-gray-600">ROI</p>
                   <Tooltip text="(Total savings − total investment) ÷ total investment, over the forecast horizon. Undiscounted." />
                 </div>
-                <p className="text-3xl font-semibold text-gray-900">{financialMetrics.roiPercent.toFixed(0)}%</p>
+                <p className="text-3xl font-semibold text-gray-900">{roiLabel(financialMetrics.roiPercent)}</p>
               </div>
             </div>
           </div>
