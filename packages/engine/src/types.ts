@@ -236,6 +236,11 @@ export interface Scenario {
   // Options
   costChargeable: 'tco' | 'chargeable';
   costAvoidanceIncludedInRoi: boolean;
+  /**
+   * Share of the labour cost released by the target model that is realised as a payroll reduction (0–1).
+   * The rest is kept as redeployed capacity: the team cost stays in place and no cash saving is counted.
+   */
+  laborRealizationShare: number;
 }
 
 // ============ RESULTS ============
@@ -264,7 +269,12 @@ export interface EffortCalculation {
 }
 
 export interface CostCalculation {
+  /** People cost after labour realisation: the cost the case actually carries. */
   peopleCost: Record<State, number>;
+  /** People cost before realisation: the full released-capacity view used by the benefit ledger. */
+  peopleCostBeforeRealization: Record<State, number>;
+  /** Labour cost kept as redeployed capacity (realised minus unrealised), zero when all released cost is cashed. */
+  redeployedLaborCost: Record<State, number>;
   /** AI model usage cost (part of direct OPEX). */
   llmCost: Record<State, number>;
   /** Per-seat licence cost (part of direct OPEX). */
@@ -301,7 +311,7 @@ export interface MonthlyCashFlow {
 }
 
 export interface BenefitLedgerLine {
-  category: 'volumeEffect' | 'mixEffect' | 'nonPeopleCostDelta' | 'overheadDelta' | 'riskDelta' | 'costAvoidance';
+  category: 'volumeEffect' | 'mixEffect' | 'redeployedLabour' | 'nonPeopleCostDelta' | 'overheadDelta' | 'riskDelta' | 'costAvoidance';
   amount: number;
   notes?: string;
 }

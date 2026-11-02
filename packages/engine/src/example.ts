@@ -78,5 +78,6 @@ export function createExampleScenario(): Scenario {
 
     costChargeable: 'tco',
     costAvoidanceIncludedInRoi: false,
+    laborRealizationShare: 1,
   };
 }

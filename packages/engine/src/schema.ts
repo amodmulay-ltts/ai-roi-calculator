@@ -154,6 +154,7 @@ const scenarioFile = z.object({
   baselineBccShare: share.optional(),
   costChargeable: z.enum(['tco', 'chargeable']),
   costAvoidanceIncludedInRoi: z.boolean(),
+  laborRealizationShare: share.optional(),
   costAvoidanceExtraTestCasesPerMonth: z.number().finite().min(0).optional(),
   costAvoidanceExtraScriptsPerMonth: z.number().finite().min(0).optional(),
 });

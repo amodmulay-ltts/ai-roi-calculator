@@ -54,6 +54,7 @@ describe('PDF report follows the selected cost basis', () => {
     const tcoHtml = generatePdfHtml(tco, calculate(tco));
 
     expect(chargeableHtml).toContain('Cost basis: Client-chargeable cost');
+    expect(chargeableHtml).toContain('Released labour cashed: 100%');
     expect(tcoHtml).toContain('Cost basis: Total cost of ownership (TCO)');
     // The reference has non-chargeable cost, so the mature saving shown must differ between the two lenses
     expect(kpiAfter(chargeableHtml, 'Mature Saving/mo')).not.toBe(kpiAfter(tcoHtml, 'Mature Saving/mo'));

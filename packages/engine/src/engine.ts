@@ -202,6 +202,8 @@ function getProductivityFactor(scenario: Scenario): Record<State, number> {
 function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortCalculation): CostCalculation {
   const result: CostCalculation = {
     peopleCost: { baseline: 0, transition: 0, mature: 0 },
+    peopleCostBeforeRealization: { baseline: 0, transition: 0, mature: 0 },
+    redeployedLaborCost: { baseline: 0, transition: 0, mature: 0 },
     llmCost: { baseline: 0, transition: 0, mature: 0 },
     llmCostByUsage: {},
     llmRequestsPerMonth: {},
@@ -238,7 +240,11 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
     scenario.roles.forEach((role, i) => {
       peopleCost += effort.roleFte[i]![state] * effectiveRate(role, state, ctx);
     });
-    result.peopleCost[state] = peopleCost;
+    result.peopleCostBeforeRealization[state] = peopleCost;
+    // Labour realisation (concept step on released capacity): only released cost is shared out; cost increases stay
+    const realizedLabour = state === 'baseline' ? peopleCost : realizeLabour(peopleCost, result.peopleCostBeforeRealization.baseline, scenario.laborRealizationShare);
+    result.peopleCost[state] = realizedLabour;
+    result.redeployedLaborCost[state] = realizedLabour - peopleCost;
 
     // Cost lines
     let costLinesTotal = 0;
@@ -252,8 +258,8 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
     }
 
     // Direct OPEX (model usage and seats are chargeable, like the AI cost lines)
-    result.directOpex[state] = peopleCost + costLinesTotal + llm.total[state] + seats.total[state];
-    result.chargeableDirectOpex[state] = peopleCost + costLinesChargeable + llm.total[state] + seats.total[state];
+    result.directOpex[state] = realizedLabour + costLinesTotal + llm.total[state] + seats.total[state];
+    result.chargeableDirectOpex[state] = realizedLabour + costLinesChargeable + llm.total[state] + seats.total[state];
 
     // Overhead and risk
     const overheadPercent = scenario.globalAssumptions.corporateOverheadPercent[state];
@@ -273,6 +279,14 @@ function calculateCost(scenario: Scenario, ctx: DeliveryContext, effort: EffortC
   result.costAvoidance = calculateCostAvoidance(scenario, ctx, effort, result.peopleCost.baseline);
 
   return result;
+}
+
+/**
+ * Labour realisation: a released-cost reduction is counted only for the realised share; a cost increase is kept whole.
+ */
+function realizeLabour(unrealized: number, baseline: number, realizationShare: number): number {
+  if (unrealized >= baseline) return unrealized;
+  return baseline - realizationShare * (baseline - unrealized);
 }
 
 /**
@@ -463,12 +477,23 @@ function calculateBenefitLedger(
   });
 
   // Mix effect: FTE_M × blendedRate_B - peopleCost_M
-  const mixEffect = matureHeadcount * baselineBlendedRate - cost.peopleCost.mature;
+  const releasedMatureLabour = cost.peopleCostBeforeRealization.mature;
+  const mixEffect = matureHeadcount * baselineBlendedRate - releasedMatureLabour;
   ledger.push({
     category: 'mixEffect',
     amount: mixEffect,
-    notes: `${fte(matureHeadcount)} × ${money(baselineBlendedRate)} − ${money(cost.peopleCost.mature)}`,
+    notes: `${fte(matureHeadcount)} × ${money(baselineBlendedRate)} − ${money(releasedMatureLabour)}`,
   });
+
+  // Released labour that is kept as redeployed capacity: the cost stays, so it is not a cash saving
+  const redeployed = cost.redeployedLaborCost.mature;
+  if (redeployed !== 0) {
+    ledger.push({
+      category: 'redeployedLabour',
+      amount: -redeployed,
+      notes: `${(scenario.laborRealizationShare * 100).toFixed(0)}% of released labour cashed; ${money(redeployed)} kept as redeployed capacity`,
+    });
+  }
 
   // Non-people cost delta (cost lines)
   let baselineCostLines = 0;

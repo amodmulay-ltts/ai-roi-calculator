@@ -153,6 +153,16 @@ export function advise(input: Scenario, results: Results): Advice {
     });
   }
 
+  // ---------- Released labour not cashed (labour realisation) ----------
+  if (cost.redeployedLaborCost.mature > 0) {
+    findings.push({
+      id: 'labour-realisation',
+      severity: 'info',
+      title: `Only ${pct(scenario.laborRealizationShare)} of released labour is counted as cash`,
+      detail: `${money(cost.redeployedLaborCost.mature)} a month of released labour stays as redeployed capacity and is not counted as saving. Raise the share only when the released hours will leave payroll.`,
+    });
+  }
+
   // ---------- Headcount backed by effort (F9 FTE gap) ----------
   const plan = effort.planFte.mature;
   const costed = effort.staffingFte.mature;

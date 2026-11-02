@@ -143,3 +143,50 @@ describe('Selected cost basis reaches every reader', () => {
     expect(costBasisLabel({ costChargeable: 'chargeable' })).toMatch(/client-chargeable/i);
   });
 });
+
+describe('Labour realisation (released capacity is not automatically cash)', () => {
+  const withShare = (share: number, edit?: (s: Scenario) => void): Scenario => {
+    const s = createDefaultScenario();
+    s.peopleMode = { mode: 'staffing-plan' };
+    s.laborRealizationShare = share;
+    edit?.(s);
+    return s;
+  };
+
+  it('counts all released labour as cash at 100% (the reference assumption)', () => {
+    const r = calculate(withShare(1));
+    expect(r.cost.peopleCost.mature).toBeCloseTo(r.cost.peopleCostBeforeRealization.mature, 6);
+    expect(r.cost.redeployedLaborCost.mature).toBeCloseTo(0, 6);
+    expect(r.benefitLedger.find(l => l.category === 'redeployedLabour')).toBeUndefined();
+  });
+
+  it('keeps the unrealised share of released labour as redeployed cost at 50%', () => {
+    const r = calculate(withShare(0.5));
+    const baseline = r.cost.peopleCostBeforeRealization.baseline;
+    const released = baseline - r.cost.peopleCostBeforeRealization.mature;
+    expect(released).toBeGreaterThan(0);
+    expect(r.cost.peopleCost.mature).toBeCloseTo(baseline - 0.5 * released, 4);
+    expect(r.cost.redeployedLaborCost.mature).toBeCloseTo(0.5 * released, 4);
+    expect(r.financialMetrics.totalSavingsOverHorizon).toBeLessThan(calculate(withShare(1)).financialMetrics.totalSavingsOverHorizon);
+  });
+
+  it('counts no people saving at 0%', () => {
+    const r = calculate(withShare(0));
+    expect(r.cost.peopleCost.mature).toBeCloseTo(r.cost.peopleCost.baseline, 6);
+  });
+
+  it('never reduces a cost increase, whatever the share', () => {
+    const r = calculate(withShare(0, s => s.roles.forEach(role => (role.fte.mature = role.fte.mature * 2))));
+    expect(r.cost.peopleCostBeforeRealization.mature).toBeGreaterThan(r.cost.peopleCost.baseline);
+    expect(r.cost.peopleCost.mature).toBeCloseTo(r.cost.peopleCostBeforeRealization.mature, 6);
+    expect(r.cost.redeployedLaborCost.mature).toBeCloseTo(0, 6);
+  });
+
+  it('keeps the benefit ledger reconciled to the monthly saving at a partial share', () => {
+    const r = calculate(withShare(0.5));
+    const ledgerTotal = r.benefitLedger
+      .filter(l => l.category !== 'costAvoidance')
+      .reduce((sum, l) => sum + l.amount, 0);
+    expect(ledgerTotal).toBeCloseTo(r.cost.fullyLoaded.baseline - r.cost.fullyLoaded.mature, 4);
+  });
+});

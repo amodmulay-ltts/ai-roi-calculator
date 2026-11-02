@@ -99,6 +99,7 @@ ${scenario.isExample ? '<div class="example-flag">EXAMPLE CALCULATION &middot; F
     <p>Generated: ${new Date().toLocaleDateString()}</p>
     <p>Currency: ${scenario.baseCurrency}</p>
     <p>Cost basis: ${escapeHtml(basisLabel)}</p>
+    <p>Released labour cashed: ${Math.round(scenario.laborRealizationShare * 100)}%</p>
   </div>
 </div>
 
@@ -260,6 +261,7 @@ export function generateExcelData(scenario: Scenario, results: Results) {
           ['Cost Analysis by State'],
           [''],
           ['Cost basis', basisLabel],
+          ['Released labour cashed', `${Math.round(scenario.laborRealizationShare * 100)}%`],
           ['Metric', 'Baseline', 'Transition', 'Mature'],
           ['People Cost', cost.peopleCost.baseline, cost.peopleCost.transition, cost.peopleCost.mature],
           ['Direct OPEX', directOpex.baseline, directOpex.transition, directOpex.mature],
