@@ -148,7 +148,9 @@ UI rule for all screens: one hero element, two supporting, everything else small
   - [ ] 2-way sensitivity table (productivity vs transition)
   - [ ] Interactive highlighting
 
-### Feature 5: Implementation Model Selector
+### Feature 5: Implementation Model Selector (deferred)
+
+> Scope decision (2026-11-02): the product compares location mix and AI adoption. In-house / outsourced / hybrid vendor rules are deferred; see Build Prompt §5.6.
 - **Priority**: Medium
 - **Estimated Time**: 20-25 minutes
 - **Components**: ModelSelector.tsx, ModelComparison.tsx
@@ -336,7 +338,7 @@ npm run dev
 **4. Analyze results:**
 - View charts: cumulative cash flow, monthly OPEX, FTE comparison
 - Run sensitivity: tornado chart and 2-way table
-- Choose implementation: In-house, Outsourced, or Hybrid
+- Choose the target delivery model (location mix and AI adoption)
 
 **5. Export your analysis:**
 - JSON file (for data integration)

@@ -111,7 +111,7 @@ The following maps the concept to the current implementation. It records materia
 | Baseline and target | Baseline FTE and today's delivery share are separate from the selected target delivery profile. Target AI adoption and location mix affect the proposed case. |
 | Workload and AI effect | Work items are represented by KPI/workload entries with volume, effort, optional overrides, and a review-overhead flag. AI review, rework, and dual-running overhead are tracked separately from core work. |
 | Team | Effort-derived and staffing-plan modes are supported. Team/workload gaps are available for review. |
-| Delivery and sourcing | Delivery profiles combine AI adoption and best-cost-country share. Sourcing presets select assumptions for hosted, enterprise, or local operation and filter costs that do not apply. |
+| Delivery and sourcing | Delivery profiles combine AI adoption and best-cost-country share. Sourcing presets select assumptions for hosted, enterprise, or local operation and filter costs that do not apply. Known gap: outsourced and hybrid vendor pricing (vendor bill rates, retained-organisation share, platform and transition fees) is not implemented and is not offered as a comparison. |
 | Costs and investment | Role costs, per-state cost lines, model usage, seats, chargeability, and phased one-time investments contribute to the scenario. |
 | Time and financial results | The engine builds a monthly forecast across the transition and mature phases, then calculates cumulative cash flow and financial metrics from the selected cost basis. |
 | Cost avoidance and explanation | Additional absorbable work is represented separately and can be excluded from return calculations. A benefit ledger and rule-based advice explain results. |
