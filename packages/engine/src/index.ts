@@ -3,6 +3,14 @@
  */
 
 export { calculate } from './engine.js';
+export {
+  selectedFullyLoaded,
+  selectedDirectOpex,
+  selectedCostView,
+  costBasisLabel,
+  usesChargeableBasis,
+  type SelectedCostView,
+} from './basis.js';
 export { matureMonthlySaving, paybackStatus, paybackLabel, paybackHeadline, type PaybackStatus } from './payback.js';
 export type {
   State,

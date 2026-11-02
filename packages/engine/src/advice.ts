@@ -3,6 +3,7 @@ import { calculate } from './engine.js';
 import { deliveryContext, effectiveLineAmount } from './delivery.js';
 import { aiCostPerDeveloper, seatsIncludingUsage } from './seats.js';
 import { activeForSourcing } from './sourcing.js';
+import { selectedFullyLoaded } from './basis.js';
 
 export type VerdictTone = 'strong' | 'marginal' | 'negative' | 'no-change';
 export type FindingSeverity = 'warning' | 'info';
@@ -79,7 +80,7 @@ export function advise(input: Scenario, results: Results): Advice {
   const money = (v: number) => formatMoney(v, scenario.baseCurrency);
   const { financialMetrics: fm, cost, effort } = results;
   const horizon = scenario.timeValue.horizonMonths;
-  const runCost = scenario.costChargeable === 'chargeable' ? cost.chargeableFullyLoaded : cost.fullyLoaded;
+  const runCost = selectedFullyLoaded(cost, scenario);
   const saving = runCost.baseline - runCost.mature;
   const derived = scenario.peopleMode.mode === 'effort-derived';
   const ctx = deliveryContext(scenario);
@@ -177,7 +178,8 @@ export function advise(input: Scenario, results: Results): Advice {
 
   // ---------- Transition dip ----------
   // Only meaningful when the case recovers; for losing cases the lowest point is simply the final loss.
-  const transitionExtra = cost.fullyLoaded.transition - cost.fullyLoaded.baseline;
+  const runCostBasis = selectedFullyLoaded(cost, scenario);
+  const transitionExtra = runCostBasis.transition - runCostBasis.baseline;
   const beforePayback = results.monthlyForecast.filter(m => fm.paybackMonth !== null && m.month < fm.paybackMonth);
   const lowestCash = Math.min(0, ...beforePayback.map(m => m.cumulativeCashFlow));
   if (transitionExtra > 0 && fm.paybackMonth !== null && !fm.paybackNotInHorizon) {

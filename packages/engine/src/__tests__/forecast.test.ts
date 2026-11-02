@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { calculate, createExampleScenario } from '../index.js';
+import { calculate, createDefaultScenario, createExampleScenario } from '../index.js';
 import type { Scenario } from '../index.js';
 
 const withEscalation = (rate: number): Scenario => {
@@ -96,5 +96,50 @@ describe('Cost basis drives the forecast', () => {
     expect(m.runCostChargeable).toBeCloseTo(r.cost.chargeableFullyLoaded.mature, 6);
     expect(m.baselineCostChargeable).toBeCloseTo(r.cost.chargeableFullyLoaded.baseline, 6);
     expect(m.netCashFlow).toBeCloseTo(m.savingChargeable, 6);
+  });
+});
+
+describe('Selected cost basis reaches every reader', () => {
+  const chargeableOf = (s: Scenario): Scenario => ({ ...s, costChargeable: 'chargeable' });
+
+  it('uses the chargeable lens for the mature average, monthly saving and cost rows', async () => {
+    // The reference scenario carries a non-chargeable capex line, so the two lenses really differ
+    const tco = calculate(createDefaultScenario());
+    const chargeable = calculate(chargeableOf(createDefaultScenario()));
+    expect(chargeable.cost.chargeableFullyLoaded.mature).toBeLessThan(tco.cost.fullyLoaded.mature);
+
+    expect(tco.matureMonthlyAverage).toBeCloseTo(tco.cost.fullyLoaded.mature, 6);
+    expect(chargeable.matureMonthlyAverage).toBeCloseTo(chargeable.cost.chargeableFullyLoaded.mature, 6);
+
+    const { matureMonthlySaving } = await import('../index.js');
+    expect(matureMonthlySaving(chargeable)).toBeCloseTo(
+      chargeable.cost.chargeableFullyLoaded.baseline - chargeable.cost.chargeableFullyLoaded.mature,
+      6
+    );
+  });
+
+  it('selects one consistent set of cost rows for each lens', async () => {
+    const { selectedCostView } = await import('../index.js');
+    const r = calculate(createDefaultScenario());
+    const tcoView = selectedCostView(r.cost, { costChargeable: 'tco' });
+    const chargeableView = selectedCostView(r.cost, { costChargeable: 'chargeable' });
+
+    expect(tcoView.fullyLoaded).toEqual(r.cost.fullyLoaded);
+    expect(tcoView.overhead).toEqual(r.cost.overhead);
+    expect(chargeableView.overhead).toEqual(r.cost.chargeableOverhead);
+    expect(chargeableView.risk).toEqual(r.cost.chargeableRisk);
+    expect(chargeableView.directOpex).toEqual(r.cost.chargeableDirectOpex);
+    // Each lens reconciles: direct + overhead + risk = fully loaded
+    for (const view of [tcoView, chargeableView]) {
+      for (const state of ['baseline', 'transition', 'mature'] as const) {
+        expect(view.directOpex[state] + view.overhead[state] + view.risk[state]).toBeCloseTo(view.fullyLoaded[state], 6);
+      }
+    }
+  });
+
+  it('labels the lens so exports can state it', async () => {
+    const { costBasisLabel } = await import('../index.js');
+    expect(costBasisLabel({ costChargeable: 'tco' })).toMatch(/total cost of ownership/i);
+    expect(costBasisLabel({ costChargeable: 'chargeable' })).toMatch(/client-chargeable/i);
   });
 });

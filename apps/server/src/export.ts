@@ -3,7 +3,7 @@
  */
 
 import type { Scenario, Results } from '@ai-roi-calc/engine';
-import { advise } from '@ai-roi-calc/engine';
+import { advise, costBasisLabel, selectedCostView } from '@ai-roi-calc/engine';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,6 +29,10 @@ export function safeFileName(scenario: Scenario, ext: string): string {
  */
 export function generatePdfHtml(scenario: Scenario, results: Results): string {
   const { financialMetrics, cost, effort } = results;
+  const view = selectedCostView(cost, scenario);
+  const runCost = view.fullyLoaded;
+  const directOpex = view.directOpex;
+  const basisLabel = costBasisLabel(scenario);
   const advice = advise(scenario, results);
   const currency = scenario.baseCurrency;
   const formatCurrency = (value: number, _currency?: string) =>
@@ -94,6 +98,7 @@ ${scenario.isExample ? '<div class="example-flag">EXAMPLE CALCULATION &middot; F
   <div class="metadata">
     <p>Generated: ${new Date().toLocaleDateString()}</p>
     <p>Currency: ${scenario.baseCurrency}</p>
+    <p>Cost basis: ${escapeHtml(basisLabel)}</p>
   </div>
 </div>
 
@@ -117,7 +122,7 @@ ${scenario.isExample ? '<div class="example-flag">EXAMPLE CALCULATION &middot; F
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Mature Saving/mo</div>
-      <div class="kpi-value">${formatCurrency(cost.fullyLoaded.baseline - cost.fullyLoaded.mature, scenario.baseCurrency)}</div>
+      <div class="kpi-value">${formatCurrency(runCost.baseline - runCost.mature, scenario.baseCurrency)}</div>
     </div>
   </div>
 
@@ -164,20 +169,20 @@ ${scenario.isExample ? '<div class="example-flag">EXAMPLE CALCULATION &middot; F
     <tr>
       <td>Baseline</td>
       <td class="text-right">${formatCurrency(cost.peopleCost.baseline, scenario.baseCurrency)}</td>
-      <td class="text-right">${formatCurrency(cost.directOpex.baseline, scenario.baseCurrency)}</td>
-      <td class="text-right">${formatCurrency(cost.fullyLoaded.baseline, scenario.baseCurrency)}</td>
+      <td class="text-right">${formatCurrency(directOpex.baseline, scenario.baseCurrency)}</td>
+      <td class="text-right">${formatCurrency(runCost.baseline, scenario.baseCurrency)}</td>
     </tr>
     <tr>
       <td>Transition</td>
       <td class="text-right">${formatCurrency(cost.peopleCost.transition, scenario.baseCurrency)}</td>
-      <td class="text-right">${formatCurrency(cost.directOpex.transition, scenario.baseCurrency)}</td>
-      <td class="text-right">${formatCurrency(cost.fullyLoaded.transition, scenario.baseCurrency)}</td>
+      <td class="text-right">${formatCurrency(directOpex.transition, scenario.baseCurrency)}</td>
+      <td class="text-right">${formatCurrency(runCost.transition, scenario.baseCurrency)}</td>
     </tr>
     <tr>
       <td>Mature</td>
       <td class="text-right">${formatCurrency(cost.peopleCost.mature, scenario.baseCurrency)}</td>
-      <td class="text-right">${formatCurrency(cost.directOpex.mature, scenario.baseCurrency)}</td>
-      <td class="text-right">${formatCurrency(cost.fullyLoaded.mature, scenario.baseCurrency)}</td>
+      <td class="text-right">${formatCurrency(directOpex.mature, scenario.baseCurrency)}</td>
+      <td class="text-right">${formatCurrency(runCost.mature, scenario.baseCurrency)}</td>
     </tr>
   </table>
 
@@ -221,6 +226,10 @@ ${scenario.isExample ? '<div class="example-flag">EXAMPLE CALCULATION &middot; F
  */
 export function generateExcelData(scenario: Scenario, results: Results) {
   const { cost, effort, financialMetrics, monthlyForecast, benefitLedger } = results;
+  const view = selectedCostView(cost, scenario);
+  const directOpex = view.directOpex;
+  const runCost = view.fullyLoaded;
+  const basisLabel = costBasisLabel(scenario);
 
   return {
     sheets: [
@@ -233,6 +242,7 @@ export function generateExcelData(scenario: Scenario, results: Results) {
           ['Client Name', scenario.clientName],
           ['Use Case', scenario.useCase],
           ['Currency', scenario.baseCurrency],
+          ['Cost basis', basisLabel],
           ['Generated', new Date().toISOString()],
           [''],
           ['Financial Metrics'],
@@ -249,12 +259,13 @@ export function generateExcelData(scenario: Scenario, results: Results) {
         rows: [
           ['Cost Analysis by State'],
           [''],
+          ['Cost basis', basisLabel],
           ['Metric', 'Baseline', 'Transition', 'Mature'],
           ['People Cost', cost.peopleCost.baseline, cost.peopleCost.transition, cost.peopleCost.mature],
-          ['Direct OPEX', cost.directOpex.baseline, cost.directOpex.transition, cost.directOpex.mature],
-          ['Overhead', cost.overhead.baseline, cost.overhead.transition, cost.overhead.mature],
-          ['Risk', cost.risk.baseline, cost.risk.transition, cost.risk.mature],
-          ['Fully Loaded', cost.fullyLoaded.baseline, cost.fullyLoaded.transition, cost.fullyLoaded.mature],
+          ['Direct OPEX', directOpex.baseline, directOpex.transition, directOpex.mature],
+          ['Overhead', view.overhead.baseline, view.overhead.transition, view.overhead.mature],
+          ['Risk', view.risk.baseline, view.risk.transition, view.risk.mature],
+          ['Fully Loaded', runCost.baseline, runCost.transition, runCost.mature],
         ],
       },
       {

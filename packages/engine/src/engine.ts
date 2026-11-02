@@ -26,6 +26,7 @@ import {
 import { llmCosts } from './llm.js';
 import { seatCosts } from './seats.js';
 import { activeForSourcing } from './sourcing.js';
+import { selectedFullyLoaded } from './basis.js';
 
 /**
  * Main entry point: calculate(scenario) -> Results
@@ -48,7 +49,7 @@ export function calculate(input: Scenario): Results {
     monthlyForecast,
     benefitLedger,
     financialMetrics,
-    matureMonthlyAverage: cost.fullyLoaded.mature,
+    matureMonthlyAverage: selectedFullyLoaded(cost, scenario).mature,
   };
 }
 

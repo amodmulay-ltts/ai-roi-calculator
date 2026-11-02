@@ -1,9 +1,10 @@
 import type { Results } from './types.js';
+import { selectedFullyLoaded } from './basis.js';
 
 /** Monthly saving once mature, on the cost basis the scenario uses. Negative = costs more than today. */
 export function matureMonthlySaving(results: Results): number {
   const { scenario, cost } = results;
-  const runCost = scenario.costChargeable === 'chargeable' ? cost.chargeableFullyLoaded : cost.fullyLoaded;
+  const runCost = selectedFullyLoaded(cost, scenario);
   return runCost.baseline - runCost.mature;
 }
 
