@@ -7,6 +7,7 @@ import { normalizeScenario } from './defaults.js';
 const text = z.string().max(200);
 const money = z.number().finite().min(0).max(1e12);
 const share = z.number().finite().min(0).max(1);
+const score = z.number().finite().min(0).max(100);
 const perState = <T extends z.ZodTypeAny>(t: T) => z.object({ baseline: t, transition: t, mature: t });
 const currency = z.enum(CURRENCIES as [string, ...string[]]);
 const model = z.enum(DELIVERY_MODELS as [string, ...string[]]);
@@ -144,7 +145,37 @@ const scenarioFile = z.object({
   oneTimeInvestment: z.array(investment).max(500),
   productivityFactor: z.union([
     z.object({ mode: z.literal('direct-factor'), transition: z.number().finite().positive(), mature: z.number().finite().positive() }),
-    z.object({ mode: z.literal('evaluation-derived') }).passthrough(),
+    z.object({
+      mode: z.literal('evaluation-derived'),
+      tiers: z
+        .array(
+          z.object({
+            name: z.enum(['llm', 'multiAgent', 'multiTurn']),
+            weight: z.number().finite().min(0),
+            dimensions: z
+              .array(
+                z.object({
+                  name: z.enum(['relevance', 'correctness', 'hallucination', 'toolCompletion', 'governance']),
+                  score: z.object({ baseline: score, transition: score, mature: score }),
+                  weight: z.number().finite().min(0),
+                })
+              )
+              .min(1),
+          })
+        )
+        .min(1),
+      activities: z
+        .array(
+          z.object({
+            name: z.enum(['testDesign', 'scriptDev', 'execution', 'defectRca', 'reporting']),
+            effortShare: share,
+            maxAiReduction: share,
+          })
+        )
+        .min(1)
+        .refine(acts => Math.abs(acts.reduce((sum, a) => sum + a.effortShare, 0) - 1) < 1e-6, 'activity effort shares must sum to 100%'),
+      adoption: z.object({ baseline: share, transition: share, mature: share }),
+    }),
   ]),
   primaryModel: z.string().max(50),
   deliveryProfiles: z

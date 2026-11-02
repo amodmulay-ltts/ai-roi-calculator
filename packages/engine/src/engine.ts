@@ -27,6 +27,7 @@ import { llmCosts } from './llm.js';
 import { seatCosts } from './seats.js';
 import { activeForSourcing } from './sourcing.js';
 import { selectedFullyLoaded } from './basis.js';
+import { evaluationFactor } from './evaluation.js';
 
 /**
  * Main entry point: calculate(scenario) -> Results
@@ -186,13 +187,7 @@ function getProductivityFactor(scenario: Scenario): Record<State, number> {
     };
   }
 
-  // Evaluation-derived mode (not fully implemented in v1, but structure in place)
-  // For now, return direct factor defaults
-  return {
-    baseline: 1,
-    transition: 0.5801,
-    mature: 0.3864,
-  };
+  return evaluationFactor(scenario.productivityFactor);
 }
 
 /**

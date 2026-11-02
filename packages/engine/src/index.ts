@@ -3,6 +3,7 @@
  */
 
 export { calculate } from './engine.js';
+export { DEFAULT_EVALUATION_FACTOR, evaluationComposite, evaluationFactor } from './evaluation.js';
 export {
   selectedFullyLoaded,
   selectedDirectOpex,
