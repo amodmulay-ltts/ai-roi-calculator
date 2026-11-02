@@ -418,7 +418,8 @@ function createInrReferenceScenario(): Scenario {
     },
 
     roles: JSON.parse(JSON.stringify(DEFAULT_ROLES)),
-    peopleMode: { mode: 'effort-derived' },
+    // Brief F9: the staffing plan is the default and matches the source model; effort-derived is opt-in
+    peopleMode: { mode: 'staffing-plan' },
 
     kpis: JSON.parse(JSON.stringify(DEFAULT_KPIS)),
 

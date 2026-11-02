@@ -20,7 +20,7 @@ Browser testing: `npm run smoke` (real Chrome) covers example, help, setup, auto
 | 2 | Currency: convert vs relabel, editable FX rates, EUR default converted from INR reference | Done, engine-tested |
 | 3 | Delivery models drive the engine (BCC share × AI adoption), baseline fixed | Done, engine-tested |
 | – | YAML/JSON save and load (full scenario, validated on import) | Done, engine-tested |
-| 4 | Effort-derived FTE as default (productivity drives cost) | Done, engine-tested |
+| 4 | Effort-derived FTE as default (productivity drives cost) | Superseded 2026-11-02: staffing plan is the default (brief F9); effort-derived is opt-in |
 | 5 | Side-by-side delivery-model comparison | Done, engine-tested + render-tested |
 | 6 | Per-use-case templates: generic workload (volume × hours), testing / development / support | Done, engine-tested + render-tested |
 | 7 | Warnings panel + rule-based advice (dashboard and PDF) | Done, engine-tested + render-tested |

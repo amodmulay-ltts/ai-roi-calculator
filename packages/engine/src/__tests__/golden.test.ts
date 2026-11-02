@@ -177,12 +177,13 @@ describe('Edge Cases', () => {
 describe('Effort-derived people mode (F9)', () => {
   const derived = (edit?: (s: Scenario) => void) => {
     const s = createDefaultScenario('INR');
+    s.peopleMode = { mode: 'effort-derived' };
     edit?.(s);
     return calculate(s);
   };
 
-  it('is the default for new scenarios', () => {
-    expect(createDefaultScenario().peopleMode.mode).toBe('effort-derived');
+  it('is opt-in: the staffing plan is the default for new scenarios', () => {
+    expect(createDefaultScenario().peopleMode.mode).toBe('staffing-plan');
   });
 
   it('keeps the baseline as the actual team and payroll', () => {
