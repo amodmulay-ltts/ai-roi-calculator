@@ -3,7 +3,7 @@
  */
 
 import type { Scenario, Results } from '@ai-roi-calc/engine';
-import { advise, costBasisLabel, selectedCostView } from '@ai-roi-calc/engine';
+import { advise, costBasisLabel, roiLabel, selectedCostView } from '@ai-roi-calc/engine';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -115,7 +115,7 @@ ${scenario.isExample ? '<div class="example-flag">EXAMPLE CALCULATION &middot; F
     </div>
     <div class="kpi-card">
       <div class="kpi-label">ROI (${horizon} months)</div>
-      <div class="kpi-value">${financialMetrics.roiPercent.toFixed(1)}%</div>
+      <div class="kpi-value">${roiLabel(financialMetrics.roiPercent, 1)}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">NPV @ ${discountPct}%</div>
@@ -248,7 +248,7 @@ export function generateExcelData(scenario: Scenario, results: Results) {
           [''],
           ['Financial Metrics'],
           ['Payback Month', financialMetrics.paybackMonth],
-          [`ROI % (${scenario.timeValue.horizonMonths} months)`, financialMetrics.roiPercent.toFixed(2)],
+          [`ROI % (${scenario.timeValue.horizonMonths} months)`, roiLabel(financialMetrics.roiPercent, 2)],
           [`NPV @ ${(scenario.timeValue.discountRateAnnual * 100).toFixed(0)}%`, financialMetrics.npv.toFixed(2)],
           ['Total Investment', financialMetrics.totalInvestment.toFixed(2)],
           ['Total Savings', financialMetrics.totalSavingsOverHorizon.toFixed(2)],

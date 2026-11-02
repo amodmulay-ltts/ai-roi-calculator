@@ -322,8 +322,10 @@ export interface FinancialMetrics {
   breakEvenMonth: number | null;
   totalSavingsOverHorizon: number;
   totalInvestment: number;
-  roiPercent: number;
-  steadyStateAnnualRoi: number;
+  /** Null when there is no investment: ROI is then undefined, not 0%. */
+  roiPercent: number | null;
+  /** Null when there is no investment. */
+  steadyStateAnnualRoi: number | null;
   npv: number;
   irr: number | null;
   lowestCumulativePosition: number;

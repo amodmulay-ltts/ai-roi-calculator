@@ -190,3 +190,34 @@ describe('Labour realisation (released capacity is not automatically cash)', () 
     expect(ledgerTotal).toBeCloseTo(r.cost.fullyLoaded.baseline - r.cost.fullyLoaded.mature, 4);
   });
 });
+
+describe('ROI with no investment', () => {
+  const noInvestment = (s: Scenario): Scenario => ({ ...s, oneTimeInvestment: [] });
+
+  it('is undefined rather than 0% when there is a saving', async () => {
+    const { roiLabel, advise } = await import('../index.js');
+    const r = calculate(noInvestment(createExampleScenario()));
+    expect(r.financialMetrics.totalInvestment).toBe(0);
+    expect(r.financialMetrics.totalSavingsOverHorizon).toBeGreaterThan(0);
+    expect(r.financialMetrics.roiPercent).toBeNull();
+    expect(r.financialMetrics.steadyStateAnnualRoi).toBeNull();
+    expect(roiLabel(r.financialMetrics.roiPercent)).toBe('n/a');
+    expect(advise(noInvestment(createExampleScenario()), r).summary).not.toMatch(/ROI/);
+  });
+
+  it('is undefined when there is neither investment nor saving', async () => {
+    const { roiLabel } = await import('../index.js');
+    const s = noInvestment(createDefaultScenario());
+    s.primaryModel = 'onshore';
+    const r = calculate(s);
+    expect(r.financialMetrics.roiPercent).toBeNull();
+    expect(roiLabel(r.financialMetrics.roiPercent)).toBe('n/a');
+  });
+
+  it('still reports a percentage once there is an investment', async () => {
+    const { roiLabel } = await import('../index.js');
+    const r = calculate(createExampleScenario());
+    expect(r.financialMetrics.roiPercent).not.toBeNull();
+    expect(roiLabel(r.financialMetrics.roiPercent)).toMatch(/%$/);
+  });
+});

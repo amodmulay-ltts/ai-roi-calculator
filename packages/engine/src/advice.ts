@@ -38,6 +38,8 @@ export function formatMoney(value: number, currency: Currency): string {
 }
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
+/** ROI wording for summaries; omitted when there is no investment to measure it against. */
+const roiPhrase = (roi: number | null) => (roi === null ? '' : ` (ROI ${Math.round(roi)}%)`);
 
 /**
  * Scales only the effort reduction (productivity factor and KPI overrides) by `share`, keeping every cost.
@@ -102,14 +104,14 @@ export function advise(input: Scenario, results: Results): Advice {
       saving > 0
         ? `It saves ${money(saving)} a month once mature, but that does not recover the ${money(fm.totalInvestment)} investment and the transition costs in time.`
         : `Once mature it costs ${money(-saving)} a month more than today, so it never pays back.`;
-  } else if (fm.roiPercent < MARGINAL_ROI_PERCENT || (fm.paybackMonth ?? 0) > horizon * 0.6) {
+  } else if ((fm.roiPercent !== null && fm.roiPercent < MARGINAL_ROI_PERCENT) || (fm.paybackMonth ?? 0) > horizon * 0.6) {
     tone = 'marginal';
     headline = `Pays back in month ${fm.paybackMonth}, with a thin margin.`;
-    summary = `${money(fm.npv)} of value over ${horizon} months (ROI ${Math.round(fm.roiPercent)}%). Small changes in the assumptions can turn it negative.`;
+    summary = `${money(fm.npv)} of value over ${horizon} months${roiPhrase(fm.roiPercent)}. Small changes in the assumptions can turn it negative.`;
   } else {
     tone = 'strong';
     headline = `Pays back in month ${fm.paybackMonth} and creates ${money(fm.npv)} over ${horizon} months.`;
-    summary = `Saves ${money(saving)} a month once mature, for a ${money(fm.totalInvestment)} investment (ROI ${Math.round(fm.roiPercent)}%).`;
+    summary = `Saves ${money(saving)} a month once mature, for a ${money(fm.totalInvestment)} investment${roiPhrase(fm.roiPercent)}.`;
   }
 
   if (nothingChanges) return { tone, headline, summary, findings };

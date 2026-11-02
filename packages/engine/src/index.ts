@@ -12,7 +12,7 @@ export {
   usesChargeableBasis,
   type SelectedCostView,
 } from './basis.js';
-export { matureMonthlySaving, paybackStatus, paybackLabel, paybackHeadline, type PaybackStatus } from './payback.js';
+export { matureMonthlySaving, paybackStatus, paybackLabel, paybackHeadline, roiLabel, type PaybackStatus } from './payback.js';
 export type {
   State,
   Currency,

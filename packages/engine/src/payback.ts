@@ -22,6 +22,11 @@ export function paybackStatus(results: Results): PaybackStatus {
   return matureMonthlySaving(results) > 0 ? 'too-slow' : 'never';
 }
 
+/** ROI as text. Zero investment has no defined ROI, so it reads n/a rather than 0%. */
+export function roiLabel(roiPercent: number | null, digits = 0): string {
+  return roiPercent === null ? 'n/a' : `${roiPercent.toFixed(digits)}%`;
+}
+
 /** Short label for tiles and tables. */
 export function paybackLabel(results: Results): string {
   switch (paybackStatus(results)) {
