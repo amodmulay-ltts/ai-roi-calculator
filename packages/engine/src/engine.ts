@@ -292,6 +292,21 @@ function calculateMonthlyCashFlow(scenario: Scenario, cost: CostCalculation, ctx
     investmentByMonth[item.month] = (investmentByMonth[item.month] || 0) + effectiveInvestment(item, ctx);
   }
 
+  // Wage escalation applies to labour only. Non-labour lines keep their stated amounts, and overhead and
+  // risk are recalculated on the escalated direct base.
+  const fullBasis: RunCostBasis = {
+    labour: cost.peopleCost,
+    nonLabour: subtractStates(cost.directOpex, cost.peopleCost),
+    overheadPercent: scenario.globalAssumptions.corporateOverheadPercent,
+    riskPercent: scenario.globalAssumptions.riskReservePercent,
+  };
+  const chargeableBasis: RunCostBasis = {
+    labour: cost.peopleCost,
+    nonLabour: subtractStates(cost.chargeableDirectOpex, cost.peopleCost),
+    overheadPercent: scenario.globalAssumptions.corporateOverheadPercent,
+    riskPercent: scenario.globalAssumptions.riskReservePercent,
+  };
+
   let cumulativeCashFlow = 0;
   let cumulativeSavingOnly = 0;
 
@@ -315,17 +330,14 @@ function calculateMonthlyCashFlow(scenario: Scenario, cost: CostCalculation, ctx
       month.investmentOutflow = investmentByMonth[0] || 0;
       month.netCashFlow = -month.investmentOutflow;
     } else {
-      // Ramp between transition and mature (Section 2)
-      const runCostFull = getRampedCost(m, transitionMonths, cost.fullyLoaded, wageEscalationAnnual);
-      const runCostChargeable = getRampedCost(m, transitionMonths, cost.chargeableFullyLoaded, wageEscalationAnnual);
+      // Ramp between transition and mature (Section 2); the baseline is flat, so it uses the same path
       const escalationFactor = Math.pow(1 + wageEscalationAnnual, Math.floor((m - 1) / 12));
-
-      month.runCostFull = runCostFull;
-      month.baselineCostFull = cost.fullyLoaded.baseline * escalationFactor;
+      month.runCostFull = monthlyRunCost(m, transitionMonths, fullBasis, wageEscalationAnnual);
+      month.baselineCostFull = monthlyRunCost(m, transitionMonths, baselineOnly(fullBasis), wageEscalationAnnual);
       month.savingFull = month.baselineCostFull - month.runCostFull;
 
-      month.runCostChargeable = runCostChargeable;
-      month.baselineCostChargeable = cost.chargeableFullyLoaded.baseline * escalationFactor;
+      month.runCostChargeable = monthlyRunCost(m, transitionMonths, chargeableBasis, wageEscalationAnnual);
+      month.baselineCostChargeable = monthlyRunCost(m, transitionMonths, baselineOnly(chargeableBasis), wageEscalationAnnual);
       month.savingChargeable = month.baselineCostChargeable - month.runCostChargeable;
 
       month.investmentOutflow = investmentByMonth[m] || 0;
@@ -353,31 +365,60 @@ function calculateMonthlyCashFlow(scenario: Scenario, cost: CostCalculation, ctx
   return forecast;
 }
 
+/** Cost of one operating view split by what escalates: labour is escalated; non-labour, overhead and risk follow the base. */
+interface RunCostBasis {
+  labour: Record<State, number>;
+  nonLabour: Record<State, number>;
+  overheadPercent: Record<State, number>;
+  riskPercent: Record<State, number>;
+}
+
+/** The baseline is flat over time, so every state takes its baseline value. */
+function baselineOnly(basis: RunCostBasis): RunCostBasis {
+  const flat = (v: Record<State, number>): Record<State, number> => ({
+    baseline: v.baseline,
+    transition: v.baseline,
+    mature: v.baseline,
+  });
+  return {
+    labour: flat(basis.labour),
+    nonLabour: flat(basis.nonLabour),
+    overheadPercent: flat(basis.overheadPercent),
+    riskPercent: flat(basis.riskPercent),
+  };
+}
+
+function subtractStates(a: Record<State, number>, b: Record<State, number>): Record<State, number> {
+  return { baseline: a.baseline - b.baseline, transition: a.transition - b.transition, mature: a.mature - b.mature };
+}
+
 /**
- * Get ramped cost between transition and mature
- * Month k (1..N) = T + (M - T) × (k - 1) / N
+ * Run cost in month m (m ≥ 1), labour escalated annually, everything else on the escalated direct base.
+ * Ramp: month k (1..N) = T + (M - T) × (k - 1) / N; months after N run at the mature level.
+ * Overhead and risk keep their stated percentages but are applied to escalated labour plus non-labour.
  */
-function getRampedCost(
-  month: number,
-  transitionMonths: number,
-  costByState: Record<State, number>,
-  wageEscalationAnnual: number
-): number {
-  const escalationFactor = Math.pow(1 + wageEscalationAnnual, Math.floor((month - 1) / 12));
+function monthlyRunCost(month: number, transitionMonths: number, basis: RunCostBasis, wageEscalationAnnual: number): number {
+  const weight = transitionMonths > 0 ? Math.min((month - 1) / transitionMonths, 1) : 1;
+  const ramp = (byState: Record<State, number>) => byState.transition + (byState.mature - byState.transition) * weight;
 
-  if (month <= transitionMonths) {
-    // Linear ramp from transition to mature over N months
-    // Section 2: Month k (1..N) = T + (M - T) × (k - 1) / N
-    const k = month;
-    const rampedCost =
-      costByState.transition +
-      (costByState.mature - costByState.transition) * ((k - 1) / transitionMonths);
+  // Overhead and risk amounts ramp with the direct cost they are charged on; their implied rate is then reapplied
+  // to the escalated base, so an unescalated run reproduces the state-level fully loaded cost exactly
+  const directState: Record<State, number> = {
+    baseline: basis.labour.baseline + basis.nonLabour.baseline,
+    transition: basis.labour.transition + basis.nonLabour.transition,
+    mature: basis.labour.mature + basis.nonLabour.mature,
+  };
+  const directRaw = ramp(directState);
+  const overheadRate = directRaw > 0 ? ramp(stateProduct(directState, basis.overheadPercent)) / directRaw : 0;
+  const riskRate = directRaw > 0 ? ramp(stateProduct(directState, basis.riskPercent)) / directRaw : 0;
 
-    return rampedCost * escalationFactor;
-  } else {
-    // Mature phase (month > N)
-    return costByState.mature * escalationFactor;
-  }
+  const escalation = Math.pow(1 + wageEscalationAnnual, Math.floor((month - 1) / 12));
+  const direct = ramp(basis.labour) * escalation + ramp(basis.nonLabour);
+  return direct * (1 + overheadRate + riskRate);
+}
+
+function stateProduct(a: Record<State, number>, b: Record<State, number>): Record<State, number> {
+  return { baseline: a.baseline * b.baseline, transition: a.transition * b.transition, mature: a.mature * b.mature };
 }
 
 /**
@@ -520,7 +561,8 @@ function calculateFinancialMetrics(
       metrics.paybackMonth = month.month;
     }
   }
-  const nothingChanges = monthlyForecast.every(m => m.netCashFlow === 0);
+  // Tolerance absorbs floating-point residue from the ramp when the scenario has no change at all
+  const nothingChanges = monthlyForecast.every(m => Math.abs(m.netCashFlow) < 1e-6);
   if (nothingChanges) metrics.paybackMonth = null;
   metrics.paybackNotInHorizon =
     !nothingChanges && (metrics.paybackMonth === null || metrics.paybackMonth > horizonMonths);
