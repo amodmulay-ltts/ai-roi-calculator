@@ -2,7 +2,7 @@
 
 Web application for estimating the cost, savings, payback and ROI of introducing AI into an enterprise delivery function (first use case: software testing). Consultants use it with a customer to compare delivery models, from onshore to AI-first, against the customer's current team.
 
-> **Status:** under active development and not yet customer-ready. Done and planned work is tracked in [TASK.md](TASK.md); the reasoning behind the fix order is in [REVIEW_Self_Assessment.md](REVIEW_Self_Assessment.md).
+> **Status:** under active development and not yet customer-ready. Done and planned work is tracked in [TASK.md](TASK.md); historical review notes and the follow-up review checklist are in [REVIEW_Self_Assessment.md](REVIEW_Self_Assessment.md).
 
 ## Quick start
 

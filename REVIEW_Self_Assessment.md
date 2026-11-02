@@ -200,3 +200,32 @@ Free-form generated advice would sound generic and can't be audited.
 | 10 | Layout restructure (inputs in tabs/side panel, results as a story); autosave; browser testing | M | Usability in front of a customer |
 
 One feature at a time, each tested before moving on (per CLAUDE.md).
+
+---
+
+## Follow-up review checklist — 2026-11-02
+
+This checklist records the follow-up review of the current ROI model. It is intentionally separate from the historical assessment above, whose findings and status describe an earlier code state.
+
+Claude may update the checkboxes as work is completed. Mark an item done only after the relevant implementation and tests pass; update affected user-facing explanations and this repository's business logic documentation where needed. Add a brief verification note or test reference in the final column. Do not mark an item done because a related feature exists in the UI or because the general test suite passes.
+
+| Done | Priority | Suggested change | Completion evidence |
+|---|---|---|---|
+| [ ] | High | **Escalate labor costs only.** Apply annual wage escalation to people costs rather than to all fully loaded operating costs. Recalculate overhead and risk using the intended basis after escalation. | Add focused forecast tests proving labor costs escalate while AI, platform, infrastructure, and other non-labor costs do not. |
+| [ ] | High | **Use one cost basis consistently.** Ensure calculations, dashboard metrics, report, and workbook use the selected TCO or client-chargeable basis. Alternatively, show both bases explicitly and reconcile them. | Add tests for both basis selections and verify exported report/workbook figures reconcile to their stated basis. |
+| [ ] | High | **Model labor-savings realization explicitly.** Distinguish effort capacity released from payroll savings actually realized, redeployed, or used to avoid future hiring. Make the assumption visible and avoid presenting every saved hour as immediate cash savings. | Add agreed business rules, input validation, user-facing explanation, and tests for each realization treatment. |
+| [ ] | High | **Implement or disable evaluation-derived productivity.** Evaluation scores should drive the calculated productivity factor; if this is not implemented, prevent the UI from implying that the mode is supported. | Tests prove evaluation inputs affect the resulting factor and ROI, or confirm the unsupported mode cannot be selected or misrepresented. |
+| [ ] | High | **Resolve delivery-model scope.** The product brief promises in-house, outsourced, and hybrid cost models, while the implementation compares location mix and AI adoption. Implement vendor rates, outsourcing share, retained-organization costs, and fees if these models are required; otherwise revise product descriptions to accurately state what is compared. | Confirmed scope reflected consistently in concept/brief, scenario model, UI, calculations, and tests. |
+| [ ] | High | **Make PDF export truthful.** The current “PDF” workflow returns downloadable HTML. Generate an actual PDF, or rename the feature and documentation to describe an HTML report. | Verify response content type, file extension, and output format with a focused export test. |
+| [ ] | Medium | **Reconcile the default people-cost mode.** The engine defaults to effort-derived while the build brief specifies staffing-plan as default and golden tests switch modes. Confirm the intended default and align scenario creation, examples, brief, and tests. Verify whether target FTE should follow the documented effort-divided-by-working-hours definition. | Default-mode test and reference-case tests use the agreed behavior; documentation describes the same default. |
+| [ ] | Medium | **Clarify the transition-to-mature boundary.** Under the current ramp, month N is still between transition and mature, with mature cost starting in month N+1. Decide whether this is intended and align terminology, formula, and examples. | Tests cover month 1, month N, and month N+1; user-facing descriptions match the chosen timing. |
+| [ ] | Medium | **Do not report 0% ROI for zero investment.** When investment is zero, show ROI as unavailable or an explicitly defined alternative rather than dividing by zero conceptually and displaying 0%. | Add tests for zero-investment cases with both positive and zero savings; UI/report/export clearly indicate the chosen representation. |
+| [ ] | Medium | **Align the first-use-case brief and example.** The build brief identifies AI-augmented software testing, while the app opens with an automotive software-development example. Confirm the intended first use case and align defaults, example, and documentation. | The agreed use case is consistent across the example scenario, product brief, concept, and applicable tests. |
+| [ ] | Ongoing | **Keep `CONCEPT.md` aligned with verified behavior.** Update the concept when agreed business rules change, and keep known implementation gaps visible until the code, tests, and affected user-facing surfaces demonstrate completion. | Concept status and implementation notes reference verified behavior and focused test coverage. |
+| [ ] | Ongoing | **Add behavior-focused regression tests.** Tests should assert the intended financial outcomes directly, especially for escalation, cost basis, realization, evaluation mode, and exports—not merely successful calculation or build. | Focused tests pass, followed by the relevant build; remaining limitations are recorded explicitly. |
+
+### Review notes
+
+- The preceding review found the engine test suite passing (101 tests) and the monorepo build completing, with a Vite bundle-size warning.
+- Those results establish a useful baseline, but do not by themselves resolve the items above.
+- Keep each recommendation open until its completion evidence is recorded. If a recommendation is declined or its scope changes, replace the checkbox with `[x]` only when the rationale and revised decision are documented here.
