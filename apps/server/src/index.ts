@@ -13,6 +13,7 @@ import {
   DEFAULT_FX_RATES_NOTE,
 } from '@ai-roi-calc/engine';
 import { generatePdfHtml, generateExcelData, safeFileName } from './export.js';
+import { PdfUnavailableError, renderPdf } from './pdf.js';
 import ExcelJS from 'exceljs';
 
 const app = express();
@@ -84,37 +85,42 @@ app.post('/api/export/json', (req, res) => {
   }
 });
 
-// Export PDF (HTML template only, Puppeteer integration later)
-app.post('/api/export/pdf-html', (req, res) => {
+// Export PDF: the report HTML printed to A4 by a local Chrome (see pdf.ts)
+app.post('/api/export/pdf', async (req, res) => {
   try {
     const scenario = scenarioFromBody(req, res);
     if (!scenario) return;
     const results = calculate(scenario);
     const html = generatePdfHtml(scenario, results);
+    const pdf = await renderPdf(html);
 
-    res.setHeader('Content-Type', 'text/html');
-    res.send(html);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFileName(scenario, 'pdf')}"`);
+    res.send(pdf);
   } catch (error) {
+    if (error instanceof PdfUnavailableError) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
     console.error('PDF export error:', error);
     res.status(500).json({ error: 'PDF export failed' });
   }
 });
 
-// Export PDF (HTML with print styles)
-app.post('/api/export/pdf', (req, res) => {
+// Export the same report as a standalone HTML file (print from a browser if needed)
+app.post('/api/export/html', (req, res) => {
   try {
     const scenario = scenarioFromBody(req, res);
     if (!scenario) return;
     const results = calculate(scenario);
     const html = generatePdfHtml(scenario, results);
 
-    const filename = safeFileName(scenario, 'html');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFileName(scenario, 'html')}"`);
     res.send(html);
   } catch (error) {
-    console.error('PDF export error:', error);
-    res.status(500).json({ error: 'PDF export failed' });
+    console.error('HTML export error:', error);
+    res.status(500).json({ error: 'HTML export failed' });
   }
 });
 

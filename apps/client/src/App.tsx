@@ -134,12 +134,16 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(scenario),
       });
-      const html = await response.text();
-      const blob = new Blob([html], { type: 'text/html' });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        alert(body?.error ?? 'Failed to export PDF.');
+        return;
+      }
+      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = exportFileName(scenario, 'html');
+      link.download = exportFileName(scenario, 'pdf');
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
