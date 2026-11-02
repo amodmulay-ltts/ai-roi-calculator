@@ -52,7 +52,7 @@ The AI effect is an assumption to validate, not a promise of realized savings.
 
 ### Step 5 — Define the team and how it is costed
 
-Roles describe the people needed in each operating state, the applicable rates, and whether a role can move to a lower-cost delivery location. The scenario chooses whether the financial case follows the staffing plan or derives the team from workload effort while preserving the role mix.
+Roles describe the people needed in each operating state, the applicable rates, and whether a role can move to a lower-cost delivery location. The scenario chooses whether the financial case follows the staffing plan or derives the team from workload effort while preserving the role mix. The staffing plan is the default. Only the share of released labour expected to leave payroll counts as a cash saving; the rest is kept as redeployed capacity.
 
 Both views remain useful: effort indicates the work implied by the workload, while a staffing plan represents the intended organization. Any material gap between them is a signal to review, not a value to conceal.
 
@@ -110,12 +110,15 @@ The following maps the concept to the current implementation. It records materia
 | Scenario and currency | The dashboard starts with a fictional automotive example authored in EUR. New/reference scenarios default to EUR by converting the source Excel inputs. Vendor price lists keep their own currency. Currency conversion and relabelling are distinct operations. |
 | Baseline and target | Baseline FTE and today's delivery share are separate from the selected target delivery profile. Target AI adoption and location mix affect the proposed case. |
 | Workload and AI effect | Work items are represented by KPI/workload entries with volume, effort, optional overrides, and a review-overhead flag. AI review, rework, and dual-running overhead are tracked separately from core work. |
-| Team | Effort-derived and staffing-plan modes are supported. Team/workload gaps are available for review. |
+| Team | The staffing plan is the default for new scenarios. Effort-derived mode is opt-in: it keeps the baseline as the customer's actual team and scales later states by the workload ratio, which matches an effort-based team size only when baseline staffing matches baseline effort. The FTE gap is shown for review. Released labour is cashed only for the realised share (default 100%); the rest is kept as redeployed capacity and never counted as saving. |
 | Delivery and sourcing | Delivery profiles combine AI adoption and best-cost-country share. Sourcing presets select assumptions for hosted, enterprise, or local operation and filter costs that do not apply. Known gap: outsourced and hybrid vendor pricing (vendor bill rates, retained-organisation share, platform and transition fees) is not implemented and is not offered as a comparison. |
 | Costs and investment | Role costs, per-state cost lines, model usage, seats, chargeability, and phased one-time investments contribute to the scenario. |
-| Time and financial results | The engine builds a monthly forecast across the transition and mature phases, then calculates cumulative cash flow and financial metrics from the selected cost basis. |
-| Cost avoidance and explanation | Additional absorbable work is represented separately and can be excluded from return calculations. A benefit ledger and rule-based advice explain results. |
-| Evaluation-derived productivity | The scenario type and interface describe evaluation dimensions, but the engine currently falls back to fixed direct-factor values in evaluation-derived mode. This is an implementation gap, not a supported evaluation-based calculation. Do not describe it as fully implemented until its behavior is wired and tested. |
+| Time and financial results | The engine builds a monthly forecast across the transition and mature phases. Wage escalation applies to labour only; overhead and risk are recalculated on the escalated base. Cumulative cash flow and financial metrics use the selected cost basis throughout. ROI is not defined without an investment and shows as n/a. |
+| Cost avoidance and explanation | Additional absorbable work is represented separately and can be excluded from return calculations. A benefit ledger, rule-based advice and the realised-labour share explain results. |
+| Evaluation-derived productivity | Implemented. The effort reduction is the activity-weighted maximum AI reduction, scaled by the composite evaluation score and adoption, and inputs are validated on import. Default scores are placeholders until an evaluation is entered. The interface still offers only a switch to a direct effort cut. In staffing-plan mode the factor changes effort but not money. |
+| Export and reporting | The PDF report is printed by a local Chrome and returns 503 if no browser is available. The HTML and Excel exports state the cost basis and the realised-labour share, and show ROI as n/a without an investment. |
+
+Verified by the engine tests (`forecast`, `productivity`, `golden`) and the server export and PDF tests. Known gaps are listed in the rows above.
 
 ## Principles for future steps
 
