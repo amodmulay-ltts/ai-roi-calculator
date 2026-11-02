@@ -78,7 +78,7 @@ The user can assess either total cost of ownership or the client-chargeable view
 
 ### Step 8 — Walk through the transition over time
 
-The scenario moves from today's baseline into a transition period and then into a mature operating state. During transition, temporary overhead, additional investment, training, and adoption ramp-up may make the case more expensive before it becomes less expensive.
+The scenario moves from today's baseline into a transition period and then into a mature operating state. The transition period is the first N months. Costs move gradually from the transition level toward the mature level across those months, and the mature level applies from the month after the transition period (month N+1). During transition, temporary overhead, additional investment, training, and adoption ramp-up may make the case more expensive before it becomes less expensive.
 
 The forecast compares the proposed run cost with the cost of continuing today's baseline over the same horizon. Escalation and discounting reflect the scenario's time assumptions. The sequence of monthly savings, costs, and investment—not a single mature-month comparison—determines the financial story.
 

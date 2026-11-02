@@ -505,7 +505,7 @@ function Step3Timeline({ scenario, onUpdate }: any) {
       <div>
         <label className="block text-sm font-semibold text-gray-900 mb-2">
           Transition Period (Months)
-          <Tooltip text="Time to ramp up from baseline to mature state. Includes training, dual-run, integration. Typically 2-6 months." />
+          <Tooltip text="Months 1 to N move costs from the transition level toward the mature level. The mature level applies from month N+1. Covers training, dual-run and integration. Typically 2-6 months." />
         </label>
         <div className="flex items-center gap-4">
           <input
