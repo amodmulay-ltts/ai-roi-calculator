@@ -1,6 +1,6 @@
 # Executive AI Business Case — Concept (new app)
 
-Status: Draft for review. No code yet. This document is conceptual: it describes decisions and behaviour, not formulas or code design.
+Status: Agreed direction, not yet built. This document is conceptual: it describes decisions and behaviour, not formulas or code design.
 
 ## Purpose and audience
 
@@ -14,7 +14,7 @@ It replaces the idea of a detailed estimating model with a guided business case.
 - **Cost and capacity benefits only.** Revenue and speed-to-market benefits are out of scope, because they are the hardest to defend.
 - **First use case: software testing.** Other use cases follow as archetypes.
 - **Currency: EUR** by default.
-- **Built as a new app.** The existing calculation engine is reused as the back end where it fits; the existing app is left untouched.
+- **Built as a new app.** It has its own small calculation package; the existing app and engine are left untouched.
 
 ## The story the tool tells
 
@@ -77,16 +77,19 @@ No verified external benchmarks are available, and none will be invented.
 - Wording an executive uses: investment, payback, run cost, risk. No rate cards or token jargon on the main path.
 - A one-page summary export for a steering committee.
 
-## Reuse from the current engine
+## Relation to the current engine
 
-Monthly forecast with transition, payback, net present value, labour realisation, cost basis, and AI sourcing presets all carry over. Needed additions: model-class choice per task, hybrid routing, quality-driven rework, the extra cost categories, and range cases.
+The ideas carry over (monthly forecast with a ramp, payback, labour realisation, AI sourcing choices), but the new model is deliberately simpler and self-contained so that it is easy to explain and to build correctly.
 
-## Open points for the product owner
+## Decisions taken (change by editing this document first)
 
-1. Which task types make up the first (testing) archetype, and who supplies the volumes?
-2. Where do the four postures' unit costs come from, given no verified numbers? Proposed: presenter-entered from current vendor price lists, with prices dated and shown as such.
-3. Does the one-page export need LTTS branding and a particular template?
-4. Is the conservative case a fixed haircut or built from the readiness answers? Proposed: built from the readiness answers.
+1. **Testing archetype tasks:** test design, script development, test execution, defect analysis and reporting, each marked routine or complex. Volumes are not asked for in the first version: the presenter enters team size and cost, and the work mix is a share of effort.
+2. **Unit costs for the four postures** are presenter-entered, with clearly labelled placeholder defaults. The presenter replaces them with current vendor prices and customer figures.
+3. **No branding** in the first version. The one-page summary is neutral and printable.
+4. **Conservative case:** the readiness answers shift all three cases, and a fixed, visible spread separates conservative, expected and stretch.
+5. **Self-contained model.** The new app has its own small calculation package and does not import the existing engine. The existing app is untouched.
+
+The build is specified in `EXEC_BUILD_SPEC.md`.
 
 ## Step register
 
