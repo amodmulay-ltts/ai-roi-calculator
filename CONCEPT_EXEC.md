@@ -1,6 +1,6 @@
 # Executive AI Business Case — Concept (new app)
 
-Status: Agreed direction, not yet built. This document is conceptual: it describes decisions and behaviour, not formulas or code design.
+Status: Built in `apps/exec` with the calculation in `packages/bizcase`. Default values are placeholders, not benchmarks. This document is conceptual: it describes decisions and behaviour, not formulas or code design.
 
 ## Purpose and audience
 
@@ -95,10 +95,10 @@ The build is specified in `EXEC_BUILD_SPEC.md`.
 
 | Step | Concept | Status |
 |---|---|---|
-| 1 | Situation: today's work and cost | Proposed |
-| 2 | Opportunity: what AI can change | Proposed |
-| 3 | Right-sizing across four postures | Proposed |
-| 4 | Investment and total cost of ownership | Proposed |
-| 5 | Result as a range | Proposed |
-| 6 | Risks and what must be true | Proposed |
-| 7 | The decision and the export | Proposed |
+| 1 | Situation: today's work and cost | Implemented |
+| 2 | Opportunity: what AI can change | Implemented |
+| 3 | Right-sizing across four postures | Implemented |
+| 4 | Investment and total cost of ownership | Implemented |
+| 5 | Result as a range | Implemented |
+| 6 | Risks and what must be true | Implemented |
+| 7 | The decision and the export | Implemented (printable one-page summary; no file export) |
