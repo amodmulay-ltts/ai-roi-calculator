@@ -17,7 +17,9 @@ From the repository root:
 ```
 npm run dev:exec      # builds the calculation package, then starts the app on http://localhost:5174
 npm run build:exec    # builds the calculation package and the app into dist/exec
-npm run test:bizcase # runs the calculation package tests
+npm run test:bizcase  # runs the calculation package tests
+npm run smoke:exec    # drives the built app in Chrome or Edge and checks all seven steps (run build:exec first)
+npm run test:all      # every suite in the repository
 ```
 
 ## Layout
