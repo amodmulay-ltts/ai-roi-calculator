@@ -5,3 +5,5 @@ export * from './format.js';
 export * from './validate.js';
 export * from './calc.js';
 export * from './compare.js';
+export * from './breakeven.js';
+export * from './narrative.js';
