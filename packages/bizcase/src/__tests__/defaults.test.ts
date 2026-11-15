@@ -8,7 +8,7 @@ describe('createDefaultInputs', () => {
     expect(d.loadedCostPerFteYear).toBe(80000);
     expect(d.hoursPerFteMonth).toBe(160);
     expect(d.dataConstraint).toBe('public-ok');
-    expect(d.adoption).toBe(0.8);
+    expect(d.workTemplateId).toBe('software-testing');
     expect(d.cashShare).toBe(0.7);
     expect(d.retiredCostMonthly).toBe(0);
     expect(d.rampMonths).toBe(6);
@@ -20,14 +20,25 @@ describe('createDefaultInputs', () => {
     expect(d.readiness).toEqual({ data: 'ready', skills: 'ready', sponsorship: 'ready', compliance: 'ready' });
   });
 
-  it('lists the five tasks in spec order with shares summing to 1', () => {
+  it('starts from the software testing template: five phases, each with 80% AI use', () => {
     const d = createDefaultInputs();
-    expect(d.tasks.map(t => [t.id, t.name, t.share, t.difficulty])).toEqual([
-      ['testDesign', 'Test design', 0.3, 'complex'],
-      ['scriptDev', 'Script development', 0.25, 'routine'],
-      ['execution', 'Test execution', 0.25, 'routine'],
-      ['defectAnalysis', 'Defect analysis', 0.1, 'complex'],
-      ['reporting', 'Reporting', 0.1, 'routine'],
+    expect(d.phases.map(p => [p.name, p.aiUse])).toEqual([
+      ['Design', 0.8],
+      ['Build', 0.8],
+      ['Execute', 0.8],
+      ['Analyse', 0.8],
+      ['Report', 0.8],
+    ]);
+  });
+
+  it('lists the five tasks in order, each in its phase, with shares summing to 1', () => {
+    const d = createDefaultInputs();
+    expect(d.tasks.map(t => [t.id, t.name, t.phase, t.share, t.difficulty])).toEqual([
+      ['testDesign', 'Test design', 'Design', 0.3, 'complex'],
+      ['scriptDev', 'Script development', 'Build', 0.25, 'routine'],
+      ['execution', 'Test execution', 'Execute', 0.25, 'routine'],
+      ['defectAnalysis', 'Defect analysis', 'Analyse', 0.1, 'complex'],
+      ['reporting', 'Reporting', 'Report', 0.1, 'routine'],
     ]);
     expect(d.tasks.reduce((s, t) => s + t.share, 0)).toBeCloseTo(1, 10);
   });

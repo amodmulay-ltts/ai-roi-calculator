@@ -16,6 +16,9 @@ const NON_NEGATIVE_LABEL: Record<
 
 const isFraction = (v: number): boolean => v >= 0 && v <= 1;
 
+export const MAX_PHASES = 12;
+export const MAX_TASKS = 40;
+
 /** Returns every problem with the inputs. An empty list means the inputs are valid. */
 export function validateInputs(inputs: BusinessCaseInputs): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -27,13 +30,34 @@ export function validateInputs(inputs: BusinessCaseInputs): ValidationIssue[] {
   if (!(inputs.loadedCostPerFteYear > 0)) add('loadedCostPerFteYear', 'Annual cost per person must be greater than zero.');
   if (!(inputs.hoursPerFteMonth > 0)) add('hoursPerFteMonth', 'Hours per month must be greater than zero.');
 
+  // Phases: AI use is set for each phase on its own. There is deliberately no rule that links the phases'
+  // AI-use values (they describe each phase, not parts of a whole), so they may add up to more or less than 100%.
+  if (inputs.phases.length < 1) add('phases', 'Add at least one phase.');
+  if (inputs.phases.length > MAX_PHASES) add('phases', `Use at most ${MAX_PHASES} phases.`);
+  const phaseNames = new Set<string>();
+  inputs.phases.forEach((p, i) => {
+    // Names are matched exactly, as the calculation does, so a task and its phase always agree
+    const name = p.name;
+    if (name.trim() === '') add(`phases.${i}.name`, 'Each phase needs a name.');
+    else if (phaseNames.has(name)) add(`phases.${i}.name`, 'Phase names must be different.');
+    phaseNames.add(name);
+    if (!isFraction(p.aiUse)) add(`phases.${i}.aiUse`, `${name.trim() || 'Phase'}: AI use must be between 0% and 100%.`);
+  });
+
+  // Work: the effort split divides one whole, so it adds up to 100%
+  if (inputs.tasks.length < 1) add('tasks', 'Add at least one kind of work.');
+  if (inputs.tasks.length > MAX_TASKS) add('tasks', `Use at most ${MAX_TASKS} kinds of work.`);
   const shareSum = inputs.tasks.reduce((sum, t) => sum + t.share, 0);
-  if (Math.abs(shareSum - 1) > 0.0001) add('tasks', 'Work mix must add up to 100%.');
+  if (inputs.tasks.length > 0 && Math.abs(shareSum - 1) > 0.0001) add('tasks', 'Work mix must add up to 100%.');
+  const taskIds = new Set<string>();
   for (const t of inputs.tasks) {
+    if (t.name.trim() === '') add(`tasks.${t.id}.name`, 'Each kind of work needs a name.');
+    if (taskIds.has(t.id)) add(`tasks.${t.id}.id`, 'Two kinds of work share the same identifier.');
+    taskIds.add(t.id);
     if (!isFraction(t.share)) add(`tasks.${t.id}.share`, `${t.name}: share must be between 0% and 100%.`);
+    if (!phaseNames.has(t.phase)) add(`tasks.${t.id}.phase`, `${t.name}: choose one of the phases.`);
   }
 
-  if (!isFraction(inputs.adoption)) add('adoption', 'Adoption must be between 0% and 100%.');
   if (!isFraction(inputs.cashShare)) add('cashShare', 'Cash share must be between 0% and 100%.');
 
   if (!(Number.isInteger(inputs.rampMonths) && inputs.rampMonths >= 1 && inputs.rampMonths <= 24)) {
@@ -57,7 +81,6 @@ export function validateInputs(inputs: BusinessCaseInputs): ValidationIssue[] {
   return issues;
 }
 
-const TASK_IDS = ['testDesign', 'scriptDev', 'execution', 'defectAnalysis', 'reporting'];
 const TIER_KEYS: TierId[] = ['local', 'enterprise', 'frontier'];
 const TIER_FIELDS = [
   'reductionRoutine',
@@ -72,7 +95,6 @@ const NUMBER_FIELDS = [
   'teamSize',
   'loadedCostPerFteYear',
   'hoursPerFteMonth',
-  'adoption',
   'cashShare',
   'retiredCostMonthly',
   'rampMonths',
@@ -98,13 +120,20 @@ export function isBusinessCaseInputs(value: unknown): value is BusinessCaseInput
   if (!['public-ok', 'restricted', 'sovereign'].includes(value.dataConstraint as string)) return false;
   if (!TIER_KEYS.includes(value.hybridComplexTier as TierId)) return false;
 
+  if (typeof value.workTemplateId !== 'string') return false;
+
+  const phases = value.phases;
+  if (!Array.isArray(phases) || phases.length < 1 || phases.length > MAX_PHASES) return false;
+  if (!phases.every(p => isRecord(p) && typeof p.name === 'string' && isFiniteNumber(p.aiUse))) return false;
+
   const tasks = value.tasks;
-  if (!Array.isArray(tasks) || tasks.length !== TASK_IDS.length) return false;
+  if (!Array.isArray(tasks) || tasks.length < 1 || tasks.length > MAX_TASKS) return false;
   const tasksOk = tasks.every(
-    (t, i) =>
+    t =>
       isRecord(t) &&
-      t.id === TASK_IDS[i] &&
+      typeof t.id === 'string' &&
       typeof t.name === 'string' &&
+      typeof t.phase === 'string' &&
       isFiniteNumber(t.share) &&
       (t.difficulty === 'routine' || t.difficulty === 'complex'),
   );

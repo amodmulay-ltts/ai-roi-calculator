@@ -1,4 +1,5 @@
-import type { BusinessCaseInputs } from './types.js';
+import { DEFAULT_WORK_TEMPLATE_ID, getWorkTemplate } from './templates.js';
+import type { BusinessCaseInputs, WorkTemplate } from './types.js';
 
 // Placeholder values for presenter use. They are not benchmarks or vendor prices.
 export const HORIZON_MONTHS = 36;
@@ -15,20 +16,17 @@ export const MARGINAL_ROI_PERCENT = 50;
 
 /** Returns a new, independent copy of the default inputs on every call. */
 export function createDefaultInputs(): BusinessCaseInputs {
+  // A new template copy each call keeps every case independent
+  const DEFAULT_TEMPLATE = getWorkTemplate(DEFAULT_WORK_TEMPLATE_ID) as WorkTemplate;
   return {
     customerName: '',
     teamSize: 30,
     loadedCostPerFteYear: 80000,
     hoursPerFteMonth: 160,
     dataConstraint: 'public-ok',
-    tasks: [
-      { id: 'testDesign', name: 'Test design', share: 0.3, difficulty: 'complex' },
-      { id: 'scriptDev', name: 'Script development', share: 0.25, difficulty: 'routine' },
-      { id: 'execution', name: 'Test execution', share: 0.25, difficulty: 'routine' },
-      { id: 'defectAnalysis', name: 'Defect analysis', share: 0.1, difficulty: 'complex' },
-      { id: 'reporting', name: 'Reporting', share: 0.1, difficulty: 'routine' },
-    ],
-    adoption: 0.8,
+    workTemplateId: DEFAULT_TEMPLATE.id,
+    phases: DEFAULT_TEMPLATE.phases,
+    tasks: DEFAULT_TEMPLATE.tasks,
     cashShare: 0.7,
     retiredCostMonthly: 0,
     rampMonths: 6,

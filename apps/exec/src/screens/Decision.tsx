@@ -5,6 +5,7 @@ import {
   compareAll,
   formatMoney,
   formatPayback,
+  getWorkTemplate,
   headline,
   readinessGap,
   whatMustBeTrue,
@@ -17,11 +18,11 @@ import {
   InvestmentChart,
   MonthlyEconomicsChart,
   OptionsRangeChart,
-  TaskEfficiencyChart,
+  PhaseEfficiencyChart,
 } from '../components/Charts';
 import { MarginBar, ReadinessGauge } from '../components/Gauges';
 import { POSTURE_LABEL } from '../components/PostureCard';
-import { effectivePosture, useExecStore } from '../store';
+import { CUSTOM_TEMPLATE_ID, effectivePosture, useExecStore } from '../store';
 
 const VERDICT_TEXT: Record<Verdict, string> = {
   positive: 'Pays back',
@@ -51,13 +52,17 @@ export default function Decision(): ReactElement | null {
   const expected = cases.expected;
   const effectBreakEven = breakEvenEffectiveness(inputs, posture);
   const cashBreakEven = breakEvenCashShare(inputs, posture);
+  const workInScope = inputs.workTemplateId === CUSTOM_TEMPLATE_ID ? 'Custom' : getWorkTemplate(inputs.workTemplateId)?.name;
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
     <section className="print-area space-y-3 rounded-xl border border-gray-200 bg-white p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm text-gray-600">
         <span className="text-base font-semibold text-gray-900">{inputs.customerName}</span>
-        <span>{today}</span>
+        <span>
+          {workInScope ? `Work in scope: ${workInScope}. ` : ''}
+          {today}
+        </span>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -97,10 +102,10 @@ export default function Decision(): ReactElement | null {
         </Card>
         <Card title="How the efficiency is built" label="Bar chart: effort AI removes, minus review and rework, gives net efficiency">
           <EfficiencyBridgeChart result={expected} width={CHART_WIDTH} height={HEIGHT} />
-          <p className="text-center text-xs text-gray-500">AI is applied to {Math.round(inputs.adoption * 100)}% of the work.</p>
+          <p className="text-center text-xs text-gray-500">AI is used on {Math.round(expected.aiReach * 100)}% of all the work.</p>
         </Card>
-        <Card title="Where the effort is saved" label="Bar chart of net efficiency for each kind of work">
-          <TaskEfficiencyChart tasks={expected.tasks} width={CHART_WIDTH} height={HEIGHT} />
+        <Card title="Where the effort is saved" label="Bar chart of net efficiency for each phase">
+          <PhaseEfficiencyChart phases={expected.phases} width={CHART_WIDTH} height={Math.max(HEIGHT, Math.min(150, expected.phases.length * 15 + 12))} />
         </Card>
         <Card title="Monthly position at maturity" label="Bar chart of the monthly saving, costs and net at maturity">
           <MonthlyEconomicsChart result={expected} width={CHART_WIDTH} height={HEIGHT} />

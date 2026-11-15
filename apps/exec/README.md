@@ -1,6 +1,6 @@
 # AI Business Case (executive app)
 
-A presenter-led tool for a management conversation about AI in software testing. It answers one question: **will AI pay back, how sure are we, and what must be true?**
+A presenter-led tool for a management conversation about AI across a work lifecycle: software testing, the whole software lifecycle, product development or mechanical design, or any lifecycle built by hand. It answers one question: **will AI pay back, how sure are we, and what must be true?**
 
 The app walks through seven steps: Situation, Opportunity, Right-size, Investment, Result, Risks and Decision. It compares four ways of running AI (local, hybrid, enterprise and frontier), shows a conservative, expected and stretch range, and ends with a one-page summary you can print.
 
@@ -39,4 +39,12 @@ The decision screen (step 7) is a one-page graphical summary. **Print summary** 
 
 ## Scope
 
-One use case (software testing), cost and capacity benefits only, EUR only. No login, server or database.
+One piece of work at a time (a lifecycle from a template, or built by hand), cost and capacity benefits only, EUR only. No login, server or database.
+
+## Work in scope
+
+The first step offers four starting points: software testing, the software development lifecycle, the product development lifecycle and mechanical system design. Each is a list of phases with kinds of work. Edit, add or remove phases and work to describe any other lifecycle or industry.
+
+**AI use is set for each phase** and is independent: the phase percentages do not add up to 100% (a physical prototype phase can be 5% while documentation is 80%). The split of effort across the work does add up to 100%.
+
+The templates carry a work breakdown and AI use only. People, cost, investment and the option assumptions stay as entered, so check them when you change industry. Every figure in the templates is a placeholder.

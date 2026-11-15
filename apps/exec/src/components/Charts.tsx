@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { formatMoney, type CaseResult, type PostureId, type PostureSummary, type TaskResult } from '@ai-roi-calc/bizcase';
+import { formatMoney, type CaseResult, type PhaseResult, type PostureId, type PostureSummary } from '@ai-roi-calc/bizcase';
 import { POSTURE_LABEL } from './PostureCard';
 
 export const BLUE = '#1d4ed8';
@@ -49,15 +49,36 @@ export function EfficiencyBridgeChart({ result, width = CHART_WIDTH, height = 17
   );
 }
 
-/** Net efficiency per kind of work: where AI helps most. */
-export function TaskEfficiencyChart({ tasks, width = CHART_WIDTH, height = 170 }: { tasks: TaskResult[]; width?: number; height?: number }): ReactElement {
-  const data = tasks.map(t => ({ name: t.name, value: t.netEfficiency * 100 }));
+/**
+ * Net efficiency for each lifecycle phase: where AI helps most. With `showUse`, each phase also shows its own
+ * AI use. Those figures are set per phase and are independent, so the bars are not parts of one whole.
+ */
+export function PhaseEfficiencyChart({
+  phases,
+  showUse = false,
+  width = CHART_WIDTH,
+  height,
+}: {
+  phases: PhaseResult[];
+  showUse?: boolean;
+  width?: number;
+  height?: number;
+}): ReactElement {
+  const data = phases.map(p => ({ name: p.name, use: p.aiUse * 100, efficiency: p.netEfficiency * 100 }));
+  const rowHeight = showUse ? 34 : 15;
+  const chartHeight = height ?? (showUse ? data.length * rowHeight + 40 : Math.min(150, data.length * rowHeight + 12));
   return (
-    <BarChart width={width} height={height} data={data} layout="vertical" margin={{ top: 4, right: 36, bottom: 0, left: 0 }}>
-      <XAxis type="number" hide domain={[0, (max: number) => Math.ceil(max * 1.25)]} />
-      <YAxis type="category" dataKey="name" tick={AXIS} width={118} />
-      <Bar dataKey="value" fill={BLUE} isAnimationActive={false}>
-        <LabelList dataKey="value" position="right" formatter={(v: number) => percent1(v)} style={{ fontSize: 10, fill: '#111827' }} />
+    <BarChart width={width} height={chartHeight} data={data} layout="vertical" margin={{ top: 4, right: 40, bottom: 0, left: 0 }} barGap={1}>
+      <XAxis type="number" hide domain={[0, showUse ? 110 : (max: number) => Math.ceil(max * 1.25)]} />
+      <YAxis type="category" dataKey="name" tick={AXIS} width={96} interval={0} />
+      {showUse && <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />}
+      {showUse && (
+        <Bar dataKey="use" name="AI use" fill={SKY} isAnimationActive={false}>
+          <LabelList dataKey="use" position="right" formatter={(v: number) => `${Math.round(v)}%`} style={{ fontSize: 10, fill: '#111827' }} />
+        </Bar>
+      )}
+      <Bar dataKey="efficiency" name="Net efficiency" fill={BLUE} isAnimationActive={false}>
+        <LabelList dataKey="efficiency" position="right" formatter={(v: number) => percent1(v)} style={{ fontSize: 10, fill: '#111827' }} />
       </Bar>
     </BarChart>
   );
