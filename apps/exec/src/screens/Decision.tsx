@@ -1,12 +1,25 @@
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import {
+  breakEvenCashShare,
+  breakEvenEffectiveness,
   compareAll,
   formatMoney,
   formatPayback,
   headline,
+  readinessGap,
   whatMustBeTrue,
   type Verdict,
 } from '@ai-roi-calc/bizcase';
+import {
+  CHART_WIDTH,
+  CumulativeCasesChart,
+  EfficiencyBridgeChart,
+  InvestmentChart,
+  MonthlyEconomicsChart,
+  OptionsRangeChart,
+  TaskEfficiencyChart,
+} from '../components/Charts';
+import { MarginBar, ReadinessGauge } from '../components/Gauges';
 import { POSTURE_LABEL } from '../components/PostureCard';
 import { effectivePosture, useExecStore } from '../store';
 
@@ -15,8 +28,13 @@ const VERDICT_TEXT: Record<Verdict, string> = {
   marginal: 'Marginal',
   negative: 'Does not pay back',
 };
-
+const VERDICT_CLASS: Record<Verdict, string> = {
+  positive: 'bg-blue-50 text-blue-700',
+  marginal: 'bg-gray-100 text-gray-700',
+  negative: 'bg-red-50 text-red-700',
+};
 const POSTURE_ORDER = ['local', 'hybrid', 'enterprise', 'frontier'] as const;
+const HEIGHT = 112;
 
 export default function Decision(): ReactElement | null {
   const inputs = useExecStore(s => s.inputs);
@@ -31,92 +49,139 @@ export default function Decision(): ReactElement | null {
   const summaries = compareAll(inputs);
   const cases = summaries[posture];
   const expected = cases.expected;
+  const effectBreakEven = breakEvenEffectiveness(inputs, posture);
+  const cashBreakEven = breakEvenCashShare(inputs, posture);
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <section className="print-area space-y-6 rounded-xl border border-gray-200 bg-white p-6">
+    <section className="print-area space-y-3 rounded-xl border border-gray-200 bg-white p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm text-gray-600">
         <span className="text-base font-semibold text-gray-900">{inputs.customerName}</span>
         <span>{today}</span>
       </div>
 
-      <p className="text-base text-gray-900">{headline(POSTURE_LABEL[posture], expected)}</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-base text-gray-900">{headline(POSTURE_LABEL[posture], expected)}</p>
+        <span className={`rounded-full px-2 py-0.5 text-xs ${VERDICT_CLASS[expected.verdict]}`}>{VERDICT_TEXT[expected.verdict]}</span>
+      </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Figure label="Payback" value={formatPayback(expected.paybackMonth)} />
         <Figure label="3-year net value" value={formatMoney(expected.netValue36)} />
         <Figure label="Net per month at maturity" value={formatMoney(expected.steadyNetPerMonth)} />
         <Figure label="Investment" value={formatMoney(expected.investment)} />
+        <Figure
+          label="Net efficiency gain"
+          value={`${(expected.netEfficiency * 100).toFixed(1)}%`}
+          note={`${expected.capacityFte.toFixed(1)} people equivalent`}
+        />
       </div>
 
       <p className="text-sm text-gray-700">
         Range: {formatMoney(cases.conservative.netValue36)} to {formatMoney(cases.stretch.netValue36)}
       </p>
 
-      <div>
-        <h2 className="mb-2 text-sm font-medium text-gray-900">What must be true</h2>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-gray-800">
-          {whatMustBeTrue(inputs, posture).map(sentence => (
-            <li key={sentence}>{sentence}</li>
-          ))}
-        </ul>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 print:grid-cols-3">
+        <Card title="Cumulative position" label="Line chart of the cumulative position over 36 months for each case">
+          <CumulativeCasesChart conservative={cases.conservative} expected={cases.expected} stretch={cases.stretch} width={CHART_WIDTH} height={HEIGHT} />
+        </Card>
+        <Card title="3-year net value by option" label="Bar chart of the 3-year net value of each option for each case">
+          <OptionsRangeChart summaries={summaries} width={CHART_WIDTH} height={HEIGHT} />
+          <p className="flex flex-wrap justify-center gap-x-3 text-xs text-gray-500">
+            {POSTURE_ORDER.map(id => (
+              <span key={id}>
+                {POSTURE_LABEL[id]}: {VERDICT_TEXT[summaries[id].expected.verdict]}
+              </span>
+            ))}
+          </p>
+        </Card>
+        <Card title="How the efficiency is built" label="Bar chart: effort AI removes, minus review and rework, gives net efficiency">
+          <EfficiencyBridgeChart result={expected} width={CHART_WIDTH} height={HEIGHT} />
+          <p className="text-center text-xs text-gray-500">AI is applied to {Math.round(inputs.adoption * 100)}% of the work.</p>
+        </Card>
+        <Card title="Where the effort is saved" label="Bar chart of net efficiency for each kind of work">
+          <TaskEfficiencyChart tasks={expected.tasks} width={CHART_WIDTH} height={HEIGHT} />
+        </Card>
+        <Card title="Monthly position at maturity" label="Bar chart of the monthly saving, costs and net at maturity">
+          <MonthlyEconomicsChart result={expected} width={CHART_WIDTH} height={HEIGHT} />
+          <p className="text-center text-xs text-gray-500">Saving is the counted share. Platform includes governance.</p>
+        </Card>
+        <Card title="One-time investment" label="Stacked bar of the one-time investment by line">
+          <InvestmentChart lines={expected.investmentLines} width={CHART_WIDTH} height={HEIGHT - 10} />
+          <p className="text-center text-xs text-gray-500">Total {formatMoney(expected.investment)}</p>
+        </Card>
+        <Card title="Safety margin">
+          <div className="space-y-3">
+            <MarginBar
+              title="AI effect needed to break even"
+              breakEven={effectBreakEven}
+              assumed={1}
+              scaleMax={1.5}
+              breakEvenLabel={effectBreakEven === null ? 'Cannot break even' : `Break-even: ${Math.round(effectBreakEven * 100)}%`}
+              assumedLabel="Assumed: 100%"
+            />
+            <MarginBar
+              title="Share of released capacity that must become savings"
+              breakEven={cashBreakEven}
+              assumed={inputs.cashShare}
+              scaleMax={1}
+              breakEvenLabel={cashBreakEven === null ? 'Cannot break even' : `Break-even: ${Math.round(cashBreakEven * 100)}%`}
+              assumedLabel={`Assumed: ${Math.round(inputs.cashShare * 100)}%`}
+            />
+            <ReadinessGauge gap={readinessGap(inputs.readiness)} />
+          </div>
+        </Card>
+        <Card title="What must be true">
+          <ul className="list-disc space-y-1 pl-4 text-xs text-gray-800">
+            {whatMustBeTrue(inputs, posture).map(sentence => (
+              <li key={sentence}>{sentence}</li>
+            ))}
+          </ul>
+        </Card>
+        <div className="space-y-2 rounded-xl border border-gray-200 p-3">
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-gray-900">The ask</span>
+            <textarea
+              value={ask}
+              onChange={e => setAsk(e.target.value)}
+              rows={2}
+              className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-gray-900">Next steps</span>
+            <textarea
+              value={nextSteps}
+              onChange={e => setNextSteps(e.target.value)}
+              rows={3}
+              className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs"
+            />
+          </label>
+        </div>
       </div>
-
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
-            <th className="py-2 font-normal">Option</th>
-            <th className="py-2 text-right font-normal">Investment</th>
-            <th className="py-2 text-right font-normal">Payback</th>
-            <th className="py-2 text-right font-normal">3-year net value</th>
-            <th className="py-2 text-right font-normal">Verdict</th>
-          </tr>
-        </thead>
-        <tbody>
-          {POSTURE_ORDER.map(id => {
-            const r = summaries[id].expected;
-            return (
-              <tr key={id} className="border-b border-gray-100">
-                <td className="py-2 text-gray-900">{POSTURE_LABEL[id]}</td>
-                <td className="py-2 text-right">{formatMoney(r.investment)}</td>
-                <td className="py-2 text-right">{formatPayback(r.paybackMonth)}</td>
-                <td className="py-2 text-right">{formatMoney(r.netValue36)}</td>
-                <td className="py-2 text-right">{VERDICT_TEXT[r.verdict]}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      <label className="block space-y-1">
-        <span className="text-sm font-medium text-gray-900">The ask</span>
-        <textarea
-          value={ask}
-          onChange={e => setAsk(e.target.value)}
-          rows={2}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-        />
-      </label>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium text-gray-900">Next steps</span>
-        <textarea
-          value={nextSteps}
-          onChange={e => setNextSteps(e.target.value)}
-          rows={4}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-        />
-      </label>
 
       <p className="text-xs text-gray-500">Assumptions are presenter-entered and not independently verified.</p>
     </section>
   );
 }
 
-function Figure({ label, value }: { label: string; value: string }): ReactElement {
+function Figure({ label, value, note }: { label: string; value: string; note?: string }): ReactElement {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
       <p className="text-xs text-gray-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-gray-900">{value}</p>
+      <p className="mt-0.5 text-lg font-semibold text-gray-900">{value}</p>
+      {note && <p className="text-xs text-gray-500">{note}</p>}
+    </div>
+  );
+}
+
+function Card({ title, label, children }: { title: string; label?: string; children: ReactNode }): ReactElement {
+  return (
+    <div className="space-y-2 rounded-xl border border-gray-200 p-3">
+      <h2 className="text-xs font-medium text-gray-900">{title}</h2>
+      <div className="flex flex-col items-center gap-1" role={label ? 'img' : undefined} aria-label={label}>
+        {children}
+      </div>
     </div>
   );
 }

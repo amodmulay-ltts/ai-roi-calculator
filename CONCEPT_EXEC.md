@@ -21,12 +21,12 @@ It replaces the idea of a detailed estimating model with a guided business case.
 The results read as a business case, in this order:
 
 1. **Situation.** Today's work, team and cost, in the customer's own words and numbers.
-2. **Opportunity.** Which parts of the work AI can change, and how much of the effort that frees.
+2. **Opportunity.** Which parts of the work AI can change, and how much of the effort that frees. The headline measure is **net efficiency**: the share of in-scope effort freed after review and rework. It is built from how widely AI is used, how much effort it removes from each kind of work, and what comes back as review. How widely AI is used is an input; efficiency is a result.
 3. **Right-sizing.** Which kind of AI runs each part of the work, and what that does to cost and quality. This is the heart of the tool.
 4. **Investment.** What it takes to get there: build, data preparation, governance, and change and training.
 5. **Result.** Payback, three-year net value and the monthly run position, shown as a range of cases.
 6. **Risks and "what must be true".** The few assumptions the answer depends on, and how the result moves if they fail.
-7. **The decision.** What is being asked of the room, and what to validate next.
+7. **The decision.** A one-page graphical summary: the verdict, the range, how the efficiency and the money are built, the safety margin, and what is being asked of the room.
 
 ## Right-sizing AI is the central idea
 
@@ -75,7 +75,7 @@ No verified external benchmarks are available, and none will be invented.
 - About six to eight plain-language questions up front, then an answer. Detail lives behind an "adjust assumptions" drawer.
 - One headline per screen. No page asks a viewer to read tables to find the point.
 - Wording an executive uses: investment, payback, run cost, risk. No rate cards or token jargon on the main path.
-- A one-page summary export for a steering committee.
+- A one-page graphical summary for a steering committee: charts first, with the figures and sentences beside them.
 
 ## Relation to the current engine
 

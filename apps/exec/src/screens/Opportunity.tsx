@@ -5,6 +5,8 @@ import {
   type Difficulty,
   type TaskMix,
 } from '@ai-roi-calc/bizcase';
+import { EfficiencyBridgeChart, TaskEfficiencyChart } from '../components/Charts';
+import { POSTURE_LABEL } from '../components/PostureCard';
 import Field, { PercentInput } from '../components/Field';
 import { effectivePosture, useExecStore } from '../store';
 
@@ -75,11 +77,15 @@ export default function Opportunity(): ReactElement {
       <p className="text-xs text-gray-500">Routine: Repetitive, well-defined work. AI usually does well.</p>
       <p className="text-xs text-gray-500">Complex: Judgement-heavy work. AI needs stronger models and more review.</p>
 
-      <Field label="Share of work where AI is used (%)" assumption>
+      <Field
+        label="Share of work where AI is used (%)"
+        help="How much of the work the team runs through AI once rolled out. How much effort AI removes from each kind of work is set per option on the next step."
+        assumption
+      >
         <PercentInput value={inputs.adoption} onChange={adoption => setInputs({ adoption })} />
       </Field>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
           <p className="text-xs text-gray-500">Hours freed per month</p>
           <p className="mt-1 text-2xl font-semibold text-gray-900">
@@ -90,7 +96,32 @@ export default function Opportunity(): ReactElement {
           <p className="text-xs text-gray-500">People equivalent</p>
           <p className="mt-1 text-2xl font-semibold text-gray-900">{result ? result.capacityFte.toFixed(1) : '—'}</p>
         </div>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <p className="text-xs text-gray-500">Net efficiency gain</p>
+          <p className="mt-1 text-2xl font-semibold text-gray-900">
+            {result ? `${(result.netEfficiency * 100).toFixed(1)}%` : '—'}
+          </p>
+        </div>
       </div>
+
+      {result && posture && <p className="text-xs text-gray-500">Shown for the {POSTURE_LABEL[posture]} option.</p>}
+
+      {result && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="space-y-2">
+            <h2 className="text-sm font-medium text-gray-900">How the efficiency is built</h2>
+            <div role="img" aria-label="Bar chart: effort AI removes, minus review and rework, gives net efficiency">
+              <EfficiencyBridgeChart result={result} width={380} height={190} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-sm font-medium text-gray-900">Where the effort is saved</h2>
+            <div role="img" aria-label="Bar chart of net efficiency for each kind of work">
+              <TaskEfficiencyChart tasks={result.tasks} width={380} height={190} />
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

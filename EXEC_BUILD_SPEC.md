@@ -126,13 +126,37 @@ export interface BusinessCaseInputs {
   readiness: Readiness;
 }
 
+/** What happens to one kind of work under a posture, in hours per month at maturity. */
+export interface TaskResult {
+  id: TaskMix['id'];
+  name: string;
+  tier: TierId;
+  baselineHours: number;      // total hours x share of work
+  assistedHours: number;      // baseline hours x adoption
+  grossRemovedHours: number;  // assisted hours x effort AI removes
+  reviewReworkHours: number;  // removed hours that come back as review and rework
+  netSavedHours: number;      // gross removed minus review and rework
+  netEfficiency: number;      // net saved / baseline hours, 0..1 (0 when there is no baseline work)
+}
+
 export interface CaseResult {
   postureId: PostureId;
   caseId: CaseId;
   netHoursSavedPerMonth: number;   // at maturity
+  /** Hours of in-scope work per month before AI. */
+  totalHours: number;
+  grossRemovedHoursPerMonth: number;
+  reviewReworkHoursPerMonth: number;
+  /** Net share of in-scope effort freed after review and rework: netHoursSavedPerMonth / totalHours, 0..1. */
+  netEfficiency: number;
+  /** The bridge to net efficiency, as shares of in-scope effort: gross removed minus review and rework. */
+  grossEfficiency: number;
+  reviewReworkEfficiency: number;
+  tasks: TaskResult[];
   capacityFte: number;             // netHoursSavedPerMonth / hoursPerFteMonth
   capacityValuePerMonth: number;   // EUR, all released capacity at the hourly cost
   countedSavingPerMonth: number;   // capacityValue x effective cash share
+  retiredCostPerMonth: number;     // cost removed outright, as entered
   redeployedValuePerMonth: number; // capacityValue minus counted saving (NOT counted anywhere)
   usageCostPerMonth: number;       // at maturity
   platformAndGovernancePerMonth: number;
@@ -252,6 +276,17 @@ for each task t:
   usage_t = assisted_t * tier.usageCostPerAssistedHour
 netHoursSavedPerMonth = sum netSaved_t
 usageCostPerMonth = sum usage_t
+```
+
+**5.4a Efficiency.** Net efficiency is the headline measure of "expected efficiency with AI". It is not the adoption input: adoption is how much of the work AI reaches, while efficiency is what is actually freed after review and rework.
+```
+totalHours             = teamSize * hoursPerFteMonth
+grossRemovedHours      = sum removed_t
+reviewReworkHours      = sum (removed_t * review_t) = grossRemovedHours - netHoursSavedPerMonth
+netEfficiency          = totalHours > 0 ? netHoursSavedPerMonth / totalHours : 0
+grossEfficiency        = totalHours > 0 ? grossRemovedHours / totalHours : 0
+reviewReworkEfficiency = totalHours > 0 ? reviewReworkHours / totalHours : 0
+per task: baselineHours = totalHours * share; assistedHours = assisted_t; netEfficiency_t = baselineHours > 0 ? netSaved_t / baselineHours : 0
 ```
 
 **5.5 Value.**
@@ -432,6 +467,17 @@ Write these as vitest tests. Compare numbers with `toBeCloseTo(value, 1)` unless
 - `restricted` and `hybridComplexTier = 'frontier'`: `hybrid` not allowed.
 - `sovereign`: only `local` allowed; `hybrid`, `enterprise` and `frontier` carry the `sovereign` reason text.
 
+**6.8 Efficiency at default inputs, expected case.**
+
+| Posture | grossRemovedHours | reviewReworkHours | netHours | netEfficiency |
+|---|---|---|---|---|
+| local | 844.8 | 215.04 | 629.76 | 13.12% |
+| hybrid | 1305.6 | 291.84 | 1013.76 | 21.12% |
+| enterprise | 1766.4 | 326.4 | 1440 | 30.00% |
+| frontier | 2112 | 359.04 | 1752.96 | 36.52% |
+
+Enterprise by task (baseline, assisted, gross removed, review and rework, net saved, net efficiency): test design 1440, 1152, 460.8, 115.2, 345.6, 24%; script development 1200, 960, 480, 72, 408, 34%; test execution 1200, 960, 480, 72, 408, 34%; defect analysis 480, 384, 153.6, 38.4, 115.2, 24%; reporting 480, 384, 192, 28.8, 163.2, 34%. In hybrid at defaults, test design and defect analysis use the enterprise tier and the other three use the local tier.
+
 **6.7 Other tests to write.** `investmentLines` for any case sums to `investment` (check enterprise defaults: `[90000, 60000, 25000, 24000]`, sum `199000`; with the gap-4 readiness: each multiplied by `1.1`). Validation: default inputs give no issues; a work mix summing to 0.9 gives the `Work mix must add up to 100%.` issue; `rampMonths 0` gives the ramp issue. `createDefaultInputs()` returns an independent copy (mutating one does not affect the next). `formatMoney`: `418400` gives `€418K`, `1066000` gives `€1.1M`, `19400` gives `€19,400`, `-187112` gives `-€187K`. `headline('Enterprise', enterpriseExpected)` equals `Enterprise AI pays back in month 15 and returns €418K over 3 years (expected case).`; hybrid at defaults gives `Hybrid AI does not pay back within 36 months at current assumptions.`
 
 ## 7. User interface
@@ -456,8 +502,10 @@ One page, no routing. A header, a step bar and one screen at a time. Follow the 
 **Screen 2: Opportunity**
 - Table of the five tasks: name, `Share of work (%)` input, `Type` toggle (`Routine` or `Complex`).
 - Running total of shares under the table: `Total {n}%` (red if not 100).
-- Input `Share of work where AI is used (%)` (adoption).
-- Live tiles using the selected posture's expected case: `Hours freed per month` (netHoursSavedPerMonth, rounded) and `People equivalent` (capacityFte, one decimal).
+- Input `Share of work where AI is used (%)` (adoption), with the help text `How much of the work the team runs through AI once rolled out. How much effort AI removes from each kind of work is set per option on the next step.`
+- Live tiles using the selected posture's expected case: `Hours freed per month` (netHoursSavedPerMonth, rounded), `People equivalent` (capacityFte, one decimal) and `Net efficiency gain` (netEfficiency as a percentage with one decimal).
+- A caption `Shown for the {Posture} option.`
+- Two charts: `How the efficiency is built` (a waterfall of `Effort AI removes` = grossEfficiency, `Review and rework` = minus reviewReworkEfficiency, `Net efficiency` = netEfficiency, in percent of in-scope effort) and `Where the effort is saved` (horizontal bars of each task's netEfficiency).
 - Short help text per task type: Routine: `Repetitive, well-defined work. AI usually does well.` Complex: `Judgement-heavy work. AI needs stronger models and more review.`
 
 **Screen 3: Right-size** (the most important screen)
@@ -486,10 +534,21 @@ One page, no routing. A header, a step bar and one screen at a time. Follow the 
   - `Compliance`: `Are the security, privacy and regulatory questions answered?`
 - Below: `What must be true` as a bulleted list from `whatMustBeTrue` for the selected posture. A line `Readiness gap: {gap} of 8.`
 
-**Screen 7: Decision**
-- The one-page summary, also the print layout: customer name and date; the `headline`; four figures (`Payback`, `3-year net value`, `Net per month at maturity`, `Investment`) for the expected case; the conservative and stretch `3-year net value` in one line (`Range: {conservative} to {stretch}`); `What must be true` list; the posture comparison as a four-row table (`Option`, `Investment`, `Payback`, `3-year net value`, `Verdict`); and the fixed line `Assumptions are presenter-entered and not independently verified.` always shown at the bottom.
-- Two editable text areas: `The ask` (default: `Approve a pilot on the highest-volume work to validate these assumptions.`) and `Next steps` (default: `1. Replace placeholder assumptions with customer data.\n2. Confirm data and governance readiness.\n3. Run a pilot and measure the effect.`).
-- `Print summary` calls `window.print()`. Add `@media print` CSS in `index.css`: hide the header, step bar and buttons, show only this screen's summary, A4 portrait, black text on white, no shadows.
+**Screen 7: Decision** (a graphical one-page summary, also the print layout)
+- Top: customer name and date; the `headline` with a verdict badge (`Pays back`, `Marginal` or `Does not pay back`); five tiles for the expected case (`Payback`, `3-year net value`, `Net per month at maturity`, `Investment`, `Net efficiency gain` with the people equivalent under it); and the line `Range: {conservative} to {stretch}`.
+- Nine panels in a grid (two columns on screen, three in print):
+  1. `Cumulative position`: line chart, three cases, zero line.
+  2. `3-year net value by option`: grouped bars (conservative, expected, stretch) for the four options, with a line of each option's verdict (`Local: Marginal`, and so on).
+  3. `How the efficiency is built`: the waterfall from screen 2, with `AI is applied to {n}% of the work.` under it.
+  4. `Where the effort is saved`: per-task net efficiency bars.
+  5. `Monthly position at maturity`: bars for `Saving` (countedSavingPerMonth), `Cost cut` (retiredCostPerMonth), `AI usage` and `Platform` (both drawn below zero) and `Net` (steadyNetPerMonth), with the caption `Saving is the counted share. Platform includes governance.`
+  6. `One-time investment`: one stacked bar of the investment lines, with `Total {investment}` under it.
+  7. `Safety margin`: a bar for `AI effect needed to break even` (break-even against an assumed 100%, scale to 150%), a bar for `Share of released capacity that must become savings` (break-even against the entered cash share, scale to 100%), and a gauge of eight blocks for the readiness gap with `Readiness gap: {gap} of 8.` A bar is blue when break-even is at or below the assumption and red when it is above, and shows `Cannot break even` when there is none.
+  8. `What must be true`: the `whatMustBeTrue` sentences.
+  9. `The ask` and `Next steps`: two editable text areas (defaults: `Approve a pilot on the highest-volume work to validate these assumptions.` and `1. Replace placeholder assumptions with customer data.\n2. Confirm data and governance readiness.\n3. Run a pilot and measure the effect.`).
+- The fixed line `Assumptions are presenter-entered and not independently verified.` always at the bottom.
+- Charts have a fixed size (so they print the same as they show) and a text name for assistive technology. The verdict line and the sentences give every chart's message in text.
+- `Print summary` goes to this step and then calls `window.print()`; it is disabled while the inputs are invalid. `@media print` CSS in `index.css` hides the header, step bar and buttons and shows only this summary: A4 landscape, no shadows, backgrounds kept. It must print on one page.
 
 ## 8. State and persistence
 

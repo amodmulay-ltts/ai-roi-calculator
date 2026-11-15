@@ -127,7 +127,9 @@ async function main() {
     body = await text(page);
     check('Opportunity shows the work mix total', body.includes('Total 100%'));
     const tiles = await page.$$eval('p.text-2xl', els => els.map(e => e.textContent));
-    check('live tiles match the enterprise result (1,440 hours, 9.0 people)', tiles[0] === '1,440' && tiles[1] === '9.0', tiles.join(' / '));
+    check('live tiles match the enterprise result (1,440 hours, 9.0 people, 30.0% net efficiency)', tiles[0] === '1,440' && tiles[1] === '9.0' && tiles[2] === '30.0%', tiles.join(' / '));
+    body = await text(page);
+    check('the efficiency bridge shows gross, review and net (36.8%, -6.8%, 30.0%)', has(body, 'How the efficiency is built', '36.8%', '-6.8%', 'Where the effort is saved', '24.0%', '34.0%', 'Shown for the Enterprise option.'));
 
     // Step 3: Right-size, spec 6.2 and 6.3
     await goStep(page, '3 Right-size');
@@ -158,17 +160,28 @@ async function main() {
     // Step 6: Risks
     await goStep(page, '6 Risks');
     check('the default readiness gap is 0 of 8', (await text(page)).includes('Readiness gap: 0 of 8.'));
-    await page.evaluate(() => document.querySelector('input[name="readiness-data"][value="partial"]').click());
-    await pause();
-    body = await text(page);
-    check('a partly-ready answer moves the gap and adds a readiness sentence', has(body, 'Readiness gap: 1 of 8.', 'Readiness gaps reduce the 3-year value by'));
 
     // Step 7: Decision
     await goStep(page, '7 Decision');
     body = await text(page);
-    check('the decision summary has its parts', has(body, 'What must be true', 'Range:', 'The ask', 'Next steps', 'Assumptions are presenter-entered and not independently verified.'));
-    check('the comparison table lists the four options', has(body, 'Local', 'Hybrid', 'Enterprise', 'Frontier') && body.includes('Verdict'));
+    check('the decision summary has its parts', has(body, 'What must be true', 'Range:', 'The ask', 'Next steps', 'Net efficiency gain', 'Assumptions are presenter-entered and not independently verified.'));
+    check('the decision summary shows the verdict of every option', has(body, 'Local: Marginal', 'Hybrid: Does not pay back', 'Enterprise: Pays back', 'Frontier: Marginal'));
+    const panels = await page.$$eval('.print-area h2', els => els.map(e => e.textContent));
+    const expectedPanels = ['Cumulative position', '3-year net value by option', 'How the efficiency is built', 'Where the effort is saved', 'Monthly position at maturity', 'One-time investment', 'Safety margin', 'What must be true'];
+    check('the decision summary is a dashboard of eight panels', expectedPanels.every(p => panels.includes(p)), panels.join(' | '));
+    check('the dashboard draws six charts', (await page.$$('.print-area .recharts-wrapper')).length === 6);
+    check('the safety margin shows both break-evens and the readiness gap', has(body, 'Break-even: 70%', 'Assumed: 100%', 'Break-even: 49%', 'Assumed: 70%', 'Readiness gap: 0 of 8.'));
     await page.screenshot({ path: path.join(outDir, 'exec-07-decision.png'), fullPage: true });
+
+    // Readiness: a partly-ready answer moves the gap and sentences on step 6, and the dashboard follows
+    await goStep(page, '6 Risks');
+    await page.evaluate(() => document.querySelector('input[name="readiness-data"][value="partial"]').click());
+    await pause();
+    body = await text(page);
+    check('a partly-ready answer moves the gap and adds a readiness sentence', has(body, 'Readiness gap: 1 of 8.', 'Readiness gaps reduce the 3-year value by'));
+    await goStep(page, '7 Decision');
+    body = await text(page);
+    check('the dashboard follows the readiness answer (gap 1 of 8, break-even 73%)', has(body, 'Readiness gap: 1 of 8.', 'Break-even: 73%'));
 
     // Persistence across a reload
     await setInput(page, 'header input[type=text]', 'Acme Motors');
@@ -241,9 +254,9 @@ async function main() {
       summary: getComputedStyle(document.querySelector('.print-area')).visibility,
     }));
     check('the print layout hides the header, step bar and buttons and shows the summary', printLayout.header === 'none' && printLayout.nav === 'none' && printLayout.footer === 'none' && printLayout.summary === 'visible', JSON.stringify(printLayout));
-    const pdf = await page.pdf({ format: 'A4' });
+    const pdf = await page.pdf({ preferCSSPageSize: true });
     const pages = (Buffer.from(pdf).toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
-    check('the decision summary prints on one A4 page', pages === 1, `${pages} pages`);
+    check('the decision summary prints on one A4 landscape page', pages === 1, `${pages} pages`);
     await page.emulateMediaType('screen');
 
     // Accessibility: every form field has an accessible name, on every screen
