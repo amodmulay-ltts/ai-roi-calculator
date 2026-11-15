@@ -4,3 +4,4 @@ export * from './defaults.js';
 export * from './format.js';
 export * from './validate.js';
 export * from './calc.js';
+export * from './compare.js';
