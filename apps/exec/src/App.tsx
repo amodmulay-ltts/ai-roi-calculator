@@ -4,6 +4,7 @@ import Header from './components/Header';
 import IssueList from './components/IssueList';
 import StepBar, { STEP_NAMES } from './components/StepBar';
 import Opportunity from './screens/Opportunity';
+import RightSize from './screens/RightSize';
 import Situation from './screens/Situation';
 import { useExecStore } from './store';
 
@@ -15,7 +16,8 @@ export default function App() {
   const inputs = useExecStore(s => s.inputs);
   const issues = useMemo(() => validateInputs(inputs), [inputs]);
 
-  const screen = step === 1 ? <Situation /> : step === 2 ? <Opportunity /> : null;
+  const screen =
+    step === 1 ? <Situation /> : step === 2 ? <Opportunity /> : step === 3 ? <RightSize /> : null;
 
   return (
     <div className="min-h-screen bg-gray-50">

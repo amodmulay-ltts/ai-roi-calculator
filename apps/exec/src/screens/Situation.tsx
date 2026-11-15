@@ -2,7 +2,7 @@ import { formatMoney, type DataConstraint } from '@ai-roi-calc/bizcase';
 import Field, { NumberInput } from '../components/Field';
 import { useExecStore } from '../store';
 
-const DATA_RULES: Array<[DataConstraint, string]> = [
+export const DATA_RULES: Array<[DataConstraint, string]> = [
   ['public-ok', 'Public cloud AI is acceptable'],
   ['restricted', 'Restricted: no public cloud AI'],
   ['sovereign', 'Sovereign: must stay on our own infrastructure'],
