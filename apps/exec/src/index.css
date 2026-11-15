@@ -2,11 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* One-page A4 summary: only the decision screen prints; the chrome and controls are hidden */
+/* One-page A4 landscape summary: only the decision screen prints; the chrome and controls are hidden */
 @media print {
   @page {
-    size: A4 portrait;
-    margin: 12mm;
+    size: A4 landscape;
+    margin: 10mm;
   }
   body * {
     visibility: hidden;
@@ -14,10 +14,9 @@
   .print-area,
   .print-area * {
     visibility: visible;
-    color: #000 !important;
-    background: #fff !important;
     box-shadow: none !important;
-    border-color: #ccc !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .print-area {
     position: absolute;
@@ -27,6 +26,8 @@
     margin: 0;
     padding: 0;
     border: none !important;
+    background: #fff;
+    zoom: 0.8;
   }
   .no-print {
     display: none !important;

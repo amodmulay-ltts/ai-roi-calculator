@@ -14,6 +14,7 @@ import type {
   Readiness,
   ReadinessAnswer,
   TaskMix,
+  TaskResult,
   TierId,
   PostureId,
   Verdict,
@@ -64,7 +65,9 @@ export function calculateCase(
   const hourlyCost = inputs.loadedCostPerFteYear / 12 / inputs.hoursPerFteMonth;
   const tiersUsed: TierId[] = [];
   let netHoursSavedPerMonth = 0;
+  let grossRemovedHoursPerMonth = 0;
   let usageCostPerMonth = 0;
+  const tasks: TaskResult[] = [];
   for (const task of inputs.tasks) {
     const tierId = tierForTask(inputs, postureId, task);
     if (!tiersUsed.includes(tierId)) tiersUsed.push(tierId);
@@ -74,9 +77,27 @@ export function calculateCase(
     const reduction = Math.min(MAX_REDUCTION, (routine ? tier.reductionRoutine : tier.reductionComplex) * effMult);
     const review = routine ? tier.reviewRoutine : tier.reviewComplex;
     const removed = assisted * reduction;
-    netHoursSavedPerMonth += removed * (1 - review);
+    const baselineHours = totalHours * task.share;
+    const netSaved = removed * (1 - review);
+    netHoursSavedPerMonth += netSaved;
+    grossRemovedHoursPerMonth += removed;
     usageCostPerMonth += assisted * tier.usageCostPerAssistedHour;
+    tasks.push({
+      id: task.id,
+      name: task.name,
+      tier: tierId,
+      baselineHours,
+      assistedHours: assisted,
+      grossRemovedHours: removed,
+      reviewReworkHours: removed * review,
+      netSavedHours: netSaved,
+      netEfficiency: baselineHours > 0 ? netSaved / baselineHours : 0,
+    });
   }
+  const reviewReworkHoursPerMonth = grossRemovedHoursPerMonth - netHoursSavedPerMonth;
+  const netEfficiency = totalHours > 0 ? netHoursSavedPerMonth / totalHours : 0;
+  const grossEfficiency = totalHours > 0 ? grossRemovedHoursPerMonth / totalHours : 0;
+  const reviewReworkEfficiency = totalHours > 0 ? reviewReworkHoursPerMonth / totalHours : 0;
 
   // 5.5: value
   const capacityValuePerMonth = netHoursSavedPerMonth * hourlyCost;
@@ -127,9 +148,17 @@ export function calculateCase(
     postureId,
     caseId,
     netHoursSavedPerMonth,
+    totalHours,
+    grossRemovedHoursPerMonth,
+    reviewReworkHoursPerMonth,
+    netEfficiency,
+    grossEfficiency,
+    reviewReworkEfficiency,
+    tasks,
     capacityFte,
     capacityValuePerMonth,
     countedSavingPerMonth,
+    retiredCostPerMonth: inputs.retiredCostMonthly,
     redeployedValuePerMonth,
     usageCostPerMonth,
     platformAndGovernancePerMonth,

@@ -56,13 +56,37 @@ export interface BusinessCaseInputs {
   readiness: Readiness;
 }
 
+/** What happens to one kind of work under a posture, in hours per month at maturity. */
+export interface TaskResult {
+  id: TaskMix['id'];
+  name: string;
+  tier: TierId;
+  baselineHours: number;      // total hours x share of work
+  assistedHours: number;      // baseline hours x adoption
+  grossRemovedHours: number;  // assisted hours x effort AI removes
+  reviewReworkHours: number;  // removed hours that come back as review and rework
+  netSavedHours: number;      // gross removed minus review and rework
+  netEfficiency: number;      // net saved / baseline hours, 0..1 (0 when there is no baseline work)
+}
+
 export interface CaseResult {
   postureId: PostureId;
   caseId: CaseId;
   netHoursSavedPerMonth: number;   // at maturity
+  /** Hours of in-scope work per month before AI. */
+  totalHours: number;
+  grossRemovedHoursPerMonth: number;
+  reviewReworkHoursPerMonth: number;
+  /** Net share of in-scope effort freed after review and rework: netHoursSavedPerMonth / totalHours, 0..1. */
+  netEfficiency: number;
+  /** The bridge to net efficiency, as shares of in-scope effort: gross removed minus review and rework. */
+  grossEfficiency: number;
+  reviewReworkEfficiency: number;
+  tasks: TaskResult[];
   capacityFte: number;             // netHoursSavedPerMonth / hoursPerFteMonth
   capacityValuePerMonth: number;   // EUR, all released capacity at the hourly cost
   countedSavingPerMonth: number;   // capacityValue x effective cash share
+  retiredCostPerMonth: number;     // cost removed outright, as entered
   redeployedValuePerMonth: number; // capacityValue minus counted saving (NOT counted anywhere)
   usageCostPerMonth: number;       // at maturity
   platformAndGovernancePerMonth: number;

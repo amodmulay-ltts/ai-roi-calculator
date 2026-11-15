@@ -35,7 +35,7 @@ Your inputs, the selected posture, the ask and the next steps are saved in this 
 
 ## Printing
 
-Print the decision screen (step 7) to get the one-page summary. The print layout hides the header, step bar and buttons. Printing from other steps produces a blank page.
+The decision screen (step 7) is a one-page graphical summary. **Print summary** takes you to it and opens the print dialog (it is disabled while the inputs are invalid). The print layout is A4 landscape and hides the header, step bar and buttons. Turn on "Background graphics" in the print dialog if the gauges look empty.
 
 ## Scope
 

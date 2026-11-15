@@ -31,3 +31,14 @@ All questions raised during the build are resolved below. Each records the decis
 ## 7. Saved data could crash or mislead loading — Resolved, behaviour changed
 - Found in review, not raised earlier. The saved-data check ran value validation on data of unknown shape, so a saved scenario with a missing tier or a wrong option could throw while loading, and an invalid readiness answer would have produced "NaN" on screen.
 - Decision: a shape check lives in the tested calculation package (`isBusinessCaseInputs`) and runs before the value checks. Anything that fails is ignored and the defaults are used.
+
+## 8. Is "share of work where AI is used" the right measure of expected efficiency? — Resolved, behaviour changed
+- Raised by the product owner after the app was built.
+- Finding: no, not as the headline. That input is rollout reach (how much of the work AI is applied to). What a manager means by efficiency is the net share of effort freed after review and rework, which the model already computed (netHours / total hours) but never showed. The real efficiency assumptions (how much effort AI removes per kind of work, and how much comes back as review) sat inside the Right-size assumptions table.
+- Decision: show **net efficiency gain** as the headline measure, and show how it is built (effort AI removes, minus review and rework) and where it comes from (per kind of work). Keep adoption as an input but state what it means. Net efficiency is a result, never an input.
+- Not done, possible later: adoption per kind of work (routine work is usually adopted sooner than complex work). One shared figure is simpler to present and is stated on the dashboard.
+
+## 9. The decision screen is now a graphical dashboard, printed A4 landscape — Resolved, behaviour changed
+- Requested by the product owner: a summary that shows everything graphically.
+- Decision: the decision screen is a nine-panel dashboard (six charts, a safety-margin panel, the sentences, and the ask). It prints on one A4 landscape page, because a dashboard of panels needs width, which also matches the original brief's landscape report. Charts have a fixed size, because a resizing chart does not re-measure reliably when the browser switches to print layout.
+- The comparison table was removed: its content is in the options chart and the verdict line under it.
