@@ -19,7 +19,21 @@ npm run dev                        # builds the engine, then starts client and s
 npm test                           # engine tests (Vitest, runs once)
 npm run smoke                      # browser smoke test on the built app (needs Chrome or Edge installed)
 npm run build                      # production build of engine, server and client
+npm run test:all                   # every test suite: engine, executive calculation package and server
 ```
+
+## Executive AI Business Case
+
+A second, separate app lives in `apps/exec` (calculation in `packages/bizcase`). It is a short, presenter-led business case for management: it compares local, hybrid, enterprise and frontier AI for one use case, shows a conservative, expected and stretch range, and prints a one-page summary. It does not use the ROI engine above, and **its default numbers are placeholders**, not benchmarks.
+
+```bash
+npm run dev:exec                   # builds the calculation package, then starts the app on http://localhost:5174
+npm run build:exec                 # builds the package and the app
+npm run test:bizcase               # calculation tests
+npm run smoke:exec                 # browser smoke test on the built app (run build:exec first; needs Chrome or Edge)
+```
+
+See [apps/exec/README.md](apps/exec/README.md), [CONCEPT_EXEC.md](CONCEPT_EXEC.md) and [EXEC_BUILD_SPEC.md](EXEC_BUILD_SPEC.md).
 
 ## Branding
 

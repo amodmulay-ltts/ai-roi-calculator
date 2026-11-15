@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
-import { createExampleScenario } from '../packages/engine/dist/index.js';
+import { createDefaultScenario, createExampleScenario } from '../packages/engine/dist/index.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = path.join(root, '.smoke');
@@ -84,12 +84,17 @@ async function main() {
     // Dialogs are fixed to the viewport, so capture those without fullPage
     const shot = (name, fullPage = true) => page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage });
 
-    // 1. First visit: the example
+    // 1. First visit: the software testing reference, then the automotive example the later checks are written for
     await page.goto(URL, { waitUntil: 'networkidle0' });
     await page.evaluate(() => localStorage.clear());
     await page.reload({ waitUntil: 'networkidle0' });
     let body = await text(page);
-    check('example loads by default', body.includes('Vantara Motors') && body.includes('EXAMPLE CALCULATION'));
+    check('opens on the software testing reference, not an example', body.includes('Testing') && !body.includes('EXAMPLE CALCULATION'));
+    await clickByText(page, 'header button', 'Scenario');
+    await clickByText(page, '[role="menuitem"]', 'Load example');
+    await page.waitForFunction(() => document.body.innerText.includes('EXAMPLE CALCULATION'), { timeout: 5_000 });
+    body = await text(page);
+    check('Load example loads the automotive example, labelled as an example', body.includes('Vantara Motors') && body.includes('EXAMPLE CALCULATION'));
     check('headline results render', /Net value created/.test(body) && /Month \d+/.test(body));
     check(
       'LTTS logo loads in the header',
@@ -121,8 +126,10 @@ async function main() {
     const stripBefore = await page.$eval('a[aria-label="Jump to net value"]', el => el.innerText);
     check('the section bar carries a running result', /€/.test(stripBefore) && /month|no payback/i.test(stripBefore));
 
-    check('assumptions start collapsed, so the page opens on the argument', !(await page.$('#assumptions-body')));
-    check('the assumption tabs are hidden too', !(await page.$('[role="tablist"][aria-label="Assumptions"]')));
+    check('assumptions are open on load, so inputs can be edited at once', !!(await page.$('#assumptions-body')));
+    check('the assumption tabs are shown', !!(await page.$('[role="tablist"][aria-label="Assumptions"]')));
+    await clickByText(page, '#assumptions button', 'Hide inputs');
+    check('hiding inputs collapses them and their tabs', !(await page.$('#assumptions-body')) && !(await page.$('[role="tablist"][aria-label="Assumptions"]')));
     await clickByText(page, '#assumptions button', 'Show inputs');
     check('showing inputs reveals them', !!(await page.$('#assumptions-body')));
     for (const [tab, expected] of [
@@ -289,8 +296,14 @@ async function main() {
     await page.type('input[placeholder^="e.g., Acme Corp"]', 'Smoke Test Bank - AI testing');
     await page.type('input[placeholder="e.g., Acme Corporation"]', 'Smoke Test Bank');
     for (let i = 0; i < 3; i++) await clickByText(page, '[role="dialog"] button', 'Next');
+    // A new scenario starts from the software testing reference, so that template is preselected
     check(
-      'automotive template is preselected for an automotive use case',
+      'software testing template is preselected for a new scenario',
+      await page.$eval('[aria-label="Use case"] [aria-checked="true"]', el => el.textContent?.includes('Software testing'))
+    );
+    await clickByText(page, '[aria-label="Use case"] [aria-checked]', 'Automotive');
+    check(
+      'the automotive template can be chosen instead',
       await page.$eval('[aria-label="Use case"] [aria-checked="true"]', el => el.textContent?.includes('Automotive'))
     );
     await clickByText(page, '[role="dialog"] button', 'Apply template');
@@ -313,7 +326,13 @@ async function main() {
     check('a reference figure can be added as a cost line', linesAfter === linesBefore + 1);
     await shot('03a2-setup-costs', false);
     await clickByText(page, '[role="dialog"] button', 'Next');
-    check('setup has an AI effect step with the mature cut', (await page.$eval('#cut-mature', el => Number(el.value))) === 30);
+    // A new scenario starts from the testing reference, so its mature cut is that reference's, not the example's
+    const referenceCut = Math.round((1 - createDefaultScenario().productivityFactor.mature) * 100);
+    check(
+      'setup has an AI effect step with the mature cut from the testing reference',
+      Math.round(await page.$eval('#cut-mature', el => Number(el.value))) === referenceCut,
+      `expected ${referenceCut}`
+    );
     await shot('03b-setup-ai-effect', false);
     for (let i = 0; i < 3; i++) await clickByText(page, '[role="dialog"] button', 'Next');
     await shot('03-setup-review', false);
@@ -329,7 +348,7 @@ async function main() {
     check('restore notice is shown', body.includes('Restored the scenario saved in this browser'));
     await shot('04-restored');
 
-    // 4b. An example saved by an older version must not hide the current built-in example
+    // 4b. An example saved by an older version is not restored: the app opens on the testing reference
     const oldExample = { ...createExampleScenario(), name: 'Example: AI-augmented testing at Northwind Insurance', clientName: 'Northwind Insurance (fictional)' };
     await page.evaluate(
       saved => localStorage.setItem('valueai.currentScenario.v1', JSON.stringify(saved)),
@@ -337,13 +356,14 @@ async function main() {
     );
     await page.reload({ waitUntil: 'networkidle0' });
     body = await text(page);
-    check('a saved old example is replaced by the current example', body.includes('Vantara Motors') && !body.includes('Northwind'));
+    check('a saved old example is not restored: the testing reference opens instead', body.includes('Testing') && !body.includes('Northwind') && !body.includes('EXAMPLE CALCULATION'));
     check('no restore notice for a saved example', !body.includes('Restored the scenario saved in this browser'));
 
-    // 5. Corrupt storage falls back to the example
+    // 5. Corrupt storage falls back to the testing reference
     await page.evaluate(() => localStorage.setItem('valueai.currentScenario.v1', '{"scenario":{"name":1}}'));
     await page.reload({ waitUntil: 'networkidle0' });
-    check('corrupt saved data falls back to the example', (await text(page)).includes('Vantara Motors'));
+    body = await text(page);
+    check('corrupt saved data falls back to the testing reference', body.includes('Testing') && !body.includes('Vantara Motors'));
 
     check('no console or page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
