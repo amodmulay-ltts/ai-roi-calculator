@@ -3,7 +3,9 @@ import { validateInputs } from '@ai-roi-calc/bizcase';
 import Header from './components/Header';
 import IssueList from './components/IssueList';
 import StepBar, { STEP_NAMES } from './components/StepBar';
+import Decision from './screens/Decision';
 import Opportunity from './screens/Opportunity';
+import Risks from './screens/Risks';
 import Investment from './screens/Investment';
 import Result from './screens/Result';
 import RightSize from './screens/RightSize';
@@ -19,17 +21,19 @@ export default function App() {
   const issues = useMemo(() => validateInputs(inputs), [inputs]);
 
   const screen =
-    step === 1 ? <Situation /> : step === 2 ? <Opportunity /> : step === 3 ? <RightSize /> : step === 4 ? <Investment /> : step === 5 ? <Result /> : null;
+    step === 1 ? <Situation /> : step === 2 ? <Opportunity /> : step === 3 ? <RightSize /> : step === 4 ? <Investment /> : step === 5 ? <Result /> : step === 6 ? <Risks /> : step === 7 ? <Decision /> : null;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-4xl px-6 py-8">
         <Header />
-        <div className="mb-6">
+        <div className="mb-6 no-print">
           <StepBar step={step} onSelect={setStep} />
         </div>
 
-        <IssueList issues={issues} />
+        <div className="no-print">
+          <IssueList issues={issues} />
+        </div>
 
         {step >= 3 && issues.length > 0 ? (
           <p className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-700">
@@ -39,7 +43,7 @@ export default function App() {
           screen
         )}
 
-        <footer className="mt-6 flex justify-between">
+        <footer className="no-print mt-6 flex justify-between">
           <button
             type="button"
             onClick={() => setStep(step - 1)}
