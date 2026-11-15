@@ -10,7 +10,7 @@ export default function Header() {
   };
 
   return (
-    <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <header className="no-print mb-6 flex flex-wrap items-center justify-between gap-4">
       <div className="flex flex-wrap items-center gap-4">
         <h1 className="text-2xl font-semibold text-gray-900">AI Business Case</h1>
         <input
