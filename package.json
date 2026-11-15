@@ -15,7 +15,7 @@
     "build": "npm run build -w packages/engine && npm run build -w apps/server && npm run build -w apps/client",
     "start": "npm start -w apps/server",
     "test": "npm test -w packages/engine",
-    "test:all": "npm test -w packages/engine",
+    "test:all": "npm test -w packages/engine && npm test -w packages/bizcase && npm test -w apps/server",
     "dev:exec": "npm run build -w packages/bizcase && npm run dev -w apps/exec",
     "test:bizcase": "npm test -w packages/bizcase",
     "build:exec": "npm run build -w packages/bizcase && npm run build -w apps/exec",

@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 export const STEP_NAMES = [
   '1 Situation',
   '2 Opportunity',
@@ -13,7 +14,7 @@ interface StepBarProps {
   onSelect: (n: number) => void;
 }
 
-export default function StepBar({ step, onSelect }: StepBarProps) {
+export default function StepBar({ step, onSelect }: StepBarProps): ReactElement {
   return (
     <nav aria-label="Steps" className="flex flex-wrap gap-2">
       {STEP_NAMES.map((name, i) => {

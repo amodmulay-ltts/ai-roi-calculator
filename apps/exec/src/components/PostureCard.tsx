@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { formatMoney, formatPayback, type PostureSummary, type Verdict } from '@ai-roi-calc/bizcase';
 
 export const POSTURE_LABEL = { local: 'Local', hybrid: 'Hybrid', enterprise: 'Enterprise', frontier: 'Frontier' } as const;
@@ -30,7 +31,7 @@ interface PostureCardProps {
   onSelect: () => void;
 }
 
-export default function PostureCard({ summary, selected, recommended, breakEven, onSelect }: PostureCardProps) {
+export default function PostureCard({ summary, selected, recommended, breakEven, onSelect }: PostureCardProps): ReactElement {
   const r = summary.expected;
   const badge = VERDICT_BADGE[r.verdict];
   const disabled = !summary.allowed;
@@ -68,7 +69,7 @@ export default function PostureCard({ summary, selected, recommended, breakEven,
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: string }): ReactElement {
   return (
     <div className="flex justify-between gap-2">
       <dt className="text-gray-500">{label}</dt>

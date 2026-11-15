@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { ReactElement } from 'react';
 import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import {
   breakEvenEffectiveness,
@@ -16,7 +17,7 @@ const ORDER: PostureId[] = ['local', 'hybrid', 'enterprise', 'frontier'];
 const POSITIVE = '#1d4ed8';
 const NEGATIVE = '#b91c1c';
 
-export default function RightSize() {
+export default function RightSize(): ReactElement {
   const inputs = useExecStore(s => s.inputs);
   const selectedPosture = useExecStore(s => s.selectedPosture);
   const selectPosture = useExecStore(s => s.selectPosture);
@@ -53,7 +54,7 @@ export default function RightSize() {
 
       <div className="rounded-xl border border-gray-200 bg-white p-6">
         <h2 className="mb-4 text-sm font-medium text-gray-900">3-year net value by option</h2>
-        <div className="h-64">
+        <div className="h-64" role="img" aria-label="Bar chart of the 3-year net value of each option">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />

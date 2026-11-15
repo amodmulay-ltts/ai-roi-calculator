@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import {
   calculateCase,
   validateInputs,
@@ -12,7 +13,7 @@ const TYPE_OPTIONS: Array<[Difficulty, string]> = [
   ['complex', 'Complex'],
 ];
 
-export default function Opportunity() {
+export default function Opportunity(): ReactElement {
   const inputs = useExecStore(s => s.inputs);
   const selectedPosture = useExecStore(s => s.selectedPosture);
   const setInputs = useExecStore(s => s.setInputs);
@@ -41,7 +42,11 @@ export default function Opportunity() {
             <tr key={task.id} className="border-b border-gray-100">
               <td className="py-3 text-gray-900">{task.name}</td>
               <td className="py-3 text-right">
-                <PercentInput value={task.share} onChange={share => setTask(task.id, { share })} />
+                <PercentInput
+                  value={task.share}
+                  ariaLabel={`${task.name} share of work (%)`}
+                  onChange={share => setTask(task.id, { share })}
+                />
               </td>
               <td className="py-3 text-right">
                 <span className="inline-flex rounded-lg border border-gray-200 p-0.5">

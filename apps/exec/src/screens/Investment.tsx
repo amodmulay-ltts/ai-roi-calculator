@@ -1,8 +1,9 @@
+import type { ReactElement } from 'react';
 import { compareAll, formatMoney } from '@ai-roi-calc/bizcase';
 import Field, { NumberInput, PercentInput } from '../components/Field';
 import { effectivePosture, useExecStore } from '../store';
 
-export default function Investment() {
+export default function Investment(): ReactElement {
   const inputs = useExecStore(s => s.inputs);
   const selectedPosture = useExecStore(s => s.selectedPosture);
   const setInputs = useExecStore(s => s.setInputs);

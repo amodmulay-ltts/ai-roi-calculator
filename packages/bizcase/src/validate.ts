@@ -14,12 +14,14 @@ const NON_NEGATIVE_LABEL: Record<
   trainingPerFte: 'Training per person',
 };
 
-const isFraction = (v: number) => v >= 0 && v <= 1;
+const isFraction = (v: number): boolean => v >= 0 && v <= 1;
 
 /** Returns every problem with the inputs. An empty list means the inputs are valid. */
 export function validateInputs(inputs: BusinessCaseInputs): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const add = (field: string, message: string) => issues.push({ field, message });
+  const add = (field: string, message: string): void => {
+    issues.push({ field, message });
+  };
 
   if (!(inputs.teamSize > 0)) add('teamSize', 'Team size must be greater than zero.');
   if (!(inputs.loadedCostPerFteYear > 0)) add('loadedCostPerFteYear', 'Annual cost per person must be greater than zero.');
@@ -53,4 +55,70 @@ export function validateInputs(inputs: BusinessCaseInputs): ValidationIssue[] {
   }
 
   return issues;
+}
+
+const TASK_IDS = ['testDesign', 'scriptDev', 'execution', 'defectAnalysis', 'reporting'];
+const TIER_KEYS: TierId[] = ['local', 'enterprise', 'frontier'];
+const TIER_FIELDS = [
+  'reductionRoutine',
+  'reductionComplex',
+  'reviewRoutine',
+  'reviewComplex',
+  'usageCostPerAssistedHour',
+  'platformMonthly',
+  'setup',
+];
+const NUMBER_FIELDS = [
+  'teamSize',
+  'loadedCostPerFteYear',
+  'hoursPerFteMonth',
+  'adoption',
+  'cashShare',
+  'retiredCostMonthly',
+  'rampMonths',
+  'governanceMonthly',
+  'dataReadinessInvestment',
+  'governanceSetup',
+  'trainingPerFte',
+];
+const READINESS_KEYS = ['data', 'skills', 'sponsorship', 'compliance'];
+
+const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * Checks that untrusted data (for example saved in a browser) has the shape of the inputs: every field present
+ * with the right type, and every option one of its allowed values. It does not check value ranges; use
+ * validateInputs for that, after this passes.
+ */
+export function isBusinessCaseInputs(value: unknown): value is BusinessCaseInputs {
+  if (!isRecord(value)) return false;
+  if (typeof value.customerName !== 'string') return false;
+  if (!NUMBER_FIELDS.every(key => isFiniteNumber(value[key]))) return false;
+  if (!['public-ok', 'restricted', 'sovereign'].includes(value.dataConstraint as string)) return false;
+  if (!TIER_KEYS.includes(value.hybridComplexTier as TierId)) return false;
+
+  const tasks = value.tasks;
+  if (!Array.isArray(tasks) || tasks.length !== TASK_IDS.length) return false;
+  const tasksOk = tasks.every(
+    (t, i) =>
+      isRecord(t) &&
+      t.id === TASK_IDS[i] &&
+      typeof t.name === 'string' &&
+      isFiniteNumber(t.share) &&
+      (t.difficulty === 'routine' || t.difficulty === 'complex'),
+  );
+  if (!tasksOk) return false;
+
+  const tiers = value.tiers;
+  if (!isRecord(tiers)) return false;
+  const tiersOk = TIER_KEYS.every(id => {
+    const tier = tiers[id];
+    return isRecord(tier) && TIER_FIELDS.every(field => isFiniteNumber(tier[field]));
+  });
+  if (!tiersOk) return false;
+
+  const readiness = value.readiness;
+  if (!isRecord(readiness)) return false;
+  return READINESS_KEYS.every(key => ['ready', 'partial', 'not-ready'].includes(readiness[key] as string));
 }

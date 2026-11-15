@@ -101,23 +101,20 @@ export function calculateCase(
     countedSavingPerMonth + inputs.retiredCostMonthly - usageCostPerMonth - platformAndGovernancePerMonth;
 
   // 5.7: timeline over the horizon
-  const cumulative: number[] = [-investment];
+  let running = -investment;
+  const cumulative: number[] = [running];
+  let paybackMonth: number | null = null;
   for (let m = 1; m <= HORIZON_MONTHS; m++) {
     const factor = Math.min(1, m / ramp);
     const net =
       (countedSavingPerMonth + inputs.retiredCostMonthly) * factor -
       usageCostPerMonth * factor -
       platformAndGovernancePerMonth;
-    cumulative.push(cumulative[m - 1]! + net);
+    running += net;
+    cumulative.push(running);
+    if (paybackMonth === null && running >= 0) paybackMonth = m;
   }
-  let paybackMonth: number | null = null;
-  for (let m = 1; m <= HORIZON_MONTHS; m++) {
-    if (cumulative[m]! >= 0) {
-      paybackMonth = m;
-      break;
-    }
-  }
-  const netValue36 = cumulative[HORIZON_MONTHS]!;
+  const netValue36 = running;
   const roiPercent = investment > 0 ? (netValue36 / investment) * 100 : null;
 
   // 5.8: verdict

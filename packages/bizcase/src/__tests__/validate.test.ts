@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createDefaultInputs } from '../defaults.js';
-import { validateInputs } from '../validate.js';
+import { isBusinessCaseInputs, validateInputs } from '../validate.js';
 
 describe('validateInputs', () => {
   it('reports no issues for the defaults', () => {
@@ -65,5 +65,61 @@ describe('validateInputs', () => {
       { field: 'tiers.enterprise.reviewRoutine', message: 'Enterprise assumption "reviewRoutine" is out of range.' },
       { field: 'tiers.frontier.platformMonthly', message: 'Frontier assumption "platformMonthly" is out of range.' },
     ]);
+  });
+});
+
+describe('isBusinessCaseInputs', () => {
+  it('accepts the defaults and a JSON round trip of them', () => {
+    expect(isBusinessCaseInputs(createDefaultInputs())).toBe(true);
+    expect(isBusinessCaseInputs(JSON.parse(JSON.stringify(createDefaultInputs())))).toBe(true);
+  });
+
+  it('rejects things that are not an object', () => {
+    for (const bad of [null, undefined, 42, 'text', [], true]) expect(isBusinessCaseInputs(bad)).toBe(false);
+  });
+
+  it('rejects a numeric field that is a string, missing, or not finite', () => {
+    const asString = JSON.parse(JSON.stringify(createDefaultInputs()));
+    asString.teamSize = '30';
+    expect(isBusinessCaseInputs(asString)).toBe(false);
+    const missing = JSON.parse(JSON.stringify(createDefaultInputs()));
+    delete missing.rampMonths;
+    expect(isBusinessCaseInputs(missing)).toBe(false);
+    const notFinite = createDefaultInputs();
+    notFinite.adoption = Number.NaN;
+    expect(isBusinessCaseInputs(notFinite)).toBe(false);
+  });
+
+  it('rejects an option outside its allowed values', () => {
+    const constraint = JSON.parse(JSON.stringify(createDefaultInputs()));
+    constraint.dataConstraint = 'anything';
+    expect(isBusinessCaseInputs(constraint)).toBe(false);
+    const tier = JSON.parse(JSON.stringify(createDefaultInputs()));
+    tier.hybridComplexTier = 'hybrid';
+    expect(isBusinessCaseInputs(tier)).toBe(false);
+    const readiness = JSON.parse(JSON.stringify(createDefaultInputs()));
+    readiness.readiness.data = 'maybe';
+    expect(isBusinessCaseInputs(readiness)).toBe(false);
+  });
+
+  it('rejects tasks that are missing, reordered, or have an unknown difficulty', () => {
+    const short = createDefaultInputs();
+    short.tasks.pop();
+    expect(isBusinessCaseInputs(short)).toBe(false);
+    const reordered = createDefaultInputs();
+    reordered.tasks.reverse();
+    expect(isBusinessCaseInputs(reordered)).toBe(false);
+    const difficulty = JSON.parse(JSON.stringify(createDefaultInputs()));
+    difficulty.tasks[0].difficulty = 'hard';
+    expect(isBusinessCaseInputs(difficulty)).toBe(false);
+  });
+
+  it('rejects a missing tier or a tier field of the wrong type', () => {
+    const noTier = JSON.parse(JSON.stringify(createDefaultInputs()));
+    delete noTier.tiers.frontier;
+    expect(isBusinessCaseInputs(noTier)).toBe(false);
+    const wrongType = JSON.parse(JSON.stringify(createDefaultInputs()));
+    wrongType.tiers.local.setup = '130000';
+    expect(isBusinessCaseInputs(wrongType)).toBe(false);
   });
 });

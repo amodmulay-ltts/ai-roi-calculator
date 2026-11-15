@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import {
   compareAll,
   createDefaultInputs,
+  isBusinessCaseInputs,
   recommendedPosture,
   validateInputs,
   type BusinessCaseInputs,
@@ -56,15 +57,10 @@ interface Stored {
 function isStored(value: unknown): value is Stored {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Partial<Stored>;
-  const i = v.inputs as BusinessCaseInputs | undefined;
-  if (!i || typeof i !== 'object') return false;
-  if (typeof i.teamSize !== 'number' || typeof i.loadedCostPerFteYear !== 'number') return false;
-  if (typeof i.hoursPerFteMonth !== 'number' || typeof i.adoption !== 'number') return false;
-  if (typeof i.cashShare !== 'number' || typeof i.rampMonths !== 'number') return false;
-  if (!Array.isArray(i.tasks) || i.tasks.length !== 5 || !i.tiers || !i.readiness) return false;
+  if (!isBusinessCaseInputs(v.inputs)) return false;
   if (v.selectedPosture !== null && !POSTURES.includes(v.selectedPosture as PostureId)) return false;
   if (typeof v.ask !== 'string' || typeof v.nextSteps !== 'string') return false;
-  return validateInputs(i).length === 0;
+  return validateInputs(v.inputs).length === 0;
 }
 
 export const useExecStore = create<ExecState>()(
