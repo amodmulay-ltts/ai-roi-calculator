@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import type { BusinessCaseInputs, TierId } from '@ai-roi-calc/bizcase';
 import { NumberInput, PercentInput } from './Field';
 import { useExecStore } from '../store';
@@ -24,7 +25,7 @@ const MONEY_ROWS: Array<[MoneyField, string]> = [
   ['setup', 'One-time setup (EUR)'],
 ];
 
-export default function AssumptionsTable({ inputs }: { inputs: BusinessCaseInputs }) {
+export default function AssumptionsTable({ inputs }: { inputs: BusinessCaseInputs }): ReactElement {
   const setTier = useExecStore(s => s.setTier);
   const setInputs = useExecStore(s => s.setInputs);
 
@@ -44,20 +45,34 @@ export default function AssumptionsTable({ inputs }: { inputs: BusinessCaseInput
         <tbody>
           {PERCENT_ROWS.map(([field, label]) => (
             <tr key={field} className="border-b border-gray-100">
-              <td className="py-2 text-gray-900">{label}</td>
-              {TIERS.map(([id]) => (
+              <td className="py-2 text-gray-900">
+                {label}
+                <span className="block text-xs text-gray-400">Assumption to validate</span>
+              </td>
+              {TIERS.map(([id, tierLabel]) => (
                 <td key={id} className="py-2 text-right">
-                  <PercentInput value={inputs.tiers[id][field]} onChange={v => setTier(id, { [field]: v })} />
+                  <PercentInput
+                    value={inputs.tiers[id][field]}
+                    ariaLabel={`${tierLabel}: ${label}`}
+                    onChange={v => setTier(id, { [field]: v })}
+                  />
                 </td>
               ))}
             </tr>
           ))}
           {MONEY_ROWS.map(([field, label]) => (
             <tr key={field} className="border-b border-gray-100">
-              <td className="py-2 text-gray-900">{label}</td>
-              {TIERS.map(([id]) => (
+              <td className="py-2 text-gray-900">
+                {label}
+                <span className="block text-xs text-gray-400">Assumption to validate</span>
+              </td>
+              {TIERS.map(([id, tierLabel]) => (
                 <td key={id} className="py-2 text-right">
-                  <NumberInput value={inputs.tiers[id][field]} onChange={v => setTier(id, { [field]: v })} />
+                  <NumberInput
+                    value={inputs.tiers[id][field]}
+                    ariaLabel={`${tierLabel}: ${label}`}
+                    onChange={v => setTier(id, { [field]: v })}
+                  />
                 </td>
               ))}
             </tr>

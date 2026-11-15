@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import {
   compareAll,
   formatMoney,
@@ -17,7 +18,7 @@ const VERDICT_TEXT: Record<Verdict, string> = {
 
 const POSTURE_ORDER = ['local', 'hybrid', 'enterprise', 'frontier'] as const;
 
-export default function Decision() {
+export default function Decision(): ReactElement | null {
   const inputs = useExecStore(s => s.inputs);
   const selectedPosture = useExecStore(s => s.selectedPosture);
   const ask = useExecStore(s => s.ask);
@@ -111,7 +112,7 @@ export default function Decision() {
   );
 }
 
-function Figure({ label, value }: { label: string; value: string }) {
+function Figure({ label, value }: { label: string; value: string }): ReactElement {
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
       <p className="text-xs text-gray-500">{label}</p>

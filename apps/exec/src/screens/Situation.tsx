@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { formatMoney, type DataConstraint } from '@ai-roi-calc/bizcase';
 import Field, { NumberInput } from '../components/Field';
 import { useExecStore } from '../store';
@@ -8,7 +9,7 @@ export const DATA_RULES: Array<[DataConstraint, string]> = [
   ['sovereign', 'Sovereign: must stay on our own infrastructure'],
 ];
 
-export default function Situation() {
+export default function Situation(): ReactElement {
   const inputs = useExecStore(s => s.inputs);
   const setInputs = useExecStore(s => s.setInputs);
 

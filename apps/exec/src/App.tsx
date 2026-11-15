@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { ReactElement } from 'react';
 import { validateInputs } from '@ai-roi-calc/bizcase';
 import Header from './components/Header';
 import IssueList from './components/IssueList';
@@ -14,7 +15,7 @@ import { useExecStore } from './store';
 
 const LAST_STEP = STEP_NAMES.length;
 
-export default function App() {
+export default function App(): ReactElement {
   const step = useExecStore(s => s.step);
   const setStep = useExecStore(s => s.setStep);
   const inputs = useExecStore(s => s.inputs);

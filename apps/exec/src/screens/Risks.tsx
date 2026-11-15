@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { readinessGap, whatMustBeTrue, type ReadinessAnswer } from '@ai-roi-calc/bizcase';
 import { effectivePosture, useExecStore } from '../store';
 
@@ -14,7 +15,7 @@ const QUESTIONS: Array<['data' | 'skills' | 'sponsorship' | 'compliance', string
   ['compliance', 'Compliance', 'Are the security, privacy and regulatory questions answered?'],
 ];
 
-export default function Risks() {
+export default function Risks(): ReactElement {
   const inputs = useExecStore(s => s.inputs);
   const selectedPosture = useExecStore(s => s.selectedPosture);
   const setReadiness = useExecStore(s => s.setReadiness);

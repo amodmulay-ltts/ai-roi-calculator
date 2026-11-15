@@ -9,7 +9,7 @@ const ITERATIONS = 60;
  * hold even at five times the assumed effect.
  */
 export function breakEvenEffectiveness(inputs: BusinessCaseInputs, postureId: PostureId): number | null {
-  const f = (k: number) => calculateCase(inputs, postureId, 'expected', { effectivenessMultiplier: k }).netValue36;
+  const f = (k: number): number => calculateCase(inputs, postureId, 'expected', { effectivenessMultiplier: k }).netValue36;
   if (f(0) >= 0) return 0;
   if (f(5) < 0) return null;
   let lo = 0;
@@ -27,7 +27,7 @@ export function breakEvenEffectiveness(inputs: BusinessCaseInputs, postureId: Po
  * non-negative 3-year value. 0 when no cash share is needed; null when even full cash does not hold.
  */
 export function breakEvenCashShare(inputs: BusinessCaseInputs, postureId: PostureId): number | null {
-  const g = (c: number) => calculateCase(inputs, postureId, 'expected', { cashShare: c }).netValue36;
+  const g = (c: number): number => calculateCase(inputs, postureId, 'expected', { cashShare: c }).netValue36;
   if (g(1) < 0) return null;
   if (g(0) >= 0) return 0;
   let lo = 0;

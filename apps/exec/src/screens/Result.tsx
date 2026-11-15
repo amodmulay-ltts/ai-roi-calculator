@@ -1,9 +1,10 @@
+import type { ReactElement } from 'react';
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { compareAll, formatMoney, formatPayback, formatRoi, headline } from '@ai-roi-calc/bizcase';
 import { POSTURE_LABEL } from '../components/PostureCard';
 import { effectivePosture, useExecStore } from '../store';
 
-export default function Result() {
+export default function Result(): ReactElement | null {
   const inputs = useExecStore(s => s.inputs);
   const selectedPosture = useExecStore(s => s.selectedPosture);
 
@@ -68,7 +69,7 @@ export default function Result() {
 
       <div className="rounded-xl border border-gray-200 bg-white p-6">
         <h2 className="mb-4 text-sm font-medium text-gray-900">Cumulative position</h2>
-        <div className="h-72">
+        <div className="h-72" role="img" aria-label="Line chart of the cumulative position over 36 months for each case">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
