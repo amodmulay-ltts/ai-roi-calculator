@@ -1,13 +1,8 @@
 import type { ReactElement } from 'react';
-import {
-  calculateCase,
-  validateInputs,
-  type Difficulty,
-  type TaskMix,
-} from '@ai-roi-calc/bizcase';
-import { EfficiencyBridgeChart, TaskEfficiencyChart } from '../components/Charts';
+import { calculateCase, validateInputs, type Difficulty, type TaskMix } from '@ai-roi-calc/bizcase';
+import { EfficiencyBridgeChart, PhaseEfficiencyChart } from '../components/Charts';
+import { PercentInput } from '../components/Field';
 import { POSTURE_LABEL } from '../components/PostureCard';
-import Field, { PercentInput } from '../components/Field';
 import { effectivePosture, useExecStore } from '../store';
 
 const TYPE_OPTIONS: Array<[Difficulty, string]> = [
@@ -15,11 +10,19 @@ const TYPE_OPTIONS: Array<[Difficulty, string]> = [
   ['complex', 'Complex'],
 ];
 
+const TEXT_INPUT =
+  'rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600';
+const SMALL_BUTTON = 'rounded-lg border border-gray-300 bg-white px-3 py-1 text-xs text-gray-700 hover:bg-gray-50';
+
 export default function Opportunity(): ReactElement {
   const inputs = useExecStore(s => s.inputs);
   const selectedPosture = useExecStore(s => s.selectedPosture);
-  const setInputs = useExecStore(s => s.setInputs);
   const setTask = useExecStore(s => s.setTask);
+  const setPhase = useExecStore(s => s.setPhase);
+  const addPhase = useExecStore(s => s.addPhase);
+  const removePhase = useExecStore(s => s.removePhase);
+  const addTask = useExecStore(s => s.addTask);
+  const removeTask = useExecStore(s => s.removeTask);
 
   const totalShare = inputs.tasks.reduce((sum, t) => sum + t.share, 0);
   const totalPct = Math.round(totalShare * 100);
@@ -29,61 +32,125 @@ export default function Opportunity(): ReactElement {
   const posture = effectivePosture(inputs, selectedPosture);
   const result = ok && posture ? calculateCase(inputs, posture, 'expected') : null;
 
+  const handleRemovePhase = (index: number): void => {
+    const phase = inputs.phases[index];
+    if (!phase) return;
+    const hasWork = inputs.tasks.some(t => t.phase === phase.name);
+    if (hasWork && !window.confirm('Remove this phase and the work in it?')) return;
+    removePhase(index);
+  };
+
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-6 space-y-6">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
-            <th className="py-2 font-normal">Work</th>
-            <th className="py-2 font-normal text-right">Share of work (%)</th>
-            <th className="py-2 font-normal text-right">Type</th>
-          </tr>
-        </thead>
-        <tbody>
-          {inputs.tasks.map((task: TaskMix) => (
-            <tr key={task.id} className="border-b border-gray-100">
-              <td className="py-3 text-gray-900">{task.name}</td>
-              <td className="py-3 text-right">
-                <PercentInput
-                  value={task.share}
-                  ariaLabel={`${task.name} share of work (%)`}
-                  onChange={share => setTask(task.id, { share })}
+      <p className="text-xs text-gray-500">
+        AI use is set for each phase on its own: the percentages do not need to add up to 100%. The split of work below does.
+      </p>
+
+      <div className="space-y-4">
+        {inputs.phases.map((phase, index) => {
+          const phaseTasks = inputs.tasks.filter(t => t.phase === phase.name);
+          return (
+            <div key={index} className="rounded-xl border border-gray-200 p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <input
+                  type="text"
+                  value={phase.name}
+                  aria-label={`Phase ${index + 1} name`}
+                  onChange={e => setPhase(index, { name: e.target.value })}
+                  className={`${TEXT_INPUT} font-medium`}
                 />
-              </td>
-              <td className="py-3 text-right">
-                <span className="inline-flex rounded-lg border border-gray-200 p-0.5">
-                  {TYPE_OPTIONS.map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      aria-pressed={task.difficulty === value}
-                      onClick={() => setTask(task.id, { difficulty: value })}
-                      className={`rounded-md px-2.5 py-1 transition ${
-                        task.difficulty === value ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      {label}
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500">AI use</span>
+                  <PercentInput
+                    value={phase.aiUse}
+                    ariaLabel={`${phase.name} AI use (%)`}
+                    onChange={aiUse => setPhase(index, { aiUse })}
+                  />
+                  {inputs.phases.length > 1 && (
+                    <button type="button" onClick={() => handleRemovePhase(index)} className={SMALL_BUTTON}>
+                      Remove phase
                     </button>
+                  )}
+                </div>
+              </div>
+
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
+                    <th className="w-1/2 py-1 font-normal">Work</th>
+                    <th className="py-1 text-right font-normal">Share of work (%)</th>
+                    <th className="py-1 text-right font-normal">Type</th>
+                    <th className="py-1" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {phaseTasks.map((task: TaskMix) => (
+                    <tr key={task.id} className="border-b border-gray-100">
+                      <td className="py-2 pr-2">
+                        <input
+                          type="text"
+                          value={task.name}
+                          aria-label={`Name of ${task.id}`}
+                          onChange={e => setTask(task.id, { name: e.target.value })}
+                          className={`${TEXT_INPUT} w-full`}
+                        />
+                      </td>
+                      <td className="py-2 text-right">
+                        <PercentInput
+                          value={task.share}
+                          ariaLabel={`${task.name} share of work (%)`}
+                          onChange={share => setTask(task.id, { share })}
+                        />
+                      </td>
+                      <td className="py-2 text-right">
+                        <span className="inline-flex rounded-lg border border-gray-200 p-0.5">
+                          {TYPE_OPTIONS.map(([value, label]) => (
+                            <button
+                              key={value}
+                              type="button"
+                              aria-pressed={task.difficulty === value}
+                              onClick={() => setTask(task.id, { difficulty: value })}
+                              className={`rounded-md px-2.5 py-1 transition ${
+                                task.difficulty === value ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </span>
+                      </td>
+                      <td className="py-2 pl-2 text-right">
+                        <button
+                          type="button"
+                          aria-label={`Remove ${task.name}`}
+                          onClick={() => removeTask(task.id)}
+                          className={SMALL_BUTTON}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
                   ))}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                </tbody>
+              </table>
+              <button type="button" onClick={() => addTask(phase.name)} className={SMALL_BUTTON}>
+                Add work
+              </button>
+            </div>
+          );
+        })}
+      </div>
 
-      <p className={`text-sm ${totalOff ? 'text-red-600' : 'text-gray-600'}`}>Total {totalPct}%</p>
-      <p className="text-xs text-gray-400">Assumption to validate</p>
-      <p className="text-xs text-gray-500">Routine: Repetitive, well-defined work. AI usually does well.</p>
-      <p className="text-xs text-gray-500">Complex: Judgement-heavy work. AI needs stronger models and more review.</p>
+      <button type="button" onClick={addPhase} className={SMALL_BUTTON}>
+        Add phase
+      </button>
 
-      <Field
-        label="Share of work where AI is used (%)"
-        help="How much of the work the team runs through AI once rolled out. How much effort AI removes from each kind of work is set per option on the next step."
-        assumption
-      >
-        <PercentInput value={inputs.adoption} onChange={adoption => setInputs({ adoption })} />
-      </Field>
+      <div className="space-y-1">
+        <p className={`text-sm ${totalOff ? 'text-red-600' : 'text-gray-600'}`}>Total {totalPct}%</p>
+        <p className="text-xs text-gray-400">Assumption to validate</p>
+        <p className="text-xs text-gray-500">Routine: Repetitive, well-defined work. AI usually does well.</p>
+        <p className="text-xs text-gray-500">Complex: Judgement-heavy work. AI needs stronger models and more review.</p>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -104,7 +171,11 @@ export default function Opportunity(): ReactElement {
         </div>
       </div>
 
-      {result && posture && <p className="text-xs text-gray-500">Shown for the {POSTURE_LABEL[posture]} option.</p>}
+      {result && posture && (
+        <p className="text-xs text-gray-500">
+          Shown for the {POSTURE_LABEL[posture]} option. AI is used on {Math.round(result.aiReach * 100)}% of all the work.
+        </p>
+      )}
 
       {result && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -116,8 +187,8 @@ export default function Opportunity(): ReactElement {
           </div>
           <div className="space-y-2">
             <h2 className="text-sm font-medium text-gray-900">Where the effort is saved</h2>
-            <div role="img" aria-label="Bar chart of net efficiency for each kind of work">
-              <TaskEfficiencyChart tasks={result.tasks} width={380} height={190} />
+            <div role="img" aria-label="Bar chart of each phase's AI use and net efficiency">
+              <PhaseEfficiencyChart phases={result.phases} showUse width={380} />
             </div>
           </div>
         </div>

@@ -24,7 +24,7 @@ npm run test:all                   # every test suite: engine, executive calcula
 
 ## Executive AI Business Case
 
-A second, separate app lives in `apps/exec` (calculation in `packages/bizcase`). It is a short, presenter-led business case for management: it compares local, hybrid, enterprise and frontier AI for one use case, shows a conservative, expected and stretch range, and prints a one-page summary. It does not use the ROI engine above, and **its default numbers are placeholders**, not benchmarks.
+A second, separate app lives in `apps/exec` (calculation in `packages/bizcase`). It is a short, presenter-led business case for management: it compares local, hybrid, enterprise and frontier AI for one piece of work (software testing, the whole software lifecycle, product development, mechanical design, or a lifecycle you build), shows a conservative, expected and stretch range, and prints a one-page summary. It does not use the ROI engine above, and **its default numbers are placeholders**, not benchmarks.
 
 ```bash
 npm run dev:exec                   # builds the calculation package, then starts the app on http://localhost:5174

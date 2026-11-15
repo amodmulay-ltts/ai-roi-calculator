@@ -42,3 +42,11 @@ All questions raised during the build are resolved below. Each records the decis
 - Requested by the product owner: a summary that shows everything graphically.
 - Decision: the decision screen is a nine-panel dashboard (six charts, a safety-margin panel, the sentences, and the ask). It prints on one A4 landscape page, because a dashboard of panels needs width, which also matches the original brief's landscape report. Charts have a fixed size, because a resizing chart does not re-measure reliably when the browser switches to print layout.
 - The comparison table was removed: its content is in the options chart and the verdict line under it.
+
+## 10. Whole-lifecycle and non-software scope, with AI use per phase — Resolved, behaviour changed
+- Requested by the product owner: cover the entire software or product lifecycle, including mechanical system design in other industries, and give each phase its own AI-use percentage that is not forced to add up to 100%.
+- Reading taken: each phase has an **AI use** percentage (how much of that phase's work AI is used on). The values are independent of each other. The **split of effort across the work still adds up to 100%**, because it divides one whole. If the intent was to drop that rule too, the alternative is to enter people or hours per phase instead of shares.
+- Decision: the work is a list of phases, each with kinds of work. Four ready-made templates (software testing, the software lifecycle, the product lifecycle and mechanical design) start the conversation, and everything can be edited. The single global adoption figure is replaced by per-phase AI use, which also lets physical work (prototype build) carry a very low figure.
+- Templates carry the work breakdown only. They do not carry cost assumptions: a mechanical design team may need different people cost, tooling cost and option assumptions, and the presenter enters those.
+- Placeholders: every share and AI-use figure in the templates is illustrative. They were not measured and should be replaced with the customer's figures.
+- Not done: AI that is not a language model (generative design, simulation surrogates) is not a separate kind of AI yet; the one blended cost per person; and effort is measured, not output or time to market.

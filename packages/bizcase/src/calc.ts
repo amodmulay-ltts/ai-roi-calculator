@@ -11,6 +11,7 @@ import type {
   BusinessCaseInputs,
   CaseId,
   CaseResult,
+  PhaseResult,
   Readiness,
   ReadinessAnswer,
   TaskMix,
@@ -67,13 +68,18 @@ export function calculateCase(
   let netHoursSavedPerMonth = 0;
   let grossRemovedHoursPerMonth = 0;
   let usageCostPerMonth = 0;
+  let assistedHoursPerMonth = 0;
   const tasks: TaskResult[] = [];
+  // AI use belongs to the phase; a task whose phase is missing is treated as having none (validation flags it)
+  const aiUseByPhase = new Map(inputs.phases.map(p => [p.name, p.aiUse]));
   for (const task of inputs.tasks) {
     const tierId = tierForTask(inputs, postureId, task);
     if (!tiersUsed.includes(tierId)) tiersUsed.push(tierId);
     const tier = inputs.tiers[tierId];
     const routine = task.difficulty === 'routine';
-    const assisted = totalHours * task.share * inputs.adoption;
+    const aiUse = aiUseByPhase.get(task.phase) ?? 0;
+    const assisted = totalHours * task.share * aiUse;
+    assistedHoursPerMonth += assisted;
     const reduction = Math.min(MAX_REDUCTION, (routine ? tier.reductionRoutine : tier.reductionComplex) * effMult);
     const review = routine ? tier.reviewRoutine : tier.reviewComplex;
     const removed = assisted * reduction;
@@ -85,6 +91,7 @@ export function calculateCase(
     tasks.push({
       id: task.id,
       name: task.name,
+      phase: task.phase,
       tier: tierId,
       baselineHours,
       assistedHours: assisted,
@@ -98,6 +105,21 @@ export function calculateCase(
   const netEfficiency = totalHours > 0 ? netHoursSavedPerMonth / totalHours : 0;
   const grossEfficiency = totalHours > 0 ? grossRemovedHoursPerMonth / totalHours : 0;
   const reviewReworkEfficiency = totalHours > 0 ? reviewReworkHoursPerMonth / totalHours : 0;
+  const aiReach = totalHours > 0 ? assistedHoursPerMonth / totalHours : 0;
+  // Phase by phase, in the order the phases are listed
+  const phases: PhaseResult[] = inputs.phases.map(p => {
+    const own = tasks.filter(t => t.phase === p.name);
+    const baselineHours = own.reduce((sum, t) => sum + t.baselineHours, 0);
+    const netSavedHours = own.reduce((sum, t) => sum + t.netSavedHours, 0);
+    return {
+      name: p.name,
+      aiUse: p.aiUse,
+      baselineHours,
+      assistedHours: own.reduce((sum, t) => sum + t.assistedHours, 0),
+      netSavedHours,
+      netEfficiency: baselineHours > 0 ? netSavedHours / baselineHours : 0,
+    };
+  });
 
   // 5.5: value
   const capacityValuePerMonth = netHoursSavedPerMonth * hourlyCost;
@@ -154,7 +176,9 @@ export function calculateCase(
     netEfficiency,
     grossEfficiency,
     reviewReworkEfficiency,
+    aiReach,
     tasks,
+    phases,
     capacityFte,
     capacityValuePerMonth,
     countedSavingPerMonth,

@@ -6,12 +6,36 @@ export type DataConstraint = 'public-ok' | 'restricted' | 'sovereign';
 export type ReadinessAnswer = 'ready' | 'partial' | 'not-ready';
 export type Verdict = 'positive' | 'marginal' | 'negative';
 
+/** A kind of work, belonging to one lifecycle phase. */
 export interface TaskMix {
-  id: 'testDesign' | 'scriptDev' | 'execution' | 'defectAnalysis' | 'reporting';
+  /** Unique within the case. */
+  id: string;
   name: string;
-  /** Share of in-scope effort, 0..1. All shares must sum to 1. */
+  /** Name of the phase this work belongs to; must match one of the case's phases. */
+  phase: string;
+  /** Share of in-scope effort, 0..1. All shares must sum to 1: they split one whole. */
   share: number;
   difficulty: Difficulty;
+}
+
+/** A lifecycle phase and how much of its work AI is used on. */
+export interface WorkPhase {
+  name: string;
+  /**
+   * Share of this phase's work where AI is used at maturity, 0..1. Set independently for each phase: these
+   * values describe each phase, not parts of a whole, so they do not add up to 100%.
+   */
+  aiUse: number;
+}
+
+/** A ready-made starting point for the work in scope. Its figures are placeholders, not measured data. */
+export interface WorkTemplate {
+  id: string;
+  name: string;
+  industry: string;
+  description: string;
+  phases: WorkPhase[];
+  tasks: TaskMix[];
 }
 
 export interface TierAssumptions {
@@ -42,8 +66,9 @@ export interface BusinessCaseInputs {
   loadedCostPerFteYear: number;   // EUR per year, > 0
   hoursPerFteMonth: number;       // default 160, > 0
   dataConstraint: DataConstraint;
-  tasks: TaskMix[];               // exactly the 5 tasks, in the order of section 4
-  adoption: number;               // share of task hours where AI is used at maturity, 0..1
+  workTemplateId: string;         // the template the work was last started from ('custom' once built by hand)
+  phases: WorkPhase[];            // 1..12 phases, in display order
+  tasks: TaskMix[];               // 1..40 kinds of work, each in one of the phases
   cashShare: number;              // share of released capacity counted as real savings, 0..1
   retiredCostMonthly: number;     // EUR per month of cost removed outright (tools, contractors), >= 0
   rampMonths: number;             // integer 1..24: months to full effect
@@ -58,15 +83,26 @@ export interface BusinessCaseInputs {
 
 /** What happens to one kind of work under a posture, in hours per month at maturity. */
 export interface TaskResult {
-  id: TaskMix['id'];
+  id: string;
   name: string;
+  phase: string;
   tier: TierId;
   baselineHours: number;      // total hours x share of work
-  assistedHours: number;      // baseline hours x adoption
+  assistedHours: number;      // baseline hours x the phase's AI use
   grossRemovedHours: number;  // assisted hours x effort AI removes
   reviewReworkHours: number;  // removed hours that come back as review and rework
   netSavedHours: number;      // gross removed minus review and rework
   netEfficiency: number;      // net saved / baseline hours, 0..1 (0 when there is no baseline work)
+}
+
+/** The tasks of one phase added up. */
+export interface PhaseResult {
+  name: string;
+  aiUse: number;              // as entered
+  baselineHours: number;
+  assistedHours: number;
+  netSavedHours: number;
+  netEfficiency: number;      // net saved / baseline hours, 0..1 (0 when the phase has no work)
 }
 
 export interface CaseResult {
@@ -82,7 +118,10 @@ export interface CaseResult {
   /** The bridge to net efficiency, as shares of in-scope effort: gross removed minus review and rework. */
   grossEfficiency: number;
   reviewReworkEfficiency: number;
+  /** Share of all in-scope effort that AI is used on: assisted hours / total hours, 0..1. */
+  aiReach: number;
   tasks: TaskResult[];
+  phases: PhaseResult[];
   capacityFte: number;             // netHoursSavedPerMonth / hoursPerFteMonth
   capacityValuePerMonth: number;   // EUR, all released capacity at the hourly cost
   countedSavingPerMonth: number;   // capacityValue x effective cash share

@@ -81,7 +81,7 @@ describe('efficiency edge cases', () => {
 
   it('is zero when AI is not used at all', () => {
     const d = createDefaultInputs();
-    d.adoption = 0;
+    d.phases = d.phases.map(p => ({ ...p, aiUse: 0 }));
     const r = calculateCase(d, 'enterprise', 'expected');
     expect(r.netEfficiency).toBe(0);
     expect(r.grossRemovedHoursPerMonth).toBe(0);

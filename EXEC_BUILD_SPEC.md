@@ -16,7 +16,7 @@ This is the build specification for the new app described in `CONCEPT_EXEC.md`. 
 
 ## 1. What is being built
 
-A presenter-led web app that builds a one-use-case business case for AI in software testing, for management. It compares four ways of running AI (local, hybrid, enterprise, frontier), shows which pays back, shows a conservative, expected and stretch range, states what must be true for the case to hold, and prints a one-page summary.
+A presenter-led web app that builds a one-piece-of-work business case for AI, for management. The work is a lifecycle chosen from a template (software testing, the whole software lifecycle, product development or mechanical design) or built by hand. It compares four ways of running AI (local, hybrid, enterprise, frontier), shows which pays back, shows a conservative, expected and stretch range, states what must be true for the case to hold, and prints a one-page summary.
 
 Out of scope: login, a server, a database, multiple use cases, multiple currencies, revenue benefits, discounting or NPV, branding, PDF generation on a server.
 
@@ -76,12 +76,31 @@ export type DataConstraint = 'public-ok' | 'restricted' | 'sovereign';
 export type ReadinessAnswer = 'ready' | 'partial' | 'not-ready';
 export type Verdict = 'positive' | 'marginal' | 'negative';
 
+/** A kind of work, belonging to one lifecycle phase. */
 export interface TaskMix {
-  id: 'testDesign' | 'scriptDev' | 'execution' | 'defectAnalysis' | 'reporting';
+  id: string;           // unique within the case
   name: string;
-  /** Share of in-scope effort, 0..1. All shares must sum to 1. */
+  phase: string;        // name of one of the case's phases
+  /** Share of in-scope effort, 0..1. All shares must sum to 1: they split one whole. */
   share: number;
   difficulty: Difficulty;
+}
+
+/** A lifecycle phase and how much of its work AI is used on. */
+export interface WorkPhase {
+  name: string;
+  /** Share of this phase's work where AI is used at maturity, 0..1. Independent for each phase: these do NOT add up to 100%. */
+  aiUse: number;
+}
+
+/** A ready-made starting point. Its figures are placeholders, not measured data. */
+export interface WorkTemplate {
+  id: string;
+  name: string;
+  industry: string;
+  description: string;
+  phases: WorkPhase[];
+  tasks: TaskMix[];
 }
 
 export interface TierAssumptions {
@@ -112,8 +131,9 @@ export interface BusinessCaseInputs {
   loadedCostPerFteYear: number;   // EUR per year, > 0
   hoursPerFteMonth: number;       // default 160, > 0
   dataConstraint: DataConstraint;
-  tasks: TaskMix[];               // exactly the 5 tasks, in the order of section 4
-  adoption: number;               // share of task hours where AI is used at maturity, 0..1
+  workTemplateId: string;         // the template the work was last started from ('custom' once built by hand)
+  phases: WorkPhase[];            // 1..12 phases, in display order
+  tasks: TaskMix[];               // 1..40 kinds of work, each in one of the phases
   cashShare: number;              // share of released capacity counted as real savings, 0..1
   retiredCostMonthly: number;     // EUR per month of cost removed outright (tools, contractors), >= 0
   rampMonths: number;             // integer 1..24: months to full effect
@@ -126,13 +146,24 @@ export interface BusinessCaseInputs {
   readiness: Readiness;
 }
 
+/** The tasks of one phase added up. */
+export interface PhaseResult {
+  name: string;
+  aiUse: number;              // as entered
+  baselineHours: number;
+  assistedHours: number;
+  netSavedHours: number;
+  netEfficiency: number;      // net saved / baseline hours, 0..1 (0 when the phase has no work)
+}
+
 /** What happens to one kind of work under a posture, in hours per month at maturity. */
 export interface TaskResult {
-  id: TaskMix['id'];
+  id: string;
   name: string;
+  phase: string;
   tier: TierId;
   baselineHours: number;      // total hours x share of work
-  assistedHours: number;      // baseline hours x adoption
+  assistedHours: number;      // baseline hours x the phase's AI use
   grossRemovedHours: number;  // assisted hours x effort AI removes
   reviewReworkHours: number;  // removed hours that come back as review and rework
   netSavedHours: number;      // gross removed minus review and rework
@@ -152,7 +183,10 @@ export interface CaseResult {
   /** The bridge to net efficiency, as shares of in-scope effort: gross removed minus review and rework. */
   grossEfficiency: number;
   reviewReworkEfficiency: number;
+  /** Share of all in-scope effort that AI is used on: assisted hours / total hours, 0..1. */
+  aiReach: number;
   tasks: TaskResult[];
+  phases: PhaseResult[];   // in the order of the case's phases
   capacityFte: number;             // netHoursSavedPerMonth / hoursPerFteMonth
   capacityValuePerMonth: number;   // EUR, all released capacity at the hourly cost
   countedSavingPerMonth: number;   // capacityValue x effective cash share
@@ -195,7 +229,7 @@ Put in `packages/bizcase/src/defaults.ts` as `createDefaultInputs(): BusinessCas
 | loadedCostPerFteYear | 80000 |
 | hoursPerFteMonth | 160 |
 | dataConstraint | `'public-ok'` |
-| adoption | 0.8 |
+| workTemplateId | `'software-testing'` |
 | cashShare | 0.7 |
 | retiredCostMonthly | 0 |
 | rampMonths | 6 |
@@ -206,15 +240,27 @@ Put in `packages/bizcase/src/defaults.ts` as `createDefaultInputs(): BusinessCas
 | hybridComplexTier | `'enterprise'` |
 | readiness | all four answers `'ready'` |
 
+Phases and tasks come from the `software-testing` template. Phases (each with its own AI use; these are independent and do not add up to 100%):
+
+| Phase | aiUse |
+|---|---|
+| Design | 0.8 |
+| Build | 0.8 |
+| Execute | 0.8 |
+| Analyse | 0.8 |
+| Report | 0.8 |
+
 Tasks, in this order:
 
-| id | name | share | difficulty |
-|---|---|---|---|
-| testDesign | Test design | 0.30 | complex |
-| scriptDev | Script development | 0.25 | routine |
-| execution | Test execution | 0.25 | routine |
-| defectAnalysis | Defect analysis | 0.10 | complex |
-| reporting | Reporting | 0.10 | routine |
+| id | name | phase | share | difficulty |
+|---|---|---|---|---|
+| testDesign | Test design | Design | 0.30 | complex |
+| scriptDev | Script development | Build | 0.25 | routine |
+| execution | Test execution | Execute | 0.25 | routine |
+| defectAnalysis | Defect analysis | Analyse | 0.10 | complex |
+| reporting | Reporting | Report | 0.10 | routine |
+
+The other templates (`software-lifecycle`, `product-lifecycle`, `mechanical-design`) are defined in `packages/bizcase/src/templates.ts`. Every figure in them is a placeholder.
 
 Tiers:
 
@@ -268,7 +314,7 @@ cashShare = min(1, max(0, inputs.cashShare * f.cash))
 totalHours = teamSize * hoursPerFteMonth
 hourlyCost = loadedCostPerFteYear / 12 / hoursPerFteMonth
 for each task t:
-  assisted_t = totalHours * t.share * adoption
+  assisted_t = totalHours * t.share * aiUse(t.phase)   // aiUse = the AI use of the phase named by t.phase; 0 if no phase has that name
   reduction_t = min(MAX_REDUCTION, tier.reduction{Routine|Complex by t.difficulty} * effMult)
   review_t = tier.review{Routine|Complex by t.difficulty}
   removed_t = assisted_t * reduction_t
@@ -278,7 +324,7 @@ netHoursSavedPerMonth = sum netSaved_t
 usageCostPerMonth = sum usage_t
 ```
 
-**5.4a Efficiency.** Net efficiency is the headline measure of "expected efficiency with AI". It is not the adoption input: adoption is how much of the work AI reaches, while efficiency is what is actually freed after review and rework.
+**5.4a Efficiency.** Net efficiency is the headline measure of "expected efficiency with AI". It is not an input: each phase's AI use says how much of that phase's work AI reaches, while efficiency is what is actually freed after review and rework.
 ```
 totalHours             = teamSize * hoursPerFteMonth
 grossRemovedHours      = sum removed_t
@@ -287,6 +333,13 @@ netEfficiency          = totalHours > 0 ? netHoursSavedPerMonth / totalHours : 0
 grossEfficiency        = totalHours > 0 ? grossRemovedHours / totalHours : 0
 reviewReworkEfficiency = totalHours > 0 ? reviewReworkHours / totalHours : 0
 per task: baselineHours = totalHours * share; assistedHours = assisted_t; netEfficiency_t = baselineHours > 0 ? netSaved_t / baselineHours : 0
+```
+
+**5.4b Phases.** AI use is set for each phase and is independent: there is no rule that the phase values add up to anything.
+```
+aiReach = totalHours > 0 ? sum assisted_t / totalHours : 0
+per phase p (in the order of inputs.phases): baselineHours = sum of its tasks' baselineHours; assistedHours, netSavedHours likewise;
+  netEfficiency = baselineHours > 0 ? netSavedHours / baselineHours : 0
 ```
 
 **5.5 Value.**
@@ -392,9 +445,12 @@ export function formatRoi(r: number | null): string {
 | teamSize | > 0 | `Team size must be greater than zero.` |
 | loadedCostPerFteYear | > 0 | `Annual cost per person must be greater than zero.` |
 | hoursPerFteMonth | > 0 | `Hours per month must be greater than zero.` |
+| phases | at least one, at most 12 | `Add at least one phase.` / `Use at most 12 phases.` |
+| phases.{i}.name | not blank, different from every other phase | `Each phase needs a name.` / `Phase names must be different.` |
+| phases.{i}.aiUse | 0..1 (each on its own; **no rule links the phases**) | `{name}: AI use must be between 0% and 100%.` |
+| tasks | at least one, at most 40 | `Add at least one kind of work.` / `Use at most 40 kinds of work.` |
 | tasks | shares sum within 0.0001 of 1 | `Work mix must add up to 100%.` |
-| tasks.{id} | each share between 0 and 1 | `{name}: share must be between 0% and 100%.` |
-| adoption | 0..1 | `Adoption must be between 0% and 100%.` |
+| tasks.{id} | name not blank; id unique; share 0..1; phase is one of the phases | `Each kind of work needs a name.` / `Two kinds of work share the same identifier.` / `{name}: share must be between 0% and 100%.` / `{name}: choose one of the phases.` |
 | cashShare | 0..1 | `Cash share must be between 0% and 100%.` |
 | rampMonths | integer 1..24 | `Ramp must be a whole number of months from 1 to 24.` |
 | retiredCostMonthly, governanceMonthly, dataReadinessInvestment, governanceSetup, trainingPerFte | >= 0 | `{Label} cannot be negative.` |
@@ -404,7 +460,7 @@ export function formatRoi(r: number | null): string {
 
 Write these as vitest tests. Compare numbers with `toBeCloseTo(value, 1)` unless stated. `payback` is exact.
 
-**6.1 Hand-checkable mini case.** Start from `createDefaultInputs()` and set: `teamSize 10`, `loadedCostPerFteYear 96000`, `adoption 1`, `cashShare 1`, `retiredCostMonthly 0`, `rampMonths 1`, `governanceMonthly 0`, `dataReadinessInvestment 0`, `governanceSetup 0`, `trainingPerFte 0`, readiness all `'ready'`. Replace `tasks` with one task `{ id: 'testDesign', name: 'Test design', share: 1, difficulty: 'routine' }`. Set `tiers.local = { reductionRoutine 0.5, reductionComplex 0.5, reviewRoutine 0.2, reviewComplex 0.2, usageCostPerAssistedHour 0, platformMonthly 1000, setup 50000 }`. Posture `local`, case `expected`:
+**6.1 Hand-checkable mini case.** Start from `createDefaultInputs()` and set: `teamSize 10`, `loadedCostPerFteYear 96000`, `cashShare 1`, `phases` replaced by one phase `{ name: 'Design', aiUse: 1 }`, `retiredCostMonthly 0`, `rampMonths 1`, `governanceMonthly 0`, `dataReadinessInvestment 0`, `governanceSetup 0`, `trainingPerFte 0`, readiness all `'ready'`. Replace `tasks` with one task `{ id: 'testDesign', name: 'Test design', phase: 'Design', share: 1, difficulty: 'routine' }`. Set `tiers.local = { reductionRoutine 0.5, reductionComplex 0.5, reviewRoutine 0.2, reviewComplex 0.2, usageCostPerAssistedHour 0, platformMonthly 1000, setup 50000 }`. Posture `local`, case `expected`:
 
 | Field | Value |
 |---|---|
@@ -421,7 +477,7 @@ Write these as vitest tests. Compare numbers with `toBeCloseTo(value, 1)` unless
 | roiPercent | 2132 |
 | breakEvenEffectiveness | 0.0747 (precision 3) |
 
-(Check by hand: 1600 hours x 1.0 adoption x 0.5 x 0.8 = 640 hours; 640 x 50 = 32,000.)
+(Check by hand: 1600 hours x 1.0 AI use x 0.5 x 0.8 = 640 hours; 640 x 50 = 32,000.)
 
 **6.2 Default inputs, expected case, all four postures.**
 
@@ -478,6 +534,16 @@ Write these as vitest tests. Compare numbers with `toBeCloseTo(value, 1)` unless
 
 Enterprise by task (baseline, assisted, gross removed, review and rework, net saved, net efficiency): test design 1440, 1152, 460.8, 115.2, 345.6, 24%; script development 1200, 960, 480, 72, 408, 34%; test execution 1200, 960, 480, 72, 408, 34%; defect analysis 480, 384, 153.6, 38.4, 115.2, 24%; reporting 480, 384, 192, 28.8, 163.2, 34%. In hybrid at defaults, test design and defect analysis use the enterprise tier and the other three use the local tier.
 
+**6.9 Other templates (enterprise, expected case, default option assumptions).** From an independent reference model.
+
+| Template | Phase AI use (they add up to) | aiReach | netHours | netEfficiency |
+|---|---|---|---|---|
+| software-testing | 80% each (400%) | 80% | 1440 | 30.00% |
+| software-lifecycle | 60, 50, 90, 85, 80, 70 (435%) | 77.2% | 1424.88 | 29.685% |
+| mechanical-design | 50, 45, 55, 70, 50, 5, 80, 75 (430%) | 52.25% | 954.9 | 19.894% |
+
+Mechanical design by phase (net efficiency): Concept 15%, Design 19.125%, Analysis 16.5%, Detailing 29.75%, Review 15%, Prototype 2.125%, Test reporting 34%, Release 31.875%. With local assumptions, mechanical design is 9.025%. Setting only the Prototype phase to 80% AI use makes that phase 34% and leaves every other phase unchanged. Every template splits its effort across the work as exactly 100%, puts every kind of work in a listed phase, and passes validation.
+
 **6.7 Other tests to write.** `investmentLines` for any case sums to `investment` (check enterprise defaults: `[90000, 60000, 25000, 24000]`, sum `199000`; with the gap-4 readiness: each multiplied by `1.1`). Validation: default inputs give no issues; a work mix summing to 0.9 gives the `Work mix must add up to 100%.` issue; `rampMonths 0` gives the ramp issue. `createDefaultInputs()` returns an independent copy (mutating one does not affect the next). `formatMoney`: `418400` gives `€418K`, `1066000` gives `€1.1M`, `19400` gives `€19,400`, `-187112` gives `-€187K`. `headline('Enterprise', enterpriseExpected)` equals `Enterprise AI pays back in month 15 and returns €418K over 3 years (expected case).`; hybrid at defaults gives `Hybrid AI does not pay back within 36 months at current assumptions.`
 
 ## 7. User interface
@@ -493,6 +559,7 @@ One page, no routing. A header, a step bar and one screen at a time. Follow the 
 **Plain-language labels:** show the stored fractions as percentages in inputs (`70`, with a `%` suffix). Convert on read and write.
 
 **Screen 1: Situation**
+- `Work in scope`: a select listing the four templates (`Software testing`, `Software development lifecycle`, `Product development lifecycle`, `Mechanical system design`), plus `Custom (edited)` once the phases or work are changed by hand. Under it, the template's industry and description. Choosing a template replaces the phases and work and keeps everything else; it asks first when the case is custom.
 - Inputs: `People in scope` (teamSize), `Annual cost per person (EUR, fully loaded)` (loadedCostPerFteYear), `Data rules` radio with exactly three options:
   - `Public cloud AI is acceptable` (`public-ok`)
   - `Restricted: no public cloud AI` (`restricted`)
@@ -500,13 +567,13 @@ One page, no routing. A header, a step bar and one screen at a time. Follow the 
 - Live line under the inputs: `Today: {teamSize} people, {formatMoney(teamSize*loadedCostPerFteYear)} a year, {Math.round(teamSize*hoursPerFteMonth).toLocaleString('en-US')} hours a month.`
 
 **Screen 2: Opportunity**
-- Table of the five tasks: name, `Share of work (%)` input, `Type` toggle (`Routine` or `Complex`).
-- Running total of shares under the table: `Total {n}%` (red if not 100).
-- Input `Share of work where AI is used (%)` (adoption), with the help text `How much of the work the team runs through AI once rolled out. How much effort AI removes from each kind of work is set per option on the next step.`
+- A note: `AI use is set for each phase on its own: the percentages do not need to add up to 100%. The split of work below does.`
+- One block per phase, in order. Each block has: an editable phase name; the phase's `AI use` (a percentage input from 0 to 100, independent of every other phase); `Remove phase` (shown when there is more than one phase; asks first if the phase has work, and removes that work too); a table of the phase's work (editable name, `Share of work (%)`, `Type` toggle `Routine` or `Complex`, `Remove`); and `Add work`.
+- `Add phase` below the blocks. Renaming a phase moves its work with it. Any change of structure (add, remove or rename a phase, add or remove work) makes the case `custom`; changing a value does not.
+- Under the blocks: `Total {n}%` (the split of work, red if not 100), `Assumption to validate`, and help text per type. Routine: `Repetitive, well-defined work. AI usually does well.` Complex: `Judgement-heavy work. AI needs stronger models and more review.`
 - Live tiles using the selected posture's expected case: `Hours freed per month` (netHoursSavedPerMonth, rounded), `People equivalent` (capacityFte, one decimal) and `Net efficiency gain` (netEfficiency as a percentage with one decimal).
-- A caption `Shown for the {Posture} option.`
-- Two charts: `How the efficiency is built` (a waterfall of `Effort AI removes` = grossEfficiency, `Review and rework` = minus reviewReworkEfficiency, `Net efficiency` = netEfficiency, in percent of in-scope effort) and `Where the effort is saved` (horizontal bars of each task's netEfficiency).
-- Short help text per task type: Routine: `Repetitive, well-defined work. AI usually does well.` Complex: `Judgement-heavy work. AI needs stronger models and more review.`
+- A caption `Shown for the {Posture} option. AI is used on {n}% of all the work.` (n = aiReach).
+- Two charts: `How the efficiency is built` (a waterfall of `Effort AI removes` = grossEfficiency, `Review and rework` = minus reviewReworkEfficiency, `Net efficiency` = netEfficiency, in percent of in-scope effort) and `Where the effort is saved` (for each phase, two bars: its `AI use` and its `Net efficiency`).
 
 **Screen 3: Right-size** (the most important screen)
 - Show the data-rules gate first as one line: `Data rules: {label}. {n} of 4 options are open to you.`
@@ -540,7 +607,7 @@ One page, no routing. A header, a step bar and one screen at a time. Follow the 
   1. `Cumulative position`: line chart, three cases, zero line.
   2. `3-year net value by option`: grouped bars (conservative, expected, stretch) for the four options, with a line of each option's verdict (`Local: Marginal`, and so on).
   3. `How the efficiency is built`: the waterfall from screen 2, with `AI is applied to {n}% of the work.` under it.
-  4. `Where the effort is saved`: per-task net efficiency bars.
+  4. `Where the effort is saved`: one net-efficiency bar for each phase.
   5. `Monthly position at maturity`: bars for `Saving` (countedSavingPerMonth), `Cost cut` (retiredCostPerMonth), `AI usage` and `Platform` (both drawn below zero) and `Net` (steadyNetPerMonth), with the caption `Saving is the counted share. Platform includes governance.`
   6. `One-time investment`: one stacked bar of the investment lines, with `Total {investment}` under it.
   7. `Safety margin`: a bar for `AI effect needed to break even` (break-even against an assumed 100%, scale to 150%), a bar for `Share of released capacity that must become savings` (break-even against the entered cash share, scale to 100%), and a gauge of eight blocks for the readiness gap with `Readiness gap: {gap} of 8.` A bar is blue when break-even is at or below the assumption and red when it is above, and shows `Cannot break even` when there is none.

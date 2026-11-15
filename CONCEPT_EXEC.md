@@ -12,7 +12,8 @@ It replaces the idea of a detailed estimating model with a guided business case.
 
 - **One use case at a time.** The design leaves room to roll several into a portfolio later.
 - **Cost and capacity benefits only.** Revenue and speed-to-market benefits are out of scope, because they are the hardest to defend.
-- **First use case: software testing.** Other use cases follow as archetypes.
+- **Any lifecycle, not only testing.** The work in scope is a list of lifecycle phases, each with its own kinds of work. Ready-made starting points: software testing (the reference), the whole software lifecycle, product development (hardware and software together) and mechanical design. The presenter can rename, add and remove phases and work, so any other industry can be described.
+- **AI use is set for each phase.** Every phase has its own percentage of work where AI is used. These percentages are independent: each describes one phase, not a share of a whole, so they do not add up to 100%. Physical work, such as building a prototype, simply has a low figure. The split of effort across the work does add up to 100%, because it divides one whole.
 - **Currency: EUR** by default.
 - **Built as a new app.** It has its own small calculation package; the existing app and engine are left untouched.
 
@@ -21,7 +22,7 @@ It replaces the idea of a detailed estimating model with a guided business case.
 The results read as a business case, in this order:
 
 1. **Situation.** Today's work, team and cost, in the customer's own words and numbers.
-2. **Opportunity.** Which parts of the work AI can change, and how much of the effort that frees. The headline measure is **net efficiency**: the share of in-scope effort freed after review and rework. It is built from how widely AI is used, how much effort it removes from each kind of work, and what comes back as review. How widely AI is used is an input; efficiency is a result.
+2. **Opportunity.** Which parts of the work AI can change, and how much of the effort that frees. The headline measure is **net efficiency**: the share of in-scope effort freed after review and rework. It is built from how widely AI is used in each phase, how much effort it removes from each kind of work, and what comes back as review. How widely AI is used is an input for each phase; efficiency is a result, shown overall and phase by phase.
 3. **Right-sizing.** Which kind of AI runs each part of the work, and what that does to cost and quality. This is the heart of the tool.
 4. **Investment.** What it takes to get there: build, data preparation, governance, and change and training.
 5. **Result.** Payback, three-year net value and the monthly run position, shown as a range of cases.
@@ -69,6 +70,13 @@ No verified external benchmarks are available, and none will be invented.
 - Defaults are labelled **assumptions to validate**, and the presenter replaces them with the customer's figures during the session.
 - Every result shows its range (conservative, expected, stretch) and which assumptions it leans on most.
 - A sourced benchmark can be attached to an assumption later, and the label changes only then.
+
+## Limits of the broader scope
+
+- **The work breakdowns are illustrations.** The shares and AI-use figures in the ready-made lifecycles are placeholders to start a conversation, not measured data. The presenter replaces them with the customer's own split of effort.
+- **One blended cost per person.** A mechanical engineer and a software engineer cost different amounts. For now the presenter enters one blended figure for the work in scope.
+- **The AI options describe where and how models run.** Local, hybrid, enterprise and frontier fit language-model assistance well. Specialised engineering AI, such as generative design or simulation surrogates, is not modelled as a separate kind of AI yet. It can be represented through the option assumptions and the cost lines, and may deserve its own treatment later.
+- **Effort, not output.** The case measures effort freed. It does not claim faster time to market or better product quality.
 
 ## Experience principles
 

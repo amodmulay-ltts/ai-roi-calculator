@@ -77,6 +77,24 @@ const setInput = async (page, selector, value) => {
   await pause();
 };
 
+/** Sets the nth match of a controlled input, for lists of identical fields such as each phase's AI use. */
+const setNth = async (page, selector, index, value) => {
+  await page.evaluate(
+    (sel, i, v) => {
+      const el = document.querySelectorAll(sel)[i];
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+    selector,
+    index,
+    value
+  );
+  await pause(150);
+};
+
+const netEfficiencyTile = page => page.$$eval('p.text-2xl', els => els[2]?.textContent);
+const issueList = page => page.$('ul.text-red-700');
+
 const cardTexts = page =>
   page.evaluate(() =>
     [...document.querySelectorAll('button[aria-pressed]')].filter(b => b.querySelector('dl')).map(b => b.innerText.replace(/\n+/g, ' | '))
@@ -258,6 +276,59 @@ async function main() {
     const pages = (Buffer.from(pdf).toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
     check('the decision summary prints on one A4 landscape page', pages === 1, `${pages} pages`);
     await page.emulateMediaType('screen');
+
+    // Work in scope: other lifecycles, and AI use set for each phase on its own
+    await goStep(page, '1 Situation');
+    await page.select('select', 'mechanical-design');
+    await pause();
+    check('the situation names the industry of the chosen work', (await text(page)).includes('Mechanical engineering.'));
+    await goStep(page, '2 Opportunity');
+    const aiUse = async () => page.$$eval('input[aria-label$=" AI use (%)"]', els => els.map(e => Number(e.value)));
+    let uses = await aiUse();
+    check('mechanical design has eight phases, each with its own AI use', uses.join(',') === '50,45,55,70,50,5,80,75', uses.join(','));
+    check('the phase AI use adds up to 430%, not 100%, and is accepted', uses.reduce((a, b) => a + b, 0) === 430 && !(await issueList(page)));
+    check('mechanical design shows 19.9% net efficiency', (await netEfficiencyTile(page)) === '19.9%', await netEfficiencyTile(page));
+    check('the phase chart shows the physical prototype phase barely touched (5% use, 2.1% efficiency)', has(await text(page), 'Prototype', '2.1%'));
+    for (let i = 0; i < uses.length; i++) await setNth(page, 'input[aria-label$=" AI use (%)"]', i, '100');
+    uses = await aiUse();
+    check('every phase can be 100% at once without an error', uses.every(u => u === 100) && !(await issueList(page)));
+    check('more AI use gives more net efficiency', Number.parseFloat(await netEfficiencyTile(page)) > 19.9, await netEfficiencyTile(page));
+    await setNth(page, 'input[aria-label$=" AI use (%)"]', 0, '0');
+    check('one phase can be 0% on its own: the others are not changed', (await aiUse()).join(',') === '0,100,100,100,100,100,100,100');
+
+    // Editing the phases and work makes the case custom, and a rename moves the phase's work with it
+    await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Add phase').click());
+    await pause();
+    check('Add phase adds a ninth phase', (await aiUse()).length === 9);
+    await page.evaluate(() => [...document.querySelectorAll('button')].filter(b => b.textContent.trim() === 'Add work').pop().click());
+    await pause();
+    const newWorkRows = await page.$$eval('input[type=text]', els => els.filter(e => e.value === 'New work').length);
+    check('Add work adds a row of 0% work that keeps the work mix at 100%', newWorkRows === 1 && (await text(page)).includes('Total 100%') && !(await issueList(page)));
+    await setInput(page, 'input[aria-label="Phase 2 name"]', 'Design and CAD');
+    const cadPhase = await page.evaluate(() => {
+      const row = [...document.querySelectorAll('input[type=text]')].find(i => i.value === '3D CAD modelling');
+      const block = row?.closest('.rounded-xl.border');
+      return block?.querySelector('input[aria-label="Phase 2 name"]')?.value;
+    });
+    check('renaming a phase keeps its work inside it', cadPhase === 'Design and CAD', String(cadPhase));
+    await goStep(page, '1 Situation');
+    check('the picker shows the case as custom once it is edited', (await text(page)).includes('The phases and work have been edited'));
+    await goStep(page, '7 Decision');
+    check('the decision summary names the work in scope as custom', (await text(page)).includes('Work in scope: Custom.'));
+    await goStep(page, '1 Situation');
+    await page.select('select', 'product-lifecycle');
+    await pause();
+    await goStep(page, '7 Decision');
+    await page.emulateMediaType('print');
+    const pdfProduct = await page.pdf({ preferCSSPageSize: true });
+    const productPages = (Buffer.from(pdfProduct).toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
+    check('the product lifecycle (ten phases) also prints on one page', productPages === 1, `${productPages} pages`);
+    await page.emulateMediaType('screen');
+    await page.screenshot({ path: path.join(outDir, 'exec-07-decision-product.png'), fullPage: true });
+    await goStep(page, '1 Situation');
+    await page.select('select', 'software-testing');
+    await pause();
+    check('choosing the testing template again restores the reference', (await text(page)).includes('Software. The software testing life cycle'));
 
     // Accessibility: every form field has an accessible name, on every screen
     let unnamed = [];
