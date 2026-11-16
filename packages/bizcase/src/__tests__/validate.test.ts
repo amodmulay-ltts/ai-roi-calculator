@@ -39,11 +39,11 @@ describe('validateInputs', () => {
 
   it('flags fractions outside 0..1', () => {
     const d = createDefaultInputs();
-    d.phases[0]!.aiUse = 1.2;
+    d.tasks[0]!.aiUse = 1.2;
     d.cashShare = -0.1;
     d.tasks[1]!.share = 1.5;
     const messages = validateInputs(d).map(i => i.message);
-    expect(messages).toContain('Design: AI use must be between 0% and 100%.');
+    expect(messages).toContain('Test design: AI use must be between 0% and 100%.');
     expect(messages).toContain('Cash share must be between 0% and 100%.');
     expect(messages).toContain('Script development: share must be between 0% and 100%.');
   });
@@ -113,7 +113,7 @@ describe('isBusinessCaseInputs', () => {
     delete noPhaseOnTask.tasks[0].phase;
     expect(isBusinessCaseInputs(noPhaseOnTask)).toBe(false);
     const badAiUse = JSON.parse(JSON.stringify(createDefaultInputs()));
-    badAiUse.phases[0].aiUse = '80%';
+    badAiUse.tasks[0].aiUse = '80%';
     expect(isBusinessCaseInputs(badAiUse)).toBe(false);
     const difficulty = JSON.parse(JSON.stringify(createDefaultInputs()));
     difficulty.tasks[0].difficulty = 'hard';
@@ -126,7 +126,7 @@ describe('isBusinessCaseInputs', () => {
 
   it('accepts any number of kinds of work, not only five', () => {
     const many = createDefaultInputs();
-    many.tasks = Array.from({ length: 12 }, (_, i) => ({ id: `t${i}`, name: `Work ${i}`, phase: 'Design', share: 1 / 12, difficulty: 'routine' as const }));
+    many.tasks = Array.from({ length: 12 }, (_, i) => ({ id: `t${i}`, name: `Work ${i}`, phase: 'Design', share: 1 / 12, difficulty: 'routine' as const, aiUse: 0.5 }));
     expect(isBusinessCaseInputs(many)).toBe(true);
   });
 

@@ -57,3 +57,11 @@ All questions raised during the build are resolved below. Each records the decis
 - The customer name moved from the header to the page heading, as VALUEAI shows its scenario name.
 - The placeholder notice is new: VALUEAI shows a similar notice for its fictional example, and this app's figures are all placeholders.
 - Start scripts: `scripts/start-exec-ubuntu.sh` and `scripts/start-exec-windows.bat`, built the same way as the existing launchers. The Windows script has not been run on Windows.
+
+## 12. AI use on each piece of work, phase shows the average — Resolved, behaviour changed
+
+- Request: "each phase has work items; the AI usage % should be an average of all the work."
+- Decision: AI use is now an input on every piece of work (`TaskMix.aiUse`, 0..1, independent of the others). A phase no longer has its own input: it shows the **plain average** of the AI use of the work in it (0 when it has no work). The calculation uses each piece of work's own AI use, weighted by its share of effort, so AI reach and net efficiency come from the work, not from the phase average.
+- The templates start every piece of work at its phase's former figure, so the golden numbers in EXEC_BUILD_SPEC.md section 6 are unchanged. `WorkPhase` is now just `{ name }`; `phaseAiUse(inputs, phaseName)` gives the average. Where EXEC_BUILD_SPEC.md says "phase aiUse", read "average of the phase's work".
+- Saved data from before this change no longer matches the shape and resets to the defaults.
+- Open point: a phase average is simple, not weighted by share of effort, as asked. A phase with a large and a small piece of work can therefore show a different figure from the share of its hours that AI actually reaches.

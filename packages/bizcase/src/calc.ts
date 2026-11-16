@@ -70,14 +70,12 @@ export function calculateCase(
   let usageCostPerMonth = 0;
   let assistedHoursPerMonth = 0;
   const tasks: TaskResult[] = [];
-  // AI use belongs to the phase; a task whose phase is missing is treated as having none (validation flags it)
-  const aiUseByPhase = new Map(inputs.phases.map(p => [p.name, p.aiUse]));
   for (const task of inputs.tasks) {
     const tierId = tierForTask(inputs, postureId, task);
     if (!tiersUsed.includes(tierId)) tiersUsed.push(tierId);
     const tier = inputs.tiers[tierId];
     const routine = task.difficulty === 'routine';
-    const aiUse = aiUseByPhase.get(task.phase) ?? 0;
+    const aiUse = task.aiUse;
     const assisted = totalHours * task.share * aiUse;
     assistedHoursPerMonth += assisted;
     const reduction = Math.min(MAX_REDUCTION, (routine ? tier.reductionRoutine : tier.reductionComplex) * effMult);
@@ -113,7 +111,7 @@ export function calculateCase(
     const netSavedHours = own.reduce((sum, t) => sum + t.netSavedHours, 0);
     return {
       name: p.name,
-      aiUse: p.aiUse,
+      aiUse: phaseAiUse(inputs, p.name),
       baselineHours,
       assistedHours: own.reduce((sum, t) => sum + t.assistedHours, 0),
       netSavedHours,
@@ -195,4 +193,10 @@ export function calculateCase(
     cumulative,
     verdict,
   };
+}
+
+/** A phase's AI use: the plain average of the AI use of the work in it (0 when it has no work). */
+export function phaseAiUse(inputs: BusinessCaseInputs, phaseName: string): number {
+  const own = inputs.tasks.filter(t => t.phase === phaseName);
+  return own.length === 0 ? 0 : own.reduce((sum, t) => sum + t.aiUse, 0) / own.length;
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createDefaultInputs } from '../defaults.js';
 import { applyWorkTemplate, getWorkTemplate, listWorkTemplates } from '../templates.js';
-import { calculateCase } from '../calc.js';
+import { calculateCase, phaseAiUse } from '../calc.js';
 import { MAX_PHASES, MAX_TASKS, isBusinessCaseInputs, validateInputs } from '../validate.js';
 
 const sum = (values: number[]): number => values.reduce((s, v) => s + v, 0);
@@ -59,18 +59,18 @@ describe('work templates', () => {
 
   it('hands out independent copies, so editing a case never changes a template', () => {
     const a = applyWorkTemplate(createDefaultInputs(), 'software-lifecycle');
-    a.phases[0]!.aiUse = 0;
+    a.tasks[0]!.aiUse = 0;
     a.tasks[0]!.share = 0.9;
     const b = applyWorkTemplate(createDefaultInputs(), 'software-lifecycle');
-    expect(b.phases[0]!.aiUse).toBe(0.6);
+    expect(b.tasks[0]!.aiUse).toBe(0.6);
     expect(b.tasks[0]!.share).toBe(0.08);
   });
 });
 
-describe('AI use is set for each phase and does not add up to 100%', () => {
+describe('AI use is set for each piece of work and does not add up to 100%', () => {
   it('lets the phases add up to far more than 100%', () => {
     const d = applyWorkTemplate(createDefaultInputs(), 'software-lifecycle');
-    const total = sum(d.phases.map(p => p.aiUse));
+    const total = sum(d.phases.map(p => phaseAiUse(d, p.name)));
     expect(total).toBeCloseTo(4.35, 10); // 435%
     expect(validateInputs(d)).toEqual([]);
   });
@@ -78,21 +78,21 @@ describe('AI use is set for each phase and does not add up to 100%', () => {
   it('accepts every phase at 100% and every phase at 0%', () => {
     for (const aiUse of [1, 0]) {
       const d = applyWorkTemplate(createDefaultInputs(), 'product-lifecycle');
-      d.phases = d.phases.map(p => ({ ...p, aiUse }));
+      d.tasks = d.tasks.map(t => ({ ...t, aiUse }));
       expect(validateInputs(d)).toEqual([]);
     }
   });
 
-  it('still insists each phase value is a percentage between 0% and 100%', () => {
+  it('still insists each AI use value is a percentage between 0% and 100%', () => {
     const d = createDefaultInputs();
-    d.phases[2]!.aiUse = 1.5;
-    expect(validateInputs(d).map(i => i.message)).toContain('Execute: AI use must be between 0% and 100%.');
+    d.tasks[2]!.aiUse = 1.5;
+    expect(validateInputs(d).map(i => i.message)).toContain('Test execution: AI use must be between 0% and 100%.');
   });
 
   it('does not tie one phase to another: changing one phase changes only that phase', () => {
     const base = calculateCase(applyWorkTemplate(createDefaultInputs(), 'mechanical-design'), 'enterprise', 'expected');
     const d = applyWorkTemplate(createDefaultInputs(), 'mechanical-design');
-    d.phases = d.phases.map(p => (p.name === 'Prototype' ? { ...p, aiUse: 0.8 } : p));
+    d.tasks = d.tasks.map(t => (t.phase === 'Prototype' ? { ...t, aiUse: 0.8 } : t));
     const changed = calculateCase(d, 'enterprise', 'expected');
     const byName = (r: typeof base, name: string) => r.phases.find(p => p.name === name)!;
     expect(byName(changed, 'Prototype').netEfficiency).toBeCloseTo(0.34, 6); // 80% x 50% effect x (1 - 15% review)
@@ -143,7 +143,7 @@ describe('results by phase (independent reference model, enterprise, expected ca
 
   it('reports AI reach as the work-weighted AI use, and zero efficiency for a phase with no work', () => {
     const d = createDefaultInputs();
-    d.phases = [...d.phases, { name: 'Unused', aiUse: 0.5 }];
+    d.phases = [...d.phases, { name: 'Unused' }];
     const r = calculateCase(d, 'enterprise', 'expected');
     expect(r.aiReach).toBeCloseTo(0.8, 9);
     const unused = r.phases.find(p => p.name === 'Unused')!;
@@ -188,18 +188,33 @@ describe('validation of phases and work', () => {
 
   it('limits the number of phases and kinds of work', () => {
     const d = createDefaultInputs();
-    d.phases = Array.from({ length: MAX_PHASES + 1 }, (_, i) => ({ name: `P${i}`, aiUse: 0.5 }));
-    d.tasks = Array.from({ length: MAX_TASKS + 1 }, (_, i) => ({ id: `t${i}`, name: `W${i}`, phase: 'P0', share: 1 / (MAX_TASKS + 1), difficulty: 'routine' as const }));
+    d.phases = Array.from({ length: MAX_PHASES + 1 }, (_, i) => ({ name: `P${i}` }));
+    d.tasks = Array.from({ length: MAX_TASKS + 1 }, (_, i) => ({ id: `t${i}`, name: `W${i}`, phase: 'P0', share: 1 / (MAX_TASKS + 1), difficulty: 'routine' as const, aiUse: 0.5 }));
     const messages = validateInputs(d).map(i => i.message);
     expect(messages).toContain(`Use at most ${MAX_PHASES} phases.`);
     expect(messages).toContain(`Use at most ${MAX_TASKS} kinds of work.`);
   });
 
-  it('does not crash the calculation on work in an unlisted phase: it is treated as having no AI use', () => {
+  it('does not crash the calculation on work in an unlisted phase', () => {
     const d = createDefaultInputs();
     d.tasks[0]!.phase = 'Nowhere';
     const r = calculateCase(d, 'enterprise', 'expected');
     expect(Number.isFinite(r.netEfficiency)).toBe(true);
-    expect(r.tasks[0]!.assistedHours).toBe(0);
+    expect(validateInputs(d).map(i => i.message)).toContain('Test design: choose one of the phases.');
+  });
+});
+
+describe('a phase shows the average AI use of its work', () => {
+  it('is the plain average of the work in it, and 0 for a phase with no work', () => {
+    const d = createDefaultInputs();
+    d.tasks[0]!.aiUse = 0.2; // Design has one piece of work
+    expect(phaseAiUse(d, 'Design')).toBeCloseTo(0.2, 12);
+    d.phases = [...d.phases, { name: 'Empty' }];
+    expect(phaseAiUse(d, 'Empty')).toBe(0);
+    const lifecycle = applyWorkTemplate(createDefaultInputs(), 'software-lifecycle');
+    lifecycle.tasks.find(t => t.id === 'coding')!.aiUse = 1;
+    lifecycle.tasks.find(t => t.id === 'code-review')!.aiUse = 0.5;
+    expect(phaseAiUse(lifecycle, 'Build')).toBeCloseTo(0.75, 12);
+    expect(calculateCase(lifecycle, 'enterprise', 'expected').phases.find(p => p.name === 'Build')!.aiUse).toBeCloseTo(0.75, 12);
   });
 });

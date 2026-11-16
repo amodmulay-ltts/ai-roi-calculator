@@ -306,18 +306,21 @@ async function main() {
     await pause();
     check('the situation names the industry of the chosen work', (await text(page)).includes('Mechanical engineering.'));
     await goStep(page, '2 Opportunity');
-    const aiUse = async () => page.$$eval('input[aria-label$=" AI use (%)"]', els => els.map(e => Number(e.value)));
+    // A phase shows the average AI use of its work; AI use itself is entered on each piece of work
+    const aiUse = async () => page.$$eval('[aria-label$=" average AI use"]', els => els.map(e => Number.parseInt(e.textContent, 10)));
+    const workUse = '[aria-label$=" AI use (%)"]';
     let uses = await aiUse();
     check('mechanical design has eight phases, each with its own AI use', uses.join(',') === '50,45,55,70,50,5,80,75', uses.join(','));
     check('the phase AI use adds up to 430%, not 100%, and is accepted', uses.reduce((a, b) => a + b, 0) === 430 && !(await issueList(page)));
     check('mechanical design shows 19.9% net efficiency', (await netEfficiencyTile(page)) === '19.9%', await netEfficiencyTile(page));
     check('the phase chart shows the physical prototype phase barely touched (5% use, 2.1% efficiency)', has(await text(page), 'Prototype', '2.1%'));
-    for (let i = 0; i < uses.length; i++) await setNth(page, 'input[aria-label$=" AI use (%)"]', i, '100');
+    const workCount = (await page.$$(`input${workUse}`)).length;
+    for (let i = 0; i < workCount; i++) await setNth(page, `input${workUse}`, i, '100');
     uses = await aiUse();
     check('every phase can be 100% at once without an error', uses.every(u => u === 100) && !(await issueList(page)));
     check('more AI use gives more net efficiency', Number.parseFloat(await netEfficiencyTile(page)) > 19.9, await netEfficiencyTile(page));
-    await setNth(page, 'input[aria-label$=" AI use (%)"]', 0, '0');
-    check('one phase can be 0% on its own: the others are not changed', (await aiUse()).join(',') === '0,100,100,100,100,100,100,100');
+    await setNth(page, `input${workUse}`, 0, '0');
+    check('one piece of work can be 0% on its own: only its phase average changes', (await aiUse()).join(',') === '0,100,100,100,100,100,100,100');
 
     // Editing the phases and work makes the case custom, and a rename moves the phase's work with it
     await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Add phase').click());

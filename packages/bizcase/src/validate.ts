@@ -30,8 +30,8 @@ export function validateInputs(inputs: BusinessCaseInputs): ValidationIssue[] {
   if (!(inputs.loadedCostPerFteYear > 0)) add('loadedCostPerFteYear', 'Annual cost per person must be greater than zero.');
   if (!(inputs.hoursPerFteMonth > 0)) add('hoursPerFteMonth', 'Hours per month must be greater than zero.');
 
-  // Phases: AI use is set for each phase on its own. There is deliberately no rule that links the phases'
-  // AI-use values (they describe each phase, not parts of a whole), so they may add up to more or less than 100%.
+  // Phases only group the work. AI use is set for each piece of work on its own, with no rule linking the values
+  // (they describe each piece of work, not parts of a whole), so they may add up to more or less than 100%.
   if (inputs.phases.length < 1) add('phases', 'Add at least one phase.');
   if (inputs.phases.length > MAX_PHASES) add('phases', `Use at most ${MAX_PHASES} phases.`);
   const phaseNames = new Set<string>();
@@ -41,7 +41,6 @@ export function validateInputs(inputs: BusinessCaseInputs): ValidationIssue[] {
     if (name.trim() === '') add(`phases.${i}.name`, 'Each phase needs a name.');
     else if (phaseNames.has(name)) add(`phases.${i}.name`, 'Phase names must be different.');
     phaseNames.add(name);
-    if (!isFraction(p.aiUse)) add(`phases.${i}.aiUse`, `${name.trim() || 'Phase'}: AI use must be between 0% and 100%.`);
   });
 
   // Work: the effort split divides one whole, so it adds up to 100%
@@ -55,6 +54,7 @@ export function validateInputs(inputs: BusinessCaseInputs): ValidationIssue[] {
     if (taskIds.has(t.id)) add(`tasks.${t.id}.id`, 'Two kinds of work share the same identifier.');
     taskIds.add(t.id);
     if (!isFraction(t.share)) add(`tasks.${t.id}.share`, `${t.name}: share must be between 0% and 100%.`);
+    if (!isFraction(t.aiUse)) add(`tasks.${t.id}.aiUse`, `${t.name}: AI use must be between 0% and 100%.`);
     if (!phaseNames.has(t.phase)) add(`tasks.${t.id}.phase`, `${t.name}: choose one of the phases.`);
   }
 
@@ -124,7 +124,7 @@ export function isBusinessCaseInputs(value: unknown): value is BusinessCaseInput
 
   const phases = value.phases;
   if (!Array.isArray(phases) || phases.length < 1 || phases.length > MAX_PHASES) return false;
-  if (!phases.every(p => isRecord(p) && typeof p.name === 'string' && isFiniteNumber(p.aiUse))) return false;
+  if (!phases.every(p => isRecord(p) && typeof p.name === 'string')) return false;
 
   const tasks = value.tasks;
   if (!Array.isArray(tasks) || tasks.length < 1 || tasks.length > MAX_TASKS) return false;
@@ -135,6 +135,7 @@ export function isBusinessCaseInputs(value: unknown): value is BusinessCaseInput
       typeof t.name === 'string' &&
       typeof t.phase === 'string' &&
       isFiniteNumber(t.share) &&
+      isFiniteNumber(t.aiUse) &&
       (t.difficulty === 'routine' || t.difficulty === 'complex'),
   );
   if (!tasksOk) return false;

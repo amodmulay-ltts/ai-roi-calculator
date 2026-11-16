@@ -13,7 +13,7 @@ It replaces the idea of a detailed estimating model with a guided business case.
 - **One use case at a time.** The design leaves room to roll several into a portfolio later.
 - **Cost and capacity benefits only.** Revenue and speed-to-market benefits are out of scope, because they are the hardest to defend.
 - **Any lifecycle, not only testing.** The work in scope is a list of lifecycle phases, each with its own kinds of work. Ready-made starting points: software testing (the reference), the whole software lifecycle, product development (hardware and software together) and mechanical design. The presenter can rename, add and remove phases and work, so any other industry can be described.
-- **AI use is set for each phase.** Every phase has its own percentage of work where AI is used. These percentages are independent: each describes one phase, not a share of a whole, so they do not add up to 100%. Physical work, such as building a prototype, simply has a low figure. The split of effort across the work does add up to 100%, because it divides one whole.
+- **AI use is set for each piece of work.** Every piece of work has its own percentage where AI is used, and a phase shows the average of the work in it. These percentages are independent: each describes one phase, not a share of a whole, so they do not add up to 100%. Physical work, such as building a prototype, simply has a low figure. The split of effort across the work does add up to 100%, because it divides one whole.
 - **Currency: EUR** by default.
 - **Built as a new app.** It has its own small calculation package; the existing app and engine are left untouched.
 

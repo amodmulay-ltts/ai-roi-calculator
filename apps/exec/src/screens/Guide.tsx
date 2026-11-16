@@ -271,8 +271,8 @@ export default function Guide(): ReactElement {
         <Slide
           id="scope"
           eyebrow="Step 1 and 2 · Work in scope"
-          title="Any lifecycle, any industry. Each phase gets its own AI use."
-          lead="Software delivery, product development or the design of mechanical systems: pick the work, then say how much of each phase AI would actually support. The phases are independent, so they are not meant to add up to 100%."
+          title="Any lifecycle, any industry. Each piece of work gets its own AI use."
+          lead="Software delivery, product development or the design of mechanical systems: pick the work, then say how much of each piece of work AI would actually support. A phase shows the average of its work, and none of these percentages are meant to add up to 100%."
           illustrative
         >
           <div className="rounded-xl border border-gray-200 bg-white p-6">
@@ -473,7 +473,7 @@ export default function Guide(): ReactElement {
               {[
                 'Replace the placeholder figures with the customer’s own before using a result in a decision.',
                 'Change the model option live to see how right-sizing moves the result.',
-                'Raise or lower AI use per phase and watch net efficiency respond.',
+                'Raise or lower AI use on a piece of work and watch net efficiency respond.',
                 'Print the one-page summary as the take-away.',
               ].map(t => (
                 <li key={t} className="flex gap-3 text-lg text-gray-700 leading-relaxed">

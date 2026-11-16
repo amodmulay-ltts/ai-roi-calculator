@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createDefaultInputs, HORIZON_MONTHS, CASE_FACTORS, MARGINAL_ROI_PERCENT } from '../defaults.js';
+import { phaseAiUse } from '../calc.js';
 
 describe('createDefaultInputs', () => {
   it('matches the spec defaults', () => {
@@ -22,7 +23,7 @@ describe('createDefaultInputs', () => {
 
   it('starts from the software testing template: five phases, each with 80% AI use', () => {
     const d = createDefaultInputs();
-    expect(d.phases.map(p => [p.name, p.aiUse])).toEqual([
+    expect(d.phases.map(p => [p.name, phaseAiUse(d, p.name)])).toEqual([
       ['Design', 0.8],
       ['Build', 0.8],
       ['Execute', 0.8],
