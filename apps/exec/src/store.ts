@@ -5,6 +5,7 @@ import {
   compareAll,
   createDefaultInputs,
   isBusinessCaseInputs,
+  getWorkTemplate,
   recommendedPosture,
   validateInputs,
   type BusinessCaseInputs,
@@ -26,6 +27,12 @@ const STORAGE_KEY = 'execcase.v1';
 
 /** The template id once the phases or work have been changed by hand. */
 export const CUSTOM_TEMPLATE_ID = 'custom';
+
+/** The name of the work in scope, for headings: the template's name, or 'Custom' once edited by hand. */
+export function workInScopeName(inputs: BusinessCaseInputs): string {
+  if (inputs.workTemplateId === CUSTOM_TEMPLATE_ID) return 'Custom';
+  return getWorkTemplate(inputs.workTemplateId)?.name ?? 'Custom';
+}
 
 function uniqueTaskId(tasks: TaskMix[]): string {
   const taken = new Set(tasks.map(t => t.id));

@@ -93,7 +93,7 @@ The ideas carry over (monthly forecast with a ramp, payback, labour realisation,
 
 1. **Testing archetype tasks:** test design, script development, test execution, defect analysis and reporting, each marked routine or complex. Volumes are not asked for in the first version: the presenter enters team size and cost, and the work mix is a share of effort.
 2. **Unit costs for the four postures** are presenter-entered, with clearly labelled placeholder defaults. The presenter replaces them with current vendor prices and customer figures.
-3. **No branding** in the first version. The one-page summary is neutral and printable.
+3. **Same look and feel as VALUEAI**, with the L&T Technology Services logo, so the two tools read as one product family. The one-page summary prints in the same style.
 4. **Conservative case:** the readiness answers shift all three cases, and a fixed, visible spread separates conservative, expected and stretch.
 5. **Self-contained model.** The new app has its own small calculation package and does not import the existing engine. The existing app is untouched.
 

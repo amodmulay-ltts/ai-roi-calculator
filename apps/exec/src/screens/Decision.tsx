@@ -5,7 +5,6 @@ import {
   compareAll,
   formatMoney,
   formatPayback,
-  getWorkTemplate,
   headline,
   readinessGap,
   whatMustBeTrue,
@@ -22,7 +21,7 @@ import {
 } from '../components/Charts';
 import { MarginBar, ReadinessGauge } from '../components/Gauges';
 import { POSTURE_LABEL } from '../components/PostureCard';
-import { CUSTOM_TEMPLATE_ID, effectivePosture, useExecStore } from '../store';
+import { effectivePosture, useExecStore, workInScopeName } from '../store';
 
 const VERDICT_TEXT: Record<Verdict, string> = {
   positive: 'Pays back',
@@ -52,7 +51,7 @@ export default function Decision(): ReactElement | null {
   const expected = cases.expected;
   const effectBreakEven = breakEvenEffectiveness(inputs, posture);
   const cashBreakEven = breakEvenCashShare(inputs, posture);
-  const workInScope = inputs.workTemplateId === CUSTOM_TEMPLATE_ID ? 'Custom' : getWorkTemplate(inputs.workTemplateId)?.name;
+  const workInScope = workInScopeName(inputs);
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
@@ -86,7 +85,7 @@ export default function Decision(): ReactElement | null {
         Range: {formatMoney(cases.conservative.netValue36)} to {formatMoney(cases.stretch.netValue36)}
       </p>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 print:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 print:grid-cols-3">
         <Card title="Cumulative position" label="Line chart of the cumulative position over 36 months for each case">
           <CumulativeCasesChart conservative={cases.conservative} expected={cases.expected} stretch={cases.stretch} width={CHART_WIDTH} height={HEIGHT} />
         </Card>

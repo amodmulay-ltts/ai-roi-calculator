@@ -18,7 +18,7 @@ This is the build specification for the new app described in `CONCEPT_EXEC.md`. 
 
 A presenter-led web app that builds a one-piece-of-work business case for AI, for management. The work is a lifecycle chosen from a template (software testing, the whole software lifecycle, product development or mechanical design) or built by hand. It compares four ways of running AI (local, hybrid, enterprise, frontier), shows which pays back, shows a conservative, expected and stretch range, states what must be true for the case to hold, and prints a one-page summary.
 
-Out of scope: login, a server, a database, multiple use cases, multiple currencies, revenue benefits, discounting or NPV, branding, PDF generation on a server.
+Out of scope: login, a server, a database, multiple use cases, multiple currencies, revenue benefits, discounting or NPV, PDF generation on a server.
 
 ## 2. Repository layout and commands
 
@@ -550,9 +550,16 @@ Mechanical design by phase (net efficiency): Concept 15%, Design 19.125%, Analys
 
 One page, no routing. A header, a step bar and one screen at a time. Follow the look of the existing app: Tailwind, white cards on `bg-gray-50`, blue (`blue-600`) as the single accent, rounded-xl borders, generous spacing. Plain business wording. No jargon (no "tokens", "FTE rates", "sourcing preset").
 
-**Header:** app title `AI Business Case`, customer name (editable text, placeholder `Customer name`), buttons `Reset to defaults` (confirm first) and `Print summary`.
+**Look and feel: the same as VALUEAI** (the original app in `apps/client`). Use its Tailwind palette (the sky `blue` scale in `tailwind.config.js`), the system font stack, `bg-gray-50` pages, white `rounded-xl border-gray-200` cards, and its colours for charts (blue `#1d4ed8`, sky `#0ea5e9`, grey `#9ca3af`, grid `#e5e7eb`, zero line `#374151`). Copy `ltts-logo.png`, `favicon.png` and `apple-touch-icon.png` from `apps/client/public` into `apps/exec/public`. The page title is `VALUEAI AI Business Case · L&T Technology Services`.
 
-**Step bar:** seven steps, in order: `1 Situation`, `2 Opportunity`, `3 Right-size`, `4 Investment`, `5 Result`, `6 Risks`, `7 Decision`. Clicking a step goes there. `Back` and `Next` buttons at the bottom of each screen. Do not lock steps.
+**Page shell.** A sticky block (hidden in print) holding the header and the step bar. Below it a `max-w-7xl` main area with, in order: the case identity, the placeholder notice, the screen, and a footer.
+- **Header:** white with a bottom border. On the left the L&T Technology Services logo (`h-12`), a thin vertical divider, and the title block `VALUEAI` (`text-lg font-semibold`) over `AI Business Case` (`text-xs text-gray-500`). On the right the buttons `Reset to defaults` (secondary: bordered, confirm first) and `Print summary` (primary: `bg-blue-600`).
+- **Step bar:** under the header, `bg-gray-50/95` with a bottom border. Seven steps, in order: `1 Situation`, `2 Opportunity`, `3 Right-size`, `4 Investment`, `5 Result`, `6 Risks`, `7 Decision`, as text buttons with an underline on the current one. Clicking a step goes there; do not lock steps. At the right, a quiet running result for the selected option's expected case, shown only when the inputs are valid: `{3-year net value}`, `month {n}` (or `no payback`) and `ROI {n}%`.
+- **Case identity:** the customer name as an editable page heading (`text-3xl font-bold`, placeholder `Customer name`, accessible name `Customer name`), and under it `Work in scope: {name}`, `People: {n}` and `Currency: EUR`.
+- **Placeholder notice:** a blue-tinted box with the label `Placeholder assumptions · not verified` and the text `Every starting figure is a placeholder, not a benchmark or a vendor price. Replace them with the customer's figures before using a result in a decision.`
+- **Each screen** starts with a small uppercase label (its step name). Forms sit in a narrower centred column; the option cards and the dashboard use the full width. `Back` (secondary) and `Next` (primary) buttons under each screen.
+- **Footer:** `VALUEAI — AI Business Case` over `A presenter-led business case for management`.
+- Everything in this shell except the decision summary is hidden in print.
 
 **Validation rule for all screens:** if `validateInputs` returns issues, show them in a red list at the top of the screen and show no results on screens 3 to 7 (show `Fix the inputs on the earlier steps to see results.` instead).
 
@@ -576,7 +583,8 @@ One page, no routing. A header, a step bar and one screen at a time. Follow the 
 - Two charts: `How the efficiency is built` (a waterfall of `Effort AI removes` = grossEfficiency, `Review and rework` = minus reviewReworkEfficiency, `Net efficiency` = netEfficiency, in percent of in-scope effort) and `Where the effort is saved` (for each phase, two bars: its `AI use` and its `Net efficiency`).
 
 **Screen 3: Right-size** (the most important screen)
-- Show the data-rules gate first as one line: `Data rules: {label}. {n} of 4 options are open to you.`
+- A headline first: `{Posture} creates the most value: {3-year net value}` for the recommended option (or `No option pays back. {Posture} comes closest: {value}` when none pays back).
+- Then the data-rules gate as one line: `Data rules: {label}. {n} of 4 options are open to you.`
 - Four posture cards side by side (stack on narrow screens). Card order: Local, Hybrid, Enterprise, Frontier. Each card shows: name; one-line description (below); verdict badge (`Pays back` for positive, `Marginal` for marginal, `Does not pay back` for negative); `Run cost per month` (usage + platform and governance); `Investment`; `Net per month at maturity` (steadyNetPerMonth); `Payback` (`formatPayback`); `3-year net value`; `Break-even` line. Click selects the posture (blue ring). The recommended posture has a `Recommended` tag. A disallowed card is greyed, not selectable, and shows its `disallowedReason`.
 - Descriptions: Local: `Open models on your own infrastructure. No usage charges; lower capability.` Hybrid: `Routine work on local models, complex work on a stronger model.` Enterprise: `Contracted or private commercial models with predictable pricing and data controls.` Frontier: `Most capable public models, paid per use.`
 - Break-even line text: from `breakEvenEffectiveness`: `null` gives `Cannot break even.`; otherwise `Breaks even if AI delivers {Math.round(v*100)}% of the assumed effect.` (when v is 0, `Breaks even at any effect.`).
@@ -591,7 +599,7 @@ One page, no routing. A header, a step bar and one screen at a time. Follow the 
 **Screen 5: Result**
 - Three columns: Conservative, Expected, Stretch, for the selected posture. Rows: `Payback`, `3-year net value`, `3-year return`, `Net per month at maturity`, `Capacity released (people equivalent)`, `Counted as saving per month`, `Redeployed, not counted per month`.
 - One line chart `Cumulative position`, 3 lines (one per case) over months 0 to 36, y-axis formatted with `formatMoney`, a zero reference line. Expected line `#1d4ed8` solid, conservative `#6b7280` dashed, stretch `#0ea5e9` dashed.
-- Above the table, the `headline` sentence for the expected case.
+- Above the table, the `headline` sentence for the expected case, as a bold heading.
 
 **Screen 6: Risks**
 - Four questions, each a three-option radio (`Ready`, `Partly ready`, `Not ready`):

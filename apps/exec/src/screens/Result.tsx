@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { Line, LineChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { compareAll, formatMoney, formatPayback, formatRoi, headline } from '@ai-roi-calc/bizcase';
 import { POSTURE_LABEL } from '../components/PostureCard';
 import { effectivePosture, useExecStore } from '../store';
@@ -36,9 +36,7 @@ export default function Result(): ReactElement | null {
 
   return (
     <section className="space-y-6">
-      <p className="rounded-xl border border-gray-200 bg-white p-6 text-base text-gray-900">
-        {headline(POSTURE_LABEL[posture], cases.expected)}
-      </p>
+      <h2 className="text-2xl font-bold text-gray-900">{headline(POSTURE_LABEL[posture], cases.expected)}</h2>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6">
         <table className="w-full text-sm">
@@ -74,8 +72,9 @@ export default function Result(): ReactElement | null {
             <LineChart data={chartData}>
               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
               <YAxis tickFormatter={v => formatMoney(Number(v))} tick={{ fontSize: 12 }} width={80} />
-              <ReferenceLine y={0} stroke="#9ca3af" />
-              <Line type="monotone" dataKey="conservative" stroke="#6b7280" strokeDasharray="6 4" dot={false} isAnimationActive={false} />
+              <CartesianGrid stroke="#e5e7eb" vertical={false} />
+              <ReferenceLine y={0} stroke="#374151" />
+              <Line type="monotone" dataKey="conservative" stroke="#9ca3af" strokeDasharray="6 4" dot={false} isAnimationActive={false} />
               <Line type="monotone" dataKey="expected" stroke="#1d4ed8" dot={false} isAnimationActive={false} />
               <Line type="monotone" dataKey="stretch" stroke="#0ea5e9" strokeDasharray="6 4" dot={false} isAnimationActive={false} />
             </LineChart>
