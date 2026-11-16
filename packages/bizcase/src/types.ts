@@ -16,16 +16,16 @@ export interface TaskMix {
   /** Share of in-scope effort, 0..1. All shares must sum to 1: they split one whole. */
   share: number;
   difficulty: Difficulty;
-}
-
-/** A lifecycle phase and how much of its work AI is used on. */
-export interface WorkPhase {
-  name: string;
   /**
-   * Share of this phase's work where AI is used at maturity, 0..1. Set independently for each phase: these
-   * values describe each phase, not parts of a whole, so they do not add up to 100%.
+   * Share of this work where AI is used at maturity, 0..1. Set for each piece of work on its own, so these
+   * values do not add up to 100%. A phase's AI use is the average of the work in it.
    */
   aiUse: number;
+}
+
+/** A lifecycle phase. Its AI use is not entered: it is the average of the AI use of the work in it. */
+export interface WorkPhase {
+  name: string;
 }
 
 /** A ready-made starting point for the work in scope. Its figures are placeholders, not measured data. */

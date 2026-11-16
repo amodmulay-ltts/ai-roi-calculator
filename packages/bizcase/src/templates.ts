@@ -1,13 +1,19 @@
 import type { BusinessCaseInputs, Difficulty, TaskMix, WorkPhase, WorkTemplate } from './types.js';
 
+/** The template data below states AI use once per phase; each piece of work starts from its phase's figure. */
+interface TemplateSource extends Omit<WorkTemplate, 'phases' | 'tasks'> {
+  phases: Array<WorkPhase & { aiUse: number }>;
+  tasks: Array<Omit<TaskMix, 'aiUse'>>;
+}
+
 /**
  * Ready-made starting points for the work in scope. Every share and AI-use figure here is a placeholder
  * chosen to start a conversation, not measured data: the presenter replaces them with the customer's own.
  * AI use is set per phase and is independent: the phase values do not add up to 100%.
  */
 
-const phase = (name: string, aiUse: number): WorkPhase => ({ name, aiUse });
-const task = (id: string, name: string, phaseName: string, share: number, difficulty: Difficulty): TaskMix => ({
+const phase = (name: string, aiUse: number): WorkPhase & { aiUse: number } => ({ name, aiUse });
+const task = (id: string, name: string, phaseName: string, share: number, difficulty: Difficulty): Omit<TaskMix, 'aiUse'> => ({
   id,
   name,
   phase: phaseName,
@@ -15,8 +21,7 @@ const task = (id: string, name: string, phaseName: string, share: number, diffic
   difficulty,
 });
 
-/** Builds a fresh, independent copy each call so editing a case never changes a template. */
-function buildTemplates(): WorkTemplate[] {
+function templateSources(): TemplateSource[] {
   return [
     {
       id: 'software-testing',
@@ -119,6 +124,18 @@ function buildTemplates(): WorkTemplate[] {
       ],
     },
   ];
+}
+
+/** Builds a fresh, independent copy each call so editing a case never changes a template. */
+function buildTemplates(): WorkTemplate[] {
+  return templateSources().map(t => {
+    const use = new Map(t.phases.map(p => [p.name, p.aiUse]));
+    return {
+      ...t,
+      phases: t.phases.map(p => ({ name: p.name })),
+      tasks: t.tasks.map(k => ({ ...k, aiUse: use.get(k.phase) ?? 0 })),
+    };
+  });
 }
 
 export const DEFAULT_WORK_TEMPLATE_ID = 'software-testing';

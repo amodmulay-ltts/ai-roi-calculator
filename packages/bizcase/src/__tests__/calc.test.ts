@@ -8,7 +8,7 @@ function miniInputs(): BusinessCaseInputs {
   const d = createDefaultInputs();
   d.teamSize = 10;
   d.loadedCostPerFteYear = 96000;
-  d.phases = [{ name: 'Design', aiUse: 1 }];
+  d.phases = [{ name: 'Design' }];
   d.cashShare = 1;
   d.retiredCostMonthly = 0;
   d.rampMonths = 1;
@@ -16,7 +16,7 @@ function miniInputs(): BusinessCaseInputs {
   d.dataReadinessInvestment = 0;
   d.governanceSetup = 0;
   d.trainingPerFte = 0;
-  d.tasks = [{ id: 'testDesign', name: 'Test design', phase: 'Design', share: 1, difficulty: 'routine' }];
+  d.tasks = [{ id: 'testDesign', name: 'Test design', phase: 'Design', share: 1, difficulty: 'routine', aiUse: 1 }];
   d.tiers.local = {
     reductionRoutine: 0.5,
     reductionComplex: 0.5,

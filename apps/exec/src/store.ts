@@ -127,7 +127,7 @@ export const useExecStore = create<ExecState>()(
           return {
             inputs: {
               ...state.inputs,
-              // Renaming a phase is a change of structure; changing its AI use is only a change of value
+              // Renaming a phase is a change of structure
               workTemplateId: renamed ? CUSTOM_TEMPLATE_ID : state.inputs.workTemplateId,
               phases: state.inputs.phases.map((p, i) => (i === index ? { ...p, ...partial } : p)),
               tasks: renamed
@@ -141,7 +141,7 @@ export const useExecStore = create<ExecState>()(
           inputs: {
             ...state.inputs,
             workTemplateId: CUSTOM_TEMPLATE_ID,
-            phases: [...state.inputs.phases, { name: uniquePhaseName(state.inputs.phases), aiUse: 0.5 }],
+            phases: [...state.inputs.phases, { name: uniquePhaseName(state.inputs.phases) }],
           },
         })),
       removePhase: index =>
@@ -164,7 +164,7 @@ export const useExecStore = create<ExecState>()(
             workTemplateId: CUSTOM_TEMPLATE_ID,
             tasks: [
               ...state.inputs.tasks,
-              { id: uniqueTaskId(state.inputs.tasks), name: 'New work', phase: phaseName, share: 0, difficulty: 'routine' },
+              { id: uniqueTaskId(state.inputs.tasks), name: 'New work', phase: phaseName, share: 0, difficulty: 'routine', aiUse: 0.5 },
             ],
           },
         })),

@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { calculateCase, validateInputs, type Difficulty, type TaskMix } from '@ai-roi-calc/bizcase';
+import { calculateCase, phaseAiUse, validateInputs, type Difficulty, type TaskMix } from '@ai-roi-calc/bizcase';
 import { EfficiencyBridgeChart, PhaseEfficiencyChart } from '../components/Charts';
 import { PercentInput } from '../components/Field';
 import { POSTURE_LABEL } from '../components/PostureCard';
@@ -43,7 +43,7 @@ export default function Opportunity(): ReactElement {
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-6 space-y-6">
       <p className="text-xs text-gray-500">
-        AI use is set for each phase on its own: the percentages do not need to add up to 100%. The split of work below does.
+        AI use is set for each piece of work on its own: the percentages do not need to add up to 100%. A phase shows the average of its work. The split of work below does add up to 100%.
       </p>
 
       <div className="space-y-4">
@@ -60,12 +60,13 @@ export default function Opportunity(): ReactElement {
                   className={`${TEXT_INPUT} font-medium`}
                 />
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500">AI use</span>
-                  <PercentInput
-                    value={phase.aiUse}
-                    ariaLabel={`${phase.name} AI use (%)`}
-                    onChange={aiUse => setPhase(index, { aiUse })}
-                  />
+                  <span className="text-xs text-gray-500">Average AI use</span>
+                  <span
+                    aria-label={`${phase.name} average AI use`}
+                    className="min-w-[3.5rem] rounded-lg bg-gray-100 px-3 py-1.5 text-right text-sm font-medium text-gray-900 tabular-nums"
+                  >
+                    {Math.round(phaseAiUse(inputs, phase.name) * 100)}%
+                  </span>
                   {inputs.phases.length > 1 && (
                     <button type="button" onClick={() => handleRemovePhase(index)} className={SMALL_BUTTON}>
                       Remove phase
@@ -79,6 +80,7 @@ export default function Opportunity(): ReactElement {
                   <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
                     <th className="w-1/2 py-1 font-normal">Work</th>
                     <th className="py-1 text-right font-normal">Share of work (%)</th>
+                    <th className="py-1 text-right font-normal">AI use (%)</th>
                     <th className="py-1 text-right font-normal">Type</th>
                     <th className="py-1" />
                   </tr>
@@ -100,6 +102,13 @@ export default function Opportunity(): ReactElement {
                           value={task.share}
                           ariaLabel={`${task.name} share of work (%)`}
                           onChange={share => setTask(task.id, { share })}
+                        />
+                      </td>
+                      <td className="py-2 text-right">
+                        <PercentInput
+                          value={task.aiUse}
+                          ariaLabel={`${task.name} AI use (%)`}
+                          onChange={aiUse => setTask(task.id, { aiUse })}
                         />
                       </td>
                       <td className="py-2 text-right">
