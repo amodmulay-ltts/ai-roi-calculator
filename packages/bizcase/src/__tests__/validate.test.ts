@@ -9,8 +9,17 @@ describe('validateInputs', () => {
 
   it('flags a work mix that does not add up to 100%', () => {
     const d = createDefaultInputs();
-    d.tasks[0]!.share = 0.2; // 0.2 + 0.25 + 0.25 + 0.1 + 0.1 = 0.9
-    expect(validateInputs(d)).toContainEqual({ field: 'tasks', message: 'Work mix must add up to 100%.' });
+    d.tasks[0]!.share = 0.9; // the one piece of work in Design is 90% of Design
+    expect(validateInputs(d)).toContainEqual({ field: 'phases.Design.work', message: 'Design: work must add up to 100%.' });
+  });
+
+  it('flags phase effort that does not add up to 100%, and a phase with no work', () => {
+    const d = createDefaultInputs();
+    d.phases[0]!.effortShare = 0.2; // 0.2 + 0.25 + 0.25 + 0.1 + 0.1 = 0.9
+    expect(validateInputs(d)).toContainEqual({ field: 'phases', message: 'Phase effort must add up to 100%.' });
+    const empty = createDefaultInputs();
+    empty.phases = [...empty.phases, { name: 'Empty', effortShare: 0 }];
+    expect(validateInputs(empty).map(i => i.message)).toContain('Empty: add work to this phase.');
   });
 
   it('flags a ramp outside 1..24 or not a whole number', () => {
@@ -126,6 +135,7 @@ describe('isBusinessCaseInputs', () => {
 
   it('accepts any number of kinds of work, not only five', () => {
     const many = createDefaultInputs();
+    many.phases = [{ name: 'Design', effortShare: 1 }];
     many.tasks = Array.from({ length: 12 }, (_, i) => ({ id: `t${i}`, name: `Work ${i}`, phase: 'Design', share: 1 / 12, difficulty: 'routine' as const, aiUse: 0.5 }));
     expect(isBusinessCaseInputs(many)).toBe(true);
   });

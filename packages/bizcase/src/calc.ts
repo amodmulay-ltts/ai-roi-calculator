@@ -70,18 +70,20 @@ export function calculateCase(
   let usageCostPerMonth = 0;
   let assistedHoursPerMonth = 0;
   const tasks: TaskResult[] = [];
+  const effortByPhase = new Map(inputs.phases.map(p => [p.name, p.effortShare]));
   for (const task of inputs.tasks) {
+    const effort = (effortByPhase.get(task.phase) ?? 0) * task.share; // share of ALL in-scope effort
     const tierId = tierForTask(inputs, postureId, task);
     if (!tiersUsed.includes(tierId)) tiersUsed.push(tierId);
     const tier = inputs.tiers[tierId];
     const routine = task.difficulty === 'routine';
     const aiUse = task.aiUse;
-    const assisted = totalHours * task.share * aiUse;
+    const assisted = totalHours * effort * aiUse;
     assistedHoursPerMonth += assisted;
     const reduction = Math.min(MAX_REDUCTION, (routine ? tier.reductionRoutine : tier.reductionComplex) * effMult);
     const review = routine ? tier.reviewRoutine : tier.reviewComplex;
     const removed = assisted * reduction;
-    const baselineHours = totalHours * task.share;
+    const baselineHours = totalHours * effort;
     const netSaved = removed * (1 - review);
     netHoursSavedPerMonth += netSaved;
     grossRemovedHoursPerMonth += removed;

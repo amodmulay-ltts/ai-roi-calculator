@@ -24,8 +24,11 @@ describe('work templates', () => {
         expect(isBusinessCaseInputs(inputs)).toBe(true);
       });
 
-      it('splits the effort across the work as one whole (100%)', () => {
-        expect(sum(template.tasks.map(t => t.share))).toBeCloseTo(1, 10);
+      it('splits all effort across the phases (100%), and each phase is its own whole (100%)', () => {
+        expect(sum(template.phases.map(p => p.effortShare))).toBeCloseTo(1, 10);
+        for (const p of template.phases) {
+          expect(sum(template.tasks.filter(t => t.phase === p.name).map(t => t.share))).toBeCloseTo(1, 10);
+        }
       });
 
       it('puts every kind of work in a listed phase, with unique ids and phase names', () => {
@@ -60,10 +63,10 @@ describe('work templates', () => {
   it('hands out independent copies, so editing a case never changes a template', () => {
     const a = applyWorkTemplate(createDefaultInputs(), 'software-lifecycle');
     a.tasks[0]!.aiUse = 0;
-    a.tasks[0]!.share = 0.9;
+    a.phases[0]!.effortShare = 0.9;
     const b = applyWorkTemplate(createDefaultInputs(), 'software-lifecycle');
     expect(b.tasks[0]!.aiUse).toBe(0.6);
-    expect(b.tasks[0]!.share).toBe(0.08);
+    expect(b.phases[0]!.effortShare).toBeCloseTo(0.08, 12);
   });
 });
 

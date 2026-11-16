@@ -141,7 +141,12 @@ export const useExecStore = create<ExecState>()(
           inputs: {
             ...state.inputs,
             workTemplateId: CUSTOM_TEMPLATE_ID,
-            phases: [...state.inputs.phases, { name: uniquePhaseName(state.inputs.phases) }],
+            phases: [...state.inputs.phases, { name: uniquePhaseName(state.inputs.phases), effortShare: 0 }],
+            // A new phase starts with one piece of work that is all of it, so the case stays valid
+            tasks: [
+              ...state.inputs.tasks,
+              { id: uniqueTaskId(state.inputs.tasks), name: 'New work', phase: uniquePhaseName(state.inputs.phases), share: 1, difficulty: 'routine', aiUse: 0.5 },
+            ],
           },
         })),
       removePhase: index =>

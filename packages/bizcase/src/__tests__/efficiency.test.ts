@@ -73,7 +73,7 @@ describe('per-task breakdown (enterprise, default inputs)', () => {
 describe('efficiency edge cases', () => {
   it('reports zero efficiency, not NaN, when there is no work', () => {
     const d = createDefaultInputs();
-    d.tasks = d.tasks.map(t => ({ ...t, share: 0 }));
+    d.phases = d.phases.map(p => ({ ...p, effortShare: 0 }));
     const r = calculateCase(d, 'enterprise', 'expected');
     expect(r.netEfficiency).toBe(0);
     expect(r.tasks.every(t => t.netEfficiency === 0)).toBe(true);

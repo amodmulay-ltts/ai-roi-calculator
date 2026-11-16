@@ -65,3 +65,11 @@ All questions raised during the build are resolved below. Each records the decis
 - The templates start every piece of work at its phase's former figure, so the golden numbers in EXEC_BUILD_SPEC.md section 6 are unchanged. `WorkPhase` is now just `{ name }`; `phaseAiUse(inputs, phaseName)` gives the average. Where EXEC_BUILD_SPEC.md says "phase aiUse", read "average of the phase's work".
 - Saved data from before this change no longer matches the shape and resets to the defaults.
 - Open point: a phase average is simple, not weighted by share of effort, as asked. A phase with a large and a small piece of work can therefore show a different figure from the share of its hours that AI actually reaches.
+
+## 13. Each phase is its own 100%; phases carry a share of all effort — Resolved, behaviour changed
+
+- Request: "each phase shall have 100% share of work and not all phases together."
+- Decision: the work inside a phase now adds up to **100% of that phase** (`TaskMix.share`). Because the phases still have to be combined into one case, each phase also has a **share of all effort** (`WorkPhase.effortShare`), and only those phase shares add up to 100% across the phases. The choice was made by the user ("Phase effort share").
+- The calculation uses effort share of a piece of work = its phase's effort share x its share of the phase. Templates were converted so that every golden number in EXEC_BUILD_SPEC.md section 6 is unchanged. Where that spec says a task's `share` is a share of all effort, read "phase effort share x share of phase".
+- Validation: phase effort adds to 100% ("Phase effort must add up to 100%."); each phase's work adds to 100% ("{phase}: work must add up to 100%."); a phase with no work is flagged. A new phase starts at 0% of effort with one piece of work at 100%, so the case stays valid.
+- Saved data from before this change resets to the defaults.

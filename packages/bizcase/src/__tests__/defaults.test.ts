@@ -35,13 +35,14 @@ describe('createDefaultInputs', () => {
   it('lists the five tasks in order, each in its phase, with shares summing to 1', () => {
     const d = createDefaultInputs();
     expect(d.tasks.map(t => [t.id, t.name, t.phase, t.share, t.difficulty])).toEqual([
-      ['testDesign', 'Test design', 'Design', 0.3, 'complex'],
-      ['scriptDev', 'Script development', 'Build', 0.25, 'routine'],
-      ['execution', 'Test execution', 'Execute', 0.25, 'routine'],
-      ['defectAnalysis', 'Defect analysis', 'Analyse', 0.1, 'complex'],
-      ['reporting', 'Reporting', 'Report', 0.1, 'routine'],
+      ['testDesign', 'Test design', 'Design', 1, 'complex'],
+      ['scriptDev', 'Script development', 'Build', 1, 'routine'],
+      ['execution', 'Test execution', 'Execute', 1, 'routine'],
+      ['defectAnalysis', 'Defect analysis', 'Analyse', 1, 'complex'],
+      ['reporting', 'Reporting', 'Report', 1, 'routine'],
     ]);
-    expect(d.tasks.reduce((s, t) => s + t.share, 0)).toBeCloseTo(1, 10);
+    // Each phase is its own whole; the phases split all the effort
+    expect(d.phases.map(p => p.effortShare)).toEqual([0.3, 0.25, 0.25, 0.1, 0.1]);
   });
 
   it('sets the three tiers exactly', () => {
@@ -77,11 +78,11 @@ describe('createDefaultInputs', () => {
 
   it('returns an independent copy on every call', () => {
     const a = createDefaultInputs();
-    a.tasks[0]!.share = 0.9;
+    a.phases[0]!.effortShare = 0.9;
     a.tiers.local.setup = 1;
     a.readiness.data = 'not-ready';
     const b = createDefaultInputs();
-    expect(b.tasks[0]!.share).toBe(0.3);
+    expect(b.phases[0]!.effortShare).toBe(0.3);
     expect(b.tiers.local.setup).toBe(130000);
     expect(b.readiness.data).toBe('ready');
   });
