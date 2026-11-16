@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { compareAll, formatMoney, formatPayback, formatRoi, headline } from '@ai-roi-calc/bizcase';
 import { POSTURE_LABEL } from '../components/PostureCard';
+import NetPerMonthExplainer from '../components/NetPerMonthExplainer';
 import InfoTip from '../components/InfoTip';
 import {
   explainCapacity,
@@ -80,6 +81,8 @@ export default function Result(): ReactElement | null {
           </tbody>
         </table>
       </div>
+
+      <NetPerMonthExplainer inputs={inputs} result={cases.expected} posture={posture} />
 
       <div className="rounded-xl border border-gray-200 bg-white p-6">
         <h2 className="mb-4 text-sm font-medium text-gray-900">
