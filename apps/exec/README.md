@@ -54,3 +54,9 @@ The first step offers four starting points: software testing, the software devel
 **AI use is set for each phase** and is independent: the phase percentages do not add up to 100% (a physical prototype phase can be 5% while documentation is 80%). The split of effort across the work does add up to 100%.
 
 The templates carry a work breakdown and AI use only. People, cost, investment and the option assumptions stay as entered, so check them when you change industry. Every figure in the templates is a placeholder.
+
+## How it works (presenter deck)
+
+`#/guide` (the "How it works" button in the header) opens an 11-slide, full-screen deck that scrolls and snaps like slides.
+Space, Enter, arrows and Page keys move between slides, Home/End jump to the ends, and F toggles full screen, so it works with a clicker.
+Figures on the slides come from the placeholder defaults and are labelled illustrative.
