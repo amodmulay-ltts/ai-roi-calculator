@@ -24,9 +24,9 @@ export default function Opportunity(): ReactElement {
   const addTask = useExecStore(s => s.addTask);
   const removeTask = useExecStore(s => s.removeTask);
 
-  const totalShare = inputs.tasks.reduce((sum, t) => sum + t.share, 0);
-  const totalPct = Math.round(totalShare * 100);
-  const totalOff = Math.abs(totalShare - 1) > 0.0001;
+  const phaseTotal = inputs.phases.reduce((sum, p) => sum + p.effortShare, 0);
+  const phaseTotalPct = Math.round(phaseTotal * 100);
+  const phaseTotalOff = Math.abs(phaseTotal - 1) > 0.0001;
 
   const ok = validateInputs(inputs).length === 0;
   const posture = effectivePosture(inputs, selectedPosture);
@@ -43,12 +43,14 @@ export default function Opportunity(): ReactElement {
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-6 space-y-6">
       <p className="text-xs text-gray-500">
-        AI use is set for each piece of work on its own: the percentages do not need to add up to 100%. A phase shows the average of its work. The split of work below does add up to 100%.
+        AI use is set for each piece of work on its own: the percentages do not need to add up to 100%. A phase shows the average of its work. Each phase has a share of all the effort, and these add up to 100%. The work inside a phase also adds up to 100%, one phase at a time.
       </p>
 
       <div className="space-y-4">
         {inputs.phases.map((phase, index) => {
           const phaseTasks = inputs.tasks.filter(t => t.phase === phase.name);
+          const workTotal = phaseTasks.reduce((sum, t) => sum + t.share, 0);
+          const workOff = Math.abs(workTotal - 1) > 0.0001;
           return (
             <div key={index} className="rounded-xl border border-gray-200 p-4 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -60,6 +62,12 @@ export default function Opportunity(): ReactElement {
                   className={`${TEXT_INPUT} font-medium`}
                 />
                 <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500">Share of all effort</span>
+                  <PercentInput
+                    value={phase.effortShare}
+                    ariaLabel={`${phase.name} share of all effort (%)`}
+                    onChange={effortShare => setPhase(index, { effortShare })}
+                  />
                   <span className="text-xs text-gray-500">Average AI use</span>
                   <span
                     aria-label={`${phase.name} average AI use`}
@@ -79,7 +87,7 @@ export default function Opportunity(): ReactElement {
                 <thead>
                   <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
                     <th className="w-1/2 py-1 font-normal">Work</th>
-                    <th className="py-1 text-right font-normal">Share of work (%)</th>
+                    <th className="py-1 text-right font-normal">Share of phase (%)</th>
                     <th className="py-1 text-right font-normal">AI use (%)</th>
                     <th className="py-1 text-right font-normal">Type</th>
                     <th className="py-1" />
@@ -100,7 +108,7 @@ export default function Opportunity(): ReactElement {
                       <td className="py-2 text-right">
                         <PercentInput
                           value={task.share}
-                          ariaLabel={`${task.name} share of work (%)`}
+                          ariaLabel={`${task.name} share of phase (%)`}
                           onChange={share => setTask(task.id, { share })}
                         />
                       </td>
@@ -142,9 +150,12 @@ export default function Opportunity(): ReactElement {
                   ))}
                 </tbody>
               </table>
-              <button type="button" onClick={() => addTask(phase.name)} className={SMALL_BUTTON}>
-                Add work
-              </button>
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => addTask(phase.name)} className={SMALL_BUTTON}>
+                  Add work
+                </button>
+                <p className={`text-sm ${workOff ? 'text-red-600' : 'text-gray-600'}`}>Phase work total {Math.round(workTotal * 100)}%</p>
+              </div>
             </div>
           );
         })}
@@ -155,7 +166,7 @@ export default function Opportunity(): ReactElement {
       </button>
 
       <div className="space-y-1">
-        <p className={`text-sm ${totalOff ? 'text-red-600' : 'text-gray-600'}`}>Total {totalPct}%</p>
+        <p className={`text-sm ${phaseTotalOff ? 'text-red-600' : 'text-gray-600'}`}>Phase effort total {phaseTotalPct}%</p>
         <p className="text-xs text-gray-400">Assumption to validate</p>
         <p className="text-xs text-gray-500">Routine: Repetitive, well-defined work. AI usually does well.</p>
         <p className="text-xs text-gray-500">Complex: Judgement-heavy work. AI needs stronger models and more review.</p>

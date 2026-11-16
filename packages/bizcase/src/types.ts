@@ -13,7 +13,7 @@ export interface TaskMix {
   name: string;
   /** Name of the phase this work belongs to; must match one of the case's phases. */
   phase: string;
-  /** Share of in-scope effort, 0..1. All shares must sum to 1: they split one whole. */
+  /** Share of its phase's effort, 0..1. The work in one phase adds up to 1; each phase is its own whole. */
   share: number;
   difficulty: Difficulty;
   /**
@@ -26,6 +26,8 @@ export interface TaskMix {
 /** A lifecycle phase. Its AI use is not entered: it is the average of the AI use of the work in it. */
 export interface WorkPhase {
   name: string;
+  /** Share of all in-scope effort that falls in this phase, 0..1. The phases add up to 1. */
+  effortShare: number;
 }
 
 /** A ready-made starting point for the work in scope. Its figures are placeholders, not measured data. */

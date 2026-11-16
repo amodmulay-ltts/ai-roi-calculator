@@ -41,13 +41,21 @@ export function validateInputs(inputs: BusinessCaseInputs): ValidationIssue[] {
     if (name.trim() === '') add(`phases.${i}.name`, 'Each phase needs a name.');
     else if (phaseNames.has(name)) add(`phases.${i}.name`, 'Phase names must be different.');
     phaseNames.add(name);
+    if (!isFraction(p.effortShare)) add(`phases.${i}.effortShare`, `${name.trim() || 'Phase'}: share of effort must be between 0% and 100%.`);
   });
 
-  // Work: the effort split divides one whole, so it adds up to 100%
+  // Phases split all the effort, so their shares add up to 100%
+  const effortSum = inputs.phases.reduce((sum, p) => sum + p.effortShare, 0);
+  if (inputs.phases.length > 0 && Math.abs(effortSum - 1) > 0.0001) add('phases', 'Phase effort must add up to 100%.');
+
+  // Work: each phase is its own whole, so the work in one phase adds up to 100%
   if (inputs.tasks.length < 1) add('tasks', 'Add at least one kind of work.');
   if (inputs.tasks.length > MAX_TASKS) add('tasks', `Use at most ${MAX_TASKS} kinds of work.`);
-  const shareSum = inputs.tasks.reduce((sum, t) => sum + t.share, 0);
-  if (inputs.tasks.length > 0 && Math.abs(shareSum - 1) > 0.0001) add('tasks', 'Work mix must add up to 100%.');
+  for (const p of inputs.phases) {
+    const own = inputs.tasks.filter(t => t.phase === p.name);
+    if (own.length === 0) add(`phases.${p.name}.work`, `${p.name.trim() || 'Phase'}: add work to this phase.`);
+    else if (Math.abs(own.reduce((sum, t) => sum + t.share, 0) - 1) > 0.0001) add(`phases.${p.name}.work`, `${p.name.trim() || 'Phase'}: work must add up to 100%.`);
+  }
   const taskIds = new Set<string>();
   for (const t of inputs.tasks) {
     if (t.name.trim() === '') add(`tasks.${t.id}.name`, 'Each kind of work needs a name.');
@@ -124,7 +132,7 @@ export function isBusinessCaseInputs(value: unknown): value is BusinessCaseInput
 
   const phases = value.phases;
   if (!Array.isArray(phases) || phases.length < 1 || phases.length > MAX_PHASES) return false;
-  if (!phases.every(p => isRecord(p) && typeof p.name === 'string')) return false;
+  if (!phases.every(p => isRecord(p) && typeof p.name === 'string' && isFiniteNumber(p.effortShare))) return false;
 
   const tasks = value.tasks;
   if (!Array.isArray(tasks) || tasks.length < 1 || tasks.length > MAX_TASKS) return false;

@@ -8,7 +8,7 @@ function miniInputs(): BusinessCaseInputs {
   const d = createDefaultInputs();
   d.teamSize = 10;
   d.loadedCostPerFteYear = 96000;
-  d.phases = [{ name: 'Design' }];
+  d.phases = [{ name: 'Design', effortShare: 1 }];
   d.cashShare = 1;
   d.retiredCostMonthly = 0;
   d.rampMonths = 1;

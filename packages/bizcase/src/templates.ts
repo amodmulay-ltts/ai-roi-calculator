@@ -2,7 +2,7 @@ import type { BusinessCaseInputs, Difficulty, TaskMix, WorkPhase, WorkTemplate }
 
 /** The template data below states AI use once per phase; each piece of work starts from its phase's figure. */
 interface TemplateSource extends Omit<WorkTemplate, 'phases' | 'tasks'> {
-  phases: Array<WorkPhase & { aiUse: number }>;
+  phases: Array<{ name: string; aiUse: number }>;
   tasks: Array<Omit<TaskMix, 'aiUse'>>;
 }
 
@@ -12,7 +12,7 @@ interface TemplateSource extends Omit<WorkTemplate, 'phases' | 'tasks'> {
  * AI use is set per phase and is independent: the phase values do not add up to 100%.
  */
 
-const phase = (name: string, aiUse: number): WorkPhase & { aiUse: number } => ({ name, aiUse });
+const phase = (name: string, aiUse: number): { name: string; aiUse: number } => ({ name, aiUse });
 const task = (id: string, name: string, phaseName: string, share: number, difficulty: Difficulty): Omit<TaskMix, 'aiUse'> => ({
   id,
   name,
@@ -130,10 +130,13 @@ function templateSources(): TemplateSource[] {
 function buildTemplates(): WorkTemplate[] {
   return templateSources().map(t => {
     const use = new Map(t.phases.map(p => [p.name, p.aiUse]));
+    // The data above gives each piece of work a share of the whole; here it becomes a share of its phase,
+    // and the phase takes the total as its share of all effort.
+    const phaseTotal = new Map(t.phases.map(p => [p.name, t.tasks.filter(k => k.phase === p.name).reduce((s, k) => s + k.share, 0)]));
     return {
       ...t,
-      phases: t.phases.map(p => ({ name: p.name })),
-      tasks: t.tasks.map(k => ({ ...k, aiUse: use.get(k.phase) ?? 0 })),
+      phases: t.phases.map(p => ({ name: p.name, effortShare: Math.round((phaseTotal.get(p.name) ?? 0) * 1e12) / 1e12 })),
+      tasks: t.tasks.map(k => ({ ...k, share: k.share / (phaseTotal.get(k.phase) || 1), aiUse: use.get(k.phase) ?? 0 })),
     };
   });
 }

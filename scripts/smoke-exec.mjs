@@ -166,7 +166,7 @@ async function main() {
     // Step 2: Opportunity
     await goStep(page, '2 Opportunity');
     body = await text(page);
-    check('Opportunity shows the work mix total', body.includes('Total 100%'));
+    check('Opportunity shows the phase effort total and each phase work total', has(body, 'Phase effort total 100%', 'Phase work total 100%'));
     const tiles = await page.$$eval('p.text-2xl', els => els.map(e => e.textContent));
     check('live tiles match the enterprise result (1,440 hours, 9.0 people, 30.0% net efficiency)', tiles[0] === '1,440' && tiles[1] === '9.0' && tiles[2] === '30.0%', tiles.join(' / '));
     body = await text(page);
@@ -265,15 +265,15 @@ async function main() {
 
     // Validation: a work mix that does not add up blocks results and printing
     await goStep(page, '2 Opportunity');
-    await setInput(page, 'input[aria-label="Test design share of work (%)"]', '20');
+    await setInput(page, 'input[aria-label="Design share of all effort (%)"]', '20');
     body = await text(page);
-    check('an invalid work mix shows the issue and a red total', has(body, 'Work mix must add up to 100%.', 'Total 90%'));
+    check('phase effort that does not add up shows the issue and a red total', has(body, 'Phase effort must add up to 100%.', 'Phase effort total 90%'));
     const printDisabled = await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Print summary').disabled);
     check('Print summary is disabled while the inputs are invalid', printDisabled);
     await goStep(page, '3 Right-size');
     check('results are replaced by the fix-the-inputs message', (await text(page)).includes('Fix the inputs on the earlier steps to see results.'));
     await goStep(page, '2 Opportunity');
-    await setInput(page, 'input[aria-label="Test design share of work (%)"]', '30');
+    await setInput(page, 'input[aria-label="Design share of all effort (%)"]', '30');
 
     // Print: from any step it goes to the decision step; the print layout hides the controls
     await goStep(page, '3 Right-size');
@@ -329,7 +329,7 @@ async function main() {
     await page.evaluate(() => [...document.querySelectorAll('button')].filter(b => b.textContent.trim() === 'Add work').pop().click());
     await pause();
     const newWorkRows = await page.$$eval('input[type=text]', els => els.filter(e => e.value === 'New work').length);
-    check('Add work adds a row of 0% work that keeps the work mix at 100%', newWorkRows === 1 && (await text(page)).includes('Total 100%') && !(await issueList(page)));
+    check('a new phase starts with one piece of work, and Add work adds a 0% row that keeps both totals at 100%', newWorkRows === 2 && has(await text(page), 'Phase effort total 100%', 'Phase work total 100%') && !(await issueList(page)));
     await setInput(page, 'input[aria-label="Phase 2 name"]', 'Design and CAD');
     const cadPhase = await page.evaluate(() => {
       const row = [...document.querySelectorAll('input[type=text]')].find(i => i.value === '3D CAD modelling');

@@ -51,7 +51,7 @@ One piece of work at a time (a lifecycle from a template, or built by hand), cos
 
 The first step offers four starting points: software testing, the software development lifecycle, the product development lifecycle and mechanical system design. Each is a list of phases with kinds of work. Edit, add or remove phases and work to describe any other lifecycle or industry.
 
-**AI use is set for each piece of work** and is independent; a phase shows the plain average of the work in it. The percentages do not add up to 100% (a physical prototype phase can be 5% while documentation is 80%). The split of effort across the work does add up to 100%.
+**AI use is set for each piece of work** and is independent; a phase shows the plain average of the work in it. The percentages do not add up to 100% (a physical prototype phase can be 5% while documentation is 80%). The work inside each phase adds up to 100% on its own, and each phase has a share of all the effort (these add up to 100%).
 
 The templates carry a work breakdown and AI use only. People, cost, investment and the option assumptions stay as entered, so check them when you change industry. Every figure in the templates is a placeholder.
 
