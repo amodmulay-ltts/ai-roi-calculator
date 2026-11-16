@@ -129,6 +129,8 @@ async function main() {
     // The browser asks for a favicon the app does not ship; that is not an app error
     page.on('console', m => m.type() === 'error' && !m.text().includes('404') && errors.push(m.text()));
     page.on('dialog', d => d.accept());
+    const failedRequests = [];
+    page.on('response', r => r.status() >= 400 && failedRequests.push(`${r.status()} ${r.url()}`));
 
     await page.goto(URL, { waitUntil: 'networkidle0' });
     await page.evaluate(key => localStorage.removeItem(key), STORAGE_KEY);
@@ -139,6 +141,27 @@ async function main() {
     check('opens on the Situation step with the header', has(body, 'AI Business Case', 'People in scope', 'Print summary'));
     check('Situation shows today\'s position', has(body, 'Today: 30 people, €2.4M a year, 4,800 hours a month.'));
     check('editable defaults are labelled as assumptions to validate', body.includes('Assumption to validate'));
+
+    // Look and feel: the same identity as VALUEAI
+    const look = await page.evaluate(() => {
+      const logo = document.querySelector('header img');
+      return {
+        logo: !!logo && logo.complete && logo.naturalWidth > 0,
+        brand: document.querySelector('header h1')?.textContent,
+        subtitle: document.querySelector('header p')?.textContent,
+        sticky: getComputedStyle(document.querySelector('header').parentElement).position,
+        title: document.title,
+        banner: document.querySelector('aside[aria-label="Placeholder assumptions"]')?.textContent ?? '',
+        runningResult: document.querySelector('[aria-label="Running result"]')?.textContent ?? '',
+        footer: [...document.querySelectorAll('footer')].map(f => f.textContent).join(' '),
+      };
+    });
+    check('the header shows the L&T logo and the VALUEAI name', look.logo && look.brand === 'VALUEAI' && look.subtitle === 'AI Business Case', JSON.stringify(look));
+    check('the header and step bar stay in view while scrolling (sticky)', look.sticky === 'sticky', look.sticky);
+    check('the browser tab carries the VALUEAI title', look.title === 'VALUEAI AI Business Case · L&T Technology Services', look.title);
+    check('the step bar carries a running result (€418K, month 15, ROI 210%)', has(look.runningResult, '€418K', 'month 15', 'ROI 210%'), look.runningResult);
+    check('a notice states that the starting figures are placeholders', has(look.banner, 'Placeholder assumptions', 'not a benchmark or a vendor price'));
+    check('the page ends with the VALUEAI footer', look.footer.includes('VALUEAI — AI Business Case'));
 
     // Step 2: Opportunity
     await goStep(page, '2 Opportunity');
@@ -202,10 +225,10 @@ async function main() {
     check('the dashboard follows the readiness answer (gap 1 of 8, break-even 73%)', has(body, 'Readiness gap: 1 of 8.', 'Break-even: 73%'));
 
     // Persistence across a reload
-    await setInput(page, 'header input[type=text]', 'Acme Motors');
+    await setInput(page, 'input[aria-label="Customer name"]', 'Acme Motors');
     await page.reload({ waitUntil: 'networkidle0' });
     const persisted = await page.evaluate(() => ({
-      name: document.querySelector('header input[type=text]').value,
+      name: document.querySelector('input[aria-label="Customer name"]').value,
       data: JSON.parse(localStorage.getItem('execcase.v1')).state.inputs.readiness.data,
       step: document.querySelector('nav [aria-current="step"]').textContent,
     }));
@@ -220,7 +243,7 @@ async function main() {
     ]) {
       await page.evaluate((k, v) => localStorage.setItem(k, v), STORAGE_KEY, value);
       await page.reload({ waitUntil: 'networkidle0' });
-      const loaded = await page.evaluate(() => ({ name: document.querySelector('header input[type=text]').value, ok: !!document.querySelector('h1') }));
+      const loaded = await page.evaluate(() => ({ name: document.querySelector('input[aria-label="Customer name"]').value, ok: !!document.querySelector('h1') }));
       check(`saved data with ${label} falls back to the defaults`, loaded.ok && loaded.name === '');
     }
     await page.evaluate(key => localStorage.removeItem(key), STORAGE_KEY);
@@ -344,6 +367,7 @@ async function main() {
     }
     check('every form field has an accessible name', unnamed.length === 0, unnamed.slice(0, 3).join(' ; '));
 
+    check('every request succeeded: the logo, icons and scripts all load', failedRequests.length === 0, failedRequests.join(' ; '));
     check('no console or page errors during the run', errors.length === 0, errors.slice(0, 3).join(' ; '));
   } finally {
     await browser.close();

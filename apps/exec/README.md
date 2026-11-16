@@ -15,12 +15,18 @@ The concept is in [CONCEPT_EXEC.md](../../CONCEPT_EXEC.md). The calculation rule
 From the repository root:
 
 ```
+scripts/start-exec-ubuntu.sh     # one-command start on Ubuntu (checks Node, installs what is missing, starts the app)
+scripts\start-exec-windows.bat    # the same on Windows
 npm run dev:exec      # builds the calculation package, then starts the app on http://localhost:5174
 npm run build:exec    # builds the calculation package and the app into dist/exec
 npm run test:bizcase  # runs the calculation package tests
 npm run smoke:exec    # drives the built app in Chrome or Edge and checks all seven steps (run build:exec first)
 npm run test:all      # every suite in the repository
 ```
+
+## Look and feel
+
+The app looks and works like VALUEAI, the original calculator: the same L&T Technology Services header and logo, sticky step bar with a running result, cards, colours and chart palette. The logo and icons are copies of the ones in `apps/client/public`.
 
 ## Layout
 

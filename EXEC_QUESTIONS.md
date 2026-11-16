@@ -50,3 +50,10 @@ All questions raised during the build are resolved below. Each records the decis
 - Templates carry the work breakdown only. They do not carry cost assumptions: a mechanical design team may need different people cost, tooling cost and option assumptions, and the presenter enters those.
 - Placeholders: every share and AI-use figure in the templates is illustrative. They were not measured and should be replaced with the customer's figures.
 - Not done: AI that is not a language model (generative design, simulation surrogates) is not a separate kind of AI yet; the one blended cost per person; and effort is measured, not output or time to market.
+
+## 11. Same look and feel as VALUEAI, and a start script — Resolved, behaviour changed
+- Requested by the product owner. This replaces the earlier decision of "no branding in the first version" (the concept's decision 3), which is updated.
+- Decision: the new app uses VALUEAI's identity: the L&T Technology Services logo and favicon, the `VALUEAI` title block with `AI Business Case` as its subtitle, the sticky header and step bar (with a running result like VALUEAI's section bar), the page heading, the blue-tinted notice, uppercase section labels, the footer, and the same chart palette. It is not a copy of the other app's code: both apps share the same Tailwind configuration and assets.
+- The customer name moved from the header to the page heading, as VALUEAI shows its scenario name.
+- The placeholder notice is new: VALUEAI shows a similar notice for its fictional example, and this app's figures are all placeholders.
+- Start scripts: `scripts/start-exec-ubuntu.sh` and `scripts/start-exec-windows.bat`, built the same way as the existing launchers. The Windows script has not been run on Windows.

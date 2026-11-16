@@ -35,6 +35,13 @@ export default function RightSize(): ReactElement {
 
   return (
     <section className="space-y-6">
+      {recommended && (
+        <h2 className="text-3xl font-bold text-gray-900">
+          {summaries[recommended].expected.netValue36 > 0
+            ? `${POSTURE_LABEL[recommended]} creates the most value: ${formatMoney(summaries[recommended].expected.netValue36)}`
+            : `No option pays back. ${POSTURE_LABEL[recommended]} comes closest: ${formatMoney(summaries[recommended].expected.netValue36)}`}
+        </h2>
+      )}
       <p className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
         Data rules: {rule}. {openCount} of 4 options are open to you.
       </p>
