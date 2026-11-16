@@ -1,4 +1,4 @@
-import type { BusinessCaseInputs, Difficulty, TaskMix, WorkPhase, WorkTemplate } from './types.js';
+import type { BusinessCaseInputs, Difficulty, TaskMix, WorkTemplate } from './types.js';
 
 /** The template data below states AI use once per phase; each piece of work starts from its phase's figure. */
 interface TemplateSource extends Omit<WorkTemplate, 'phases' | 'tasks'> {
