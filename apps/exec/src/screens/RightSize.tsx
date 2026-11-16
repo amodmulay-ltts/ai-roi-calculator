@@ -10,6 +10,8 @@ import {
 } from '@ai-roi-calc/bizcase';
 import AssumptionsTable from '../components/AssumptionsTable';
 import PostureCard, { POSTURE_LABEL } from '../components/PostureCard';
+import InfoTip from '../components/InfoTip';
+import { explainOptionsChart } from '../explain';
 import { effectivePosture, useExecStore } from '../store';
 import { DATA_RULES } from './Situation';
 
@@ -50,6 +52,7 @@ export default function RightSize(): ReactElement {
         {ORDER.map(id => (
           <PostureCard
             key={id}
+            inputs={inputs}
             summary={summaries[id]}
             selected={current === id}
             recommended={recommended === id}
@@ -60,7 +63,10 @@ export default function RightSize(): ReactElement {
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-sm font-medium text-gray-900">3-year net value by option</h2>
+        <h2 className="mb-4 text-sm font-medium text-gray-900">
+          3-year net value by option
+          <InfoTip explanation={explainOptionsChart()} />
+        </h2>
         <div className="h-64" role="img" aria-label="Bar chart of the 3-year net value of each option">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>

@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react';
-import { formatMoney, formatPayback, type PostureSummary, type Verdict } from '@ai-roi-calc/bizcase';
+import { formatMoney, formatPayback, type BusinessCaseInputs, type PostureSummary, type Verdict } from '@ai-roi-calc/bizcase';
+import { explainInvestment, explainNetValue, explainPayback, explainRunCost, explainSteadyNet, explainVerdict, type Explanation } from '../explain';
+import InfoTip from './InfoTip';
 
 export const POSTURE_LABEL = { local: 'Local', hybrid: 'Hybrid', enterprise: 'Enterprise', frontier: 'Frontier' } as const;
 
@@ -24,6 +26,7 @@ export function breakEvenText(effect: number | null): string {
 }
 
 interface PostureCardProps {
+  inputs: BusinessCaseInputs;
   summary: PostureSummary;
   selected: boolean;
   recommended: boolean;
@@ -31,7 +34,7 @@ interface PostureCardProps {
   onSelect: () => void;
 }
 
-export default function PostureCard({ summary, selected, recommended, breakEven, onSelect }: PostureCardProps): ReactElement {
+export default function PostureCard({ inputs, summary, selected, recommended, breakEven, onSelect }: PostureCardProps): ReactElement {
   const r = summary.expected;
   const badge = VERDICT_BADGE[r.verdict];
   const disabled = !summary.allowed;
@@ -55,24 +58,30 @@ export default function PostureCard({ summary, selected, recommended, breakEven,
       {disabled ? (
         <p className="mt-3 text-sm text-red-700">{summary.disallowedReason}</p>
       ) : (
-        <span className={`mt-3 inline-block self-start rounded-full px-2 py-0.5 text-xs ${badge.className}`}>{badge.text}</span>
+        <span className="mt-3 flex items-center self-start">
+          <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${badge.className}`}>{badge.text}</span>
+          <InfoTip explanation={explainVerdict(r)} />
+        </span>
       )}
       <dl className="mt-4 space-y-2 text-sm">
-        <Row label="Run cost per month" value={formatMoney(r.usageCostPerMonth + r.platformAndGovernancePerMonth)} />
-        <Row label="Investment" value={formatMoney(r.investment)} />
-        <Row label="Net per month at maturity" value={formatMoney(r.steadyNetPerMonth)} />
-        <Row label="Payback" value={formatPayback(r.paybackMonth)} />
-        <Row label="3-year net value" value={formatMoney(r.netValue36)} />
+        <Row label="Run cost per month" value={formatMoney(r.usageCostPerMonth + r.platformAndGovernancePerMonth)} info={explainRunCost(inputs, r, summary.postureId)} />
+        <Row label="Investment" value={formatMoney(r.investment)} info={explainInvestment(inputs, r)} />
+        <Row label="Net per month at maturity" value={formatMoney(r.steadyNetPerMonth)} info={explainSteadyNet(r)} />
+        <Row label="Payback" value={formatPayback(r.paybackMonth)} info={explainPayback(inputs, r)} />
+        <Row label="3-year net value" value={formatMoney(r.netValue36)} info={explainNetValue(r)} />
       </dl>
       <p className="mt-3 text-xs text-gray-500">{breakEvenText(breakEven)}</p>
     </button>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }): ReactElement {
+function Row({ label, value, info }: { label: string; value: string; info: Explanation }): ReactElement {
   return (
     <div className="flex justify-between gap-2">
-      <dt className="text-gray-500">{label}</dt>
+      <dt className="text-gray-500">
+        {label}
+        <InfoTip explanation={info} />
+      </dt>
       <dd className="text-right font-medium text-gray-900">{value}</dd>
     </div>
   );

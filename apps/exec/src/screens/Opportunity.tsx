@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react';
 import { calculateCase, phaseAiUse, validateInputs, type Difficulty, type TaskMix } from '@ai-roi-calc/bizcase';
+import InfoTip from '../components/InfoTip';
+import { explainCapacity, explainEfficiencyChart, explainNetEfficiency, explainNetHours, explainPhaseAiUse, explainPhaseChart, explainReach } from '../explain';
 import { EfficiencyBridgeChart, PhaseEfficiencyChart } from '../components/Charts';
 import { PercentInput } from '../components/Field';
 import { POSTURE_LABEL } from '../components/PostureCard';
@@ -68,7 +70,10 @@ export default function Opportunity(): ReactElement {
                     ariaLabel={`${phase.name} share of all effort (%)`}
                     onChange={effortShare => setPhase(index, { effortShare })}
                   />
-                  <span className="text-xs text-gray-500">Average AI use</span>
+                  <span className="text-xs text-gray-500">
+                    Average AI use
+                    <InfoTip explanation={explainPhaseAiUse(inputs, phase.name)} />
+                  </span>
                   <span
                     aria-label={`${phase.name} average AI use`}
                     className="min-w-[3.5rem] rounded-lg bg-gray-100 px-3 py-1.5 text-right text-sm font-medium text-gray-900 tabular-nums"
@@ -174,17 +179,26 @@ export default function Opportunity(): ReactElement {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <p className="text-xs text-gray-500">Hours freed per month</p>
+          <p className="text-xs text-gray-500">
+            Hours freed per month
+            {result && <InfoTip explanation={explainNetHours(inputs, result)} />}
+          </p>
           <p className="mt-1 text-2xl font-semibold text-gray-900">
             {result ? Math.round(result.netHoursSavedPerMonth).toLocaleString('en-US') : '—'}
           </p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <p className="text-xs text-gray-500">People equivalent</p>
+          <p className="text-xs text-gray-500">
+            People equivalent
+            {result && <InfoTip explanation={explainCapacity(inputs, result)} />}
+          </p>
           <p className="mt-1 text-2xl font-semibold text-gray-900">{result ? result.capacityFte.toFixed(1) : '—'}</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <p className="text-xs text-gray-500">Net efficiency gain</p>
+          <p className="text-xs text-gray-500">
+            Net efficiency gain
+            {result && <InfoTip explanation={explainNetEfficiency(result)} />}
+          </p>
           <p className="mt-1 text-2xl font-semibold text-gray-900">
             {result ? `${(result.netEfficiency * 100).toFixed(1)}%` : '—'}
           </p>
@@ -194,19 +208,26 @@ export default function Opportunity(): ReactElement {
       {result && posture && (
         <p className="text-xs text-gray-500">
           Shown for the {POSTURE_LABEL[posture]} option. AI is used on {Math.round(result.aiReach * 100)}% of all the work.
+          <InfoTip explanation={explainReach(result)} />
         </p>
       )}
 
       {result && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="space-y-2">
-            <h2 className="text-sm font-medium text-gray-900">How the efficiency is built</h2>
+            <h2 className="text-sm font-medium text-gray-900">
+              How the efficiency is built
+              <InfoTip explanation={explainEfficiencyChart(result)} />
+            </h2>
             <div role="img" aria-label="Bar chart: effort AI removes, minus review and rework, gives net efficiency">
               <EfficiencyBridgeChart result={result} width={380} height={190} />
             </div>
           </div>
           <div className="space-y-2">
-            <h2 className="text-sm font-medium text-gray-900">Where the effort is saved</h2>
+            <h2 className="text-sm font-medium text-gray-900">
+              Where the effort is saved
+              <InfoTip explanation={explainPhaseChart()} />
+            </h2>
             <div role="img" aria-label="Bar chart of each phase's AI use and net efficiency">
               <PhaseEfficiencyChart phases={result.phases} showUse width={380} />
             </div>
