@@ -375,6 +375,10 @@ async function main() {
     const buildUp = await text(page);
     check('the build-up shows the run cost, investment and net per month lines', has(buildUp, "How each option's cost is built", 'Usage cost', 'Run cost per month', 'Readiness adjustment', 'Net per month at maturity'));
     await page.screenshot({ path: path.join(outDir, 'exec-03b-buildup.png'), fullPage: true });
+    check(
+      'the page explains net per month at maturity with the figures of the chosen option',
+      has(buildUp, 'Net per month at maturity: €19,400 (Enterprise, expected case)', 'Value of those hours', '€60,000', 'Counted as saving', '€42,000', 'redeployed'),
+    );
     await setInput(page, 'input[aria-label="Enterprise: Platform per month (EUR)"]', '20000');
     const afterEdit = await text(page);
     check('editing Enterprise platform per month changes its run cost: €22,600 becomes €32,600', afterEdit.includes('€32,600') && !afterEdit.includes('€22,600'));

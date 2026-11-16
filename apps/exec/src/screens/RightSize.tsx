@@ -8,6 +8,7 @@ import {
   recommendedPosture,
   type PostureId,
 } from '@ai-roi-calc/bizcase';
+import NetPerMonthExplainer from '../components/NetPerMonthExplainer';
 import OptionBuildUp from '../components/OptionBuildUp';
 import AssumptionsTable from '../components/AssumptionsTable';
 import PostureCard, { POSTURE_LABEL } from '../components/PostureCard';
@@ -84,6 +85,8 @@ export default function RightSize(): ReactElement {
       </div>
 
       <OptionBuildUp inputs={inputs} summaries={summaries} />
+
+      {current && <NetPerMonthExplainer inputs={inputs} result={summaries[current].expected} posture={current} />}
 
       <details className="rounded-xl border border-gray-200 bg-white p-6">
         <summary className="cursor-pointer text-sm font-medium text-gray-900">Effect assumptions to validate: effort removed, and review and rework</summary>
