@@ -50,20 +50,25 @@ export function PercentInput({
   );
 }
 
+export const COMPACT_INPUT_CLASS =
+  'w-28 rounded-lg border border-gray-300 bg-white px-2 py-1 text-right text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600';
+
 export function NumberInput({
   value,
   onChange,
   ariaLabel,
+  compact,
 }: {
   value: number;
   onChange: (n: number) => void;
   ariaLabel?: string;
+  compact?: boolean;
 }): ReactElement {
   return (
     <input
       type="number"
       aria-label={ariaLabel}
-      className={INPUT_CLASS}
+      className={compact ? COMPACT_INPUT_CLASS : INPUT_CLASS}
       value={value}
       onChange={e => onChange(Number(e.target.value) || 0)}
     />
