@@ -378,11 +378,20 @@ async function main() {
     await setInput(page, 'input[aria-label="Enterprise: Platform per month (EUR)"]', '20000');
     const afterEdit = await text(page);
     check('editing Enterprise platform per month changes its run cost: €22,600 becomes €32,600', afterEdit.includes('€32,600') && !afterEdit.includes('€22,600'));
-    check('Hybrid follows from Local plus Enterprise, so its platform figure changes too', afterEdit.includes('Local + Enterprise: €27,000'));
-    await setInput(page, 'input[aria-label="Governance per month (EUR) (all options)"]', '5000');
-    check('a shared figure applies to every option', (await text(page)).includes('€34,600'));
+    const optionInputs = async name => (await page.$$(`input[aria-label^="${name}: "][aria-label$="(EUR)"]`)).length;
+    const counts = [await optionInputs('Local'), await optionInputs('Hybrid'), await optionInputs('Enterprise'), await optionInputs('Frontier')];
+    check('every option column has an input on every typed row (8 each)', counts.every(c => c === 8), counts.join(','));
+    const val = label => page.$eval(`input[aria-label="${label}"]`, e => Number(e.value));
+    check('Hybrid follows from Local plus Enterprise until it gets its own figure', (await val('Hybrid: Platform per month (EUR)')) === 27000);
+    await setInput(page, 'input[aria-label="Local: Governance per month (EUR)"]', '5000');
+    const afterLocal = await text(page);
+    check('governance set for Local alone changes only Local (€10,000 becomes €12,000; Enterprise stays €32,600)', afterLocal.includes('€12,000') && afterLocal.includes('€32,600'));
+    await setInput(page, 'input[aria-label="Hybrid: Platform per month (EUR)"]', '12000');
+    check('Hybrid can be given its own platform figure: run cost becomes €18,840', (await text(page)).includes('€18,840'));
+    await clickButton(page, 'Reset option-specific figures');
+    await pause();
+    check('resetting returns every option to the shared figures', (await val('Hybrid: Platform per month (EUR)')) === 27000 && (await val('Local: Governance per month (EUR)')) === 3000);
     await setInput(page, 'input[aria-label="Enterprise: Platform per month (EUR)"]', '10000');
-    await setInput(page, 'input[aria-label="Governance per month (EUR) (all options)"]', '3000');
     check('restoring the figures restores the original run cost', (await text(page)).includes('€22,600'));
 
     // Info tips: an "i" next to every calculated answer explains the arithmetic, on hover or click

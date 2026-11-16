@@ -62,6 +62,23 @@ export interface Readiness {
   compliance: ReadinessAnswer;
 }
 
+/**
+ * Figures that differ for one option only. Each is optional: when absent the option uses the shared figure
+ * (governance, data readiness, governance setup, training, cost removed outright) or, for Hybrid, the figure
+ * made from the local model and the stronger model (platform, setup, usage cost per assisted hour).
+ * The three model figures are used for Hybrid only; local, enterprise and frontier are edited in `tiers`.
+ */
+export interface OptionOverrides {
+  governanceMonthly?: number;
+  dataReadinessInvestment?: number;
+  governanceSetup?: number;
+  trainingPerFte?: number;
+  retiredCostMonthly?: number;
+  platformMonthly?: number;
+  setup?: number;
+  usageCostPerAssistedHour?: number;
+}
+
 export interface BusinessCaseInputs {
   customerName: string;
   teamSize: number;               // FTE in scope, > 0
@@ -80,6 +97,8 @@ export interface BusinessCaseInputs {
   trainingPerFte: number;         // EUR one-time per FTE, >= 0
   hybridComplexTier: TierId;      // tier used for complex tasks in the hybrid posture
   tiers: Record<TierId, TierAssumptions>;
+  /** Per-option changes to the figures above; see OptionOverrides. Absent means no option differs. */
+  optionOverrides?: Partial<Record<PostureId, OptionOverrides>>;
   readiness: Readiness;
 }
 
