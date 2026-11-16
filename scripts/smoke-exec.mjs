@@ -370,6 +370,21 @@ async function main() {
     }
     check('every form field has an accessible name', unnamed.length === 0, unnamed.slice(0, 3).join(' ; '));
 
+    // Right-size: the build-up of each option's cost is shown and editable
+    await goStep(page, '3 Right-size');
+    const buildUp = await text(page);
+    check('the build-up shows the run cost, investment and net per month lines', has(buildUp, "How each option's cost is built", 'Usage cost', 'Run cost per month', 'Readiness adjustment', 'Net per month at maturity'));
+    await page.screenshot({ path: path.join(outDir, 'exec-03b-buildup.png'), fullPage: true });
+    await setInput(page, 'input[aria-label="Enterprise: Platform per month (EUR)"]', '20000');
+    const afterEdit = await text(page);
+    check('editing Enterprise platform per month changes its run cost: €22,600 becomes €32,600', afterEdit.includes('€32,600') && !afterEdit.includes('€22,600'));
+    check('Hybrid follows from Local plus Enterprise, so its platform figure changes too', afterEdit.includes('Local + Enterprise: €27,000'));
+    await setInput(page, 'input[aria-label="Governance per month (EUR) (all options)"]', '5000');
+    check('a shared figure applies to every option', (await text(page)).includes('€34,600'));
+    await setInput(page, 'input[aria-label="Enterprise: Platform per month (EUR)"]', '10000');
+    await setInput(page, 'input[aria-label="Governance per month (EUR) (all options)"]', '3000');
+    check('restoring the figures restores the original run cost', (await text(page)).includes('€22,600'));
+
     // Info tips: an "i" next to every calculated answer explains the arithmetic, on hover or click
     await goStep(page, '2 Opportunity');
     const tipCount = await page.$$eval('[data-infotip]', e => e.length);

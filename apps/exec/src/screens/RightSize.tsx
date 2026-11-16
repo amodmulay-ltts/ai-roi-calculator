@@ -8,6 +8,7 @@ import {
   recommendedPosture,
   type PostureId,
 } from '@ai-roi-calc/bizcase';
+import OptionBuildUp from '../components/OptionBuildUp';
 import AssumptionsTable from '../components/AssumptionsTable';
 import PostureCard, { POSTURE_LABEL } from '../components/PostureCard';
 import InfoTip from '../components/InfoTip';
@@ -82,8 +83,10 @@ export default function RightSize(): ReactElement {
         </div>
       </div>
 
+      <OptionBuildUp inputs={inputs} summaries={summaries} />
+
       <details className="rounded-xl border border-gray-200 bg-white p-6">
-        <summary className="cursor-pointer text-sm font-medium text-gray-900">Assumptions to validate</summary>
+        <summary className="cursor-pointer text-sm font-medium text-gray-900">Effect assumptions to validate: effort removed, and review and rework</summary>
         <div className="mt-4">
           <AssumptionsTable inputs={inputs} />
         </div>

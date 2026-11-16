@@ -64,3 +64,7 @@ Figures on the slides come from the placeholder defaults and are labelled illust
 ## "How is this calculated?" tips
 
 Every calculated answer has a small **i**. Hover over it or focus it with the keyboard to read how the figure is worked out, with the numbers currently on screen; click it to keep the tip open (Escape or a click elsewhere closes it). The wording lives in `src/explain.ts`; the tips do not print. When a calculation changes in `packages/bizcase`, update the matching function there.
+
+## Right-size: how each option's cost is built
+
+Under the option cards, a table builds up the run cost, the one-time investment and the net per month for all four options, line by line. Local, Enterprise and Frontier figures (usage cost per hour, platform per month, setup) and the shared figures (governance, data readiness, governance setup, training per person, cost removed outright) are editable right there. Hybrid is Local plus the stronger model, so it follows from them; choose that model below the table. The effort-removed and review-and-rework assumptions stay in the collapsed section underneath.
