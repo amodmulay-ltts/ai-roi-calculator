@@ -37,6 +37,9 @@ export default function Header(): ReactElement {
         </div>
 
         <div className="flex items-center gap-3">
+          <a href="#/guide" className={SECONDARY}>
+            How it works
+          </a>
           <button type="button" onClick={handleReset} className={SECONDARY}>
             Reset to defaults
           </button>

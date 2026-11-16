@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
 import { validateInputs } from '@ai-roi-calc/bizcase';
 import Header from './components/Header';
 import IssueList from './components/IssueList';
 import StepBar, { STEP_NAMES } from './components/StepBar';
 import Decision from './screens/Decision';
+import Guide from './screens/Guide';
 import Investment from './screens/Investment';
 import Opportunity from './screens/Opportunity';
 import Result from './screens/Result';
@@ -29,7 +30,24 @@ const STEP_WIDTH: Record<number, string> = {
 const PRIMARY = 'px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm text-sm transition disabled:opacity-40';
 const SECONDARY = 'px-4 py-2 border border-gray-300 text-gray-800 font-medium rounded-lg hover:bg-gray-50 text-sm transition disabled:opacity-40';
 
+/** The only route: "#/guide" shows the presenter deck, anything else shows the calculator. */
+function useIsGuide(): boolean {
+  const read = (): boolean => window.location.hash.startsWith('#/guide');
+  const [isGuide, setIsGuide] = useState(read);
+  useEffect(() => {
+    const onChange = (): void => setIsGuide(read());
+    window.addEventListener('hashchange', onChange);
+    return () => window.removeEventListener('hashchange', onChange);
+  }, []);
+  return isGuide;
+}
+
 export default function App(): ReactElement {
+  const isGuide = useIsGuide();
+  return isGuide ? <Guide /> : <Calculator />;
+}
+
+function Calculator(): ReactElement {
   const step = useExecStore(s => s.step);
   const setStep = useExecStore(s => s.setStep);
   const inputs = useExecStore(s => s.inputs);

@@ -367,6 +367,33 @@ async function main() {
     }
     check('every form field has an accessible name', unnamed.length === 0, unnamed.slice(0, 3).join(' ; '));
 
+    // The "How it works" presenter deck: opens from the header, scrolls like slides, keyboard driven
+    await page.evaluate(() => [...document.querySelectorAll('a')].find(a => a.textContent.trim() === 'How it works').click());
+    await pause(600);
+    const guideText = await text(page);
+    check('How it works opens the presenter deck with 11 slides', has(guideText, 'Is this AI investment worth it', '1 / 11') && (await page.$$eval('[data-slide]', e => e.length)) === 11);
+    await page.screenshot({ path: path.join(outDir, 'guide-1.png') });
+    const slideTop = () => page.evaluate(() => Math.round(document.querySelector('.snap-mandatory').scrollTop / window.innerHeight));
+    await page.keyboard.press('ArrowDown');
+    await pause(900);
+    check('the down arrow advances one slide', (await slideTop()) === 1 && (await text(page)).includes('2 / 11'));
+    await page.keyboard.press('End');
+    await pause(1500);
+    check('End jumps to the last slide', (await text(page)).includes('11 / 11'));
+    await page.keyboard.press('Home');
+    await pause(1500);
+    for (let i = 1; i <= 10; i++) {
+      await page.evaluate(n => document.querySelectorAll('[data-slide]')[n].scrollIntoView(), i);
+      await pause(300);
+      await page.screenshot({ path: path.join(outDir, `guide-${i + 1}.png`) });
+    }
+    const overflow = await page.evaluate(() => [...document.querySelectorAll('[data-slide]')].filter(s => s.scrollWidth > s.clientWidth + 2).length);
+    check('no slide overflows sideways', overflow === 0, `${overflow} slides`);
+    check('the illustrative figures are labelled on the slides that show them', (await page.$$eval('[data-slide]', els => els.filter(e => e.innerText.toLowerCase().includes('illustrative placeholder figures')).length)) >= 5);
+    await page.evaluate(() => [...document.querySelectorAll('a')].find(a => a.textContent.trim() === 'Open the calculator').click());
+    await pause(600);
+    check('Open the calculator returns to the app', (await text(page)).includes('Reset to defaults'));
+
     check('every request succeeded: the logo, icons and scripts all load', failedRequests.length === 0, failedRequests.join(' ; '));
     check('no console or page errors during the run', errors.length === 0, errors.slice(0, 3).join(' ; '));
   } finally {
