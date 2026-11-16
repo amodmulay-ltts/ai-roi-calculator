@@ -19,6 +19,26 @@ import {
   OptionsRangeChart,
   PhaseEfficiencyChart,
 } from '../components/Charts';
+import InfoTip from '../components/InfoTip';
+import {
+  explainBreakEvenCash,
+  explainBreakEvenEffect,
+  explainCapacity,
+  explainCumulative,
+  explainEfficiencyChart,
+  explainInvestment,
+  explainMonthlyChart,
+  explainNetEfficiency,
+  explainNetValue,
+  explainOptionsChart,
+  explainPayback,
+  explainPhaseChart,
+  explainRange,
+  explainReadiness,
+  explainSteadyNet,
+  explainVerdict,
+  type Explanation,
+} from '../explain';
 import { MarginBar, ReadinessGauge } from '../components/Gauges';
 import { POSTURE_LABEL } from '../components/PostureCard';
 import { effectivePosture, useExecStore, workInScopeName } from '../store';
@@ -67,15 +87,18 @@ export default function Decision(): ReactElement | null {
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-base text-gray-900">{headline(POSTURE_LABEL[posture], expected)}</p>
         <span className={`rounded-full px-2 py-0.5 text-xs ${VERDICT_CLASS[expected.verdict]}`}>{VERDICT_TEXT[expected.verdict]}</span>
+        <InfoTip explanation={explainVerdict(expected)} />
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <Figure label="Payback" value={formatPayback(expected.paybackMonth)} />
-        <Figure label="3-year net value" value={formatMoney(expected.netValue36)} />
-        <Figure label="Net per month at maturity" value={formatMoney(expected.steadyNetPerMonth)} />
-        <Figure label="Investment" value={formatMoney(expected.investment)} />
+        <Figure label="Payback" value={formatPayback(expected.paybackMonth)} info={explainPayback(inputs, expected)} />
+        <Figure label="3-year net value" value={formatMoney(expected.netValue36)} info={explainNetValue(expected)} />
+        <Figure label="Net per month at maturity" value={formatMoney(expected.steadyNetPerMonth)} info={explainSteadyNet(expected)} />
+        <Figure label="Investment" value={formatMoney(expected.investment)} info={explainInvestment(inputs, expected)} />
         <Figure
           label="Net efficiency gain"
+          info={explainNetEfficiency(expected)}
+          noteInfo={explainCapacity(inputs, expected)}
           value={`${(expected.netEfficiency * 100).toFixed(1)}%`}
           note={`${expected.capacityFte.toFixed(1)} people equivalent`}
         />
@@ -83,13 +106,14 @@ export default function Decision(): ReactElement | null {
 
       <p className="text-sm text-gray-700">
         Range: {formatMoney(cases.conservative.netValue36)} to {formatMoney(cases.stretch.netValue36)}
+        <InfoTip explanation={explainRange()} />
       </p>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 print:grid-cols-3">
-        <Card title="Cumulative position" label="Line chart of the cumulative position over 36 months for each case">
+        <Card title="Cumulative position" info={explainCumulative()} label="Line chart of the cumulative position over 36 months for each case">
           <CumulativeCasesChart conservative={cases.conservative} expected={cases.expected} stretch={cases.stretch} width={CHART_WIDTH} height={HEIGHT} />
         </Card>
-        <Card title="3-year net value by option" label="Bar chart of the 3-year net value of each option for each case">
+        <Card title="3-year net value by option" info={explainOptionsChart()} label="Bar chart of the 3-year net value of each option for each case">
           <OptionsRangeChart summaries={summaries} width={CHART_WIDTH} height={HEIGHT} />
           <p className="flex flex-wrap justify-center gap-x-3 text-xs text-gray-500">
             {POSTURE_ORDER.map(id => (
@@ -99,22 +123,22 @@ export default function Decision(): ReactElement | null {
             ))}
           </p>
         </Card>
-        <Card title="How the efficiency is built" label="Bar chart: effort AI removes, minus review and rework, gives net efficiency">
+        <Card title="How the efficiency is built" info={explainEfficiencyChart(expected)} label="Bar chart: effort AI removes, minus review and rework, gives net efficiency">
           <EfficiencyBridgeChart result={expected} width={CHART_WIDTH} height={HEIGHT} />
           <p className="text-center text-xs text-gray-500">AI is used on {Math.round(expected.aiReach * 100)}% of all the work.</p>
         </Card>
-        <Card title="Where the effort is saved" label="Bar chart of net efficiency for each phase">
+        <Card title="Where the effort is saved" info={explainPhaseChart()} label="Bar chart of net efficiency for each phase">
           <PhaseEfficiencyChart phases={expected.phases} width={CHART_WIDTH} height={Math.max(HEIGHT, Math.min(150, expected.phases.length * 15 + 12))} />
         </Card>
-        <Card title="Monthly position at maturity" label="Bar chart of the monthly saving, costs and net at maturity">
+        <Card title="Monthly position at maturity" info={explainMonthlyChart()} label="Bar chart of the monthly saving, costs and net at maturity">
           <MonthlyEconomicsChart result={expected} width={CHART_WIDTH} height={HEIGHT} />
           <p className="text-center text-xs text-gray-500">Saving is the counted share. Platform includes governance.</p>
         </Card>
-        <Card title="One-time investment" label="Stacked bar of the one-time investment by line">
+        <Card title="One-time investment" info={explainInvestment(inputs, expected)} label="Stacked bar of the one-time investment by line">
           <InvestmentChart lines={expected.investmentLines} width={CHART_WIDTH} height={HEIGHT - 10} />
           <p className="text-center text-xs text-gray-500">Total {formatMoney(expected.investment)}</p>
         </Card>
-        <Card title="Safety margin">
+        <Card title="Safety margin" info={explainReadiness(inputs)}>
           <div className="space-y-3">
             <MarginBar
               title="AI effect needed to break even"
@@ -135,7 +159,7 @@ export default function Decision(): ReactElement | null {
             <ReadinessGauge gap={readinessGap(inputs.readiness)} />
           </div>
         </Card>
-        <Card title="What must be true">
+        <Card title="What must be true" info={explainBreakEvenEffect()} info2={explainBreakEvenCash()}>
           <ul className="list-disc space-y-1 pl-4 text-xs text-gray-800">
             {whatMustBeTrue(inputs, posture).map(sentence => (
               <li key={sentence}>{sentence}</li>
@@ -169,20 +193,32 @@ export default function Decision(): ReactElement | null {
   );
 }
 
-function Figure({ label, value, note }: { label: string; value: string; note?: string }): ReactElement {
+function Figure({ label, value, note, info, noteInfo }: { label: string; value: string; note?: string; info: Explanation; noteInfo?: Explanation }): ReactElement {
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-xs text-gray-500">
+        {label}
+        <InfoTip explanation={info} />
+      </p>
       <p className="mt-0.5 text-lg font-semibold text-gray-900">{value}</p>
-      {note && <p className="text-xs text-gray-500">{note}</p>}
+      {note && (
+        <p className="text-xs text-gray-500">
+          {note}
+          {noteInfo && <InfoTip explanation={noteInfo} />}
+        </p>
+      )}
     </div>
   );
 }
 
-function Card({ title, label, children }: { title: string; label?: string; children: ReactNode }): ReactElement {
+function Card({ title, label, info, info2, children }: { title: string; label?: string; info?: Explanation; info2?: Explanation; children: ReactNode }): ReactElement {
   return (
     <div className="space-y-2 rounded-xl border border-gray-200 p-3">
-      <h2 className="text-xs font-medium text-gray-900">{title}</h2>
+      <h2 className="text-xs font-medium text-gray-900">
+        {title}
+        {info && <InfoTip explanation={info} />}
+        {info2 && <InfoTip explanation={info2} />}
+      </h2>
       <div className="flex flex-col items-center gap-1" role={label ? 'img' : undefined} aria-label={label}>
         {children}
       </div>

@@ -60,3 +60,7 @@ The templates carry a work breakdown and AI use only. People, cost, investment a
 `#/guide` (the "How it works" button in the header) opens an 11-slide, full-screen deck that scrolls and snaps like slides.
 Space, Enter, arrows and Page keys move between slides, Home/End jump to the ends, and F toggles full screen, so it works with a clicker.
 Figures on the slides come from the placeholder defaults and are labelled illustrative.
+
+## "How is this calculated?" tips
+
+Every calculated answer has a small **i**. Hover over it or focus it with the keyboard to read how the figure is worked out, with the numbers currently on screen; click it to keep the tip open (Escape or a click elsewhere closes it). The wording lives in `src/explain.ts`; the tips do not print. When a calculation changes in `packages/bizcase`, update the matching function there.

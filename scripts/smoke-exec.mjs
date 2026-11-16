@@ -194,7 +194,7 @@ async function main() {
     await goStep(page, '5 Result');
     body = await text(page);
     check('Result headline states the enterprise verdict', body.includes('Enterprise AI pays back in month 15 and returns €418K over 3 years (expected case).'));
-    const rows = await page.$$eval('table tr', trs => trs.map(tr => [...tr.children].map(c => c.textContent).join(' | ')));
+    const rows = await page.$$eval('table tr', trs => trs.map(tr => [...tr.children].map(c => [...c.childNodes].filter(n => !(n.dataset && n.dataset.infotip !== undefined) && !(n.querySelector && n.querySelector('[data-infotip]'))).map(n => n.textContent).join('')).join(' | ')));
     check('Result table matches the conservative, expected and stretch cases', rows.some(r => r === 'Payback | Not within 36 months | Month 15 | Month 10') && rows.some(r => r === 'Net per month at maturity | €2,600 | €19,400 | €25,700') && rows.some(r => r === 'Counted as saving per month | €25,200 | €42,000 | €48,300'));
     check('the cumulative chart draws three lines', (await page.$$('.recharts-line')).length === 3);
 
@@ -207,7 +207,7 @@ async function main() {
     body = await text(page);
     check('the decision summary has its parts', has(body, 'What must be true', 'Range:', 'The ask', 'Next steps', 'Net efficiency gain', 'Assumptions are presenter-entered and not independently verified.'));
     check('the decision summary shows the verdict of every option', has(body, 'Local: Marginal', 'Hybrid: Does not pay back', 'Enterprise: Pays back', 'Frontier: Marginal'));
-    const panels = await page.$$eval('.print-area h2', els => els.map(e => e.textContent));
+    const panels = await page.$$eval('.print-area h2', els => els.map(e => [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('')));
     const expectedPanels = ['Cumulative position', '3-year net value by option', 'How the efficiency is built', 'Where the effort is saved', 'Monthly position at maturity', 'One-time investment', 'Safety margin', 'What must be true'];
     check('the decision summary is a dashboard of eight panels', expectedPanels.every(p => panels.includes(p)), panels.join(' | '));
     check('the dashboard draws six charts', (await page.$$('.print-area .recharts-wrapper')).length === 6);
@@ -369,6 +369,41 @@ async function main() {
       unnamed = unnamed.concat(missing.map(m => `${step}: ${m}`));
     }
     check('every form field has an accessible name', unnamed.length === 0, unnamed.slice(0, 3).join(' ; '));
+
+    // Info tips: an "i" next to every calculated answer explains the arithmetic, on hover or click
+    await goStep(page, '2 Opportunity');
+    const tipCount = await page.$$eval('[data-infotip]', e => e.length);
+    check('the opportunity page has an info tip on each calculated answer', tipCount >= 6, `${tipCount}`);
+    const hoursTip = (await page.$$('[data-infotip][aria-label^="How this is calculated: Hours freed"]'))[0];
+    await hoursTip.hover();
+    await pause(200);
+    check('hovering the i shows how the hours freed are worked out', has((await text(page)).toLowerCase(), 'how it is calculated', 'in-scope effort:', 'come back as human review and rework'));
+    await page.mouse.move(5, 5);
+    await pause(200);
+    check('moving away closes the tip', !(await text(page)).toLowerCase().includes('how it is calculated'));
+    await hoursTip.click();
+    await page.mouse.move(5, 5);
+    await pause(200);
+    check('clicking the i keeps the tip open', (await text(page)).includes('Hours freed = '));
+    await page.keyboard.press('Escape');
+    await pause(200);
+    check('Escape closes the tip', !(await text(page)).toLowerCase().includes('how it is calculated'));
+    await goStep(page, '3 Right-size');
+    const pressed = () => page.$$eval('button[aria-pressed="true"]', e => e.map(b => b.innerText.split(' ')[0]).join(','));
+    const pressedBefore = await pressed();
+    await (await page.$$('[data-infotip][aria-label^="How this is calculated: Payback"]'))[0].click();
+    await pause(200);
+    await page.screenshot({ path: path.join(outDir, 'exec-infotip.png') });
+    check('clicking the i on an option card explains it without selecting the card', pressedBefore === (await pressed()) && (await text(page)).includes('Payback is the first month'), pressedBefore);
+    await page.keyboard.press('Escape');
+    await goStep(page, '5 Result');
+    check('the result table has an info tip on every row', (await page.$$eval('[data-infotip]', e => e.length)) >= 8);
+    await goStep(page, '7 Decision');
+    check('the decision page explains each figure and chart', (await page.$$eval('[data-infotip]', e => e.length)) >= 14);
+    await page.emulateMediaType('print');
+    const tipsInPrint = await page.$$eval('[data-infotip]', els => els.filter(e => e.offsetParent !== null).length);
+    await page.emulateMediaType('screen');
+    check('info tips are not shown in print', tipsInPrint === 0, `${tipsInPrint}`);
 
     // The "How it works" presenter deck: opens from the header, scrolls like slides, keyboard driven
     await page.evaluate(() => [...document.querySelectorAll('a')].find(a => a.textContent.trim() === 'How it works').click());

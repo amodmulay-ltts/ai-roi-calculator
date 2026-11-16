@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react';
 import { readinessGap, whatMustBeTrue, type ReadinessAnswer } from '@ai-roi-calc/bizcase';
+import InfoTip from '../components/InfoTip';
+import { explainBreakEvenCash, explainBreakEvenEffect, explainReadiness } from '../explain';
 import { effectivePosture, useExecStore } from '../store';
 
 const ANSWERS: Array<[ReadinessAnswer, string]> = [
@@ -48,13 +50,19 @@ export default function Risks(): ReactElement {
       ))}
 
       <div className="border-t border-gray-200 pt-4">
-        <h2 className="mb-2 text-sm font-medium text-gray-900">What must be true</h2>
+        <h2 className="mb-2 text-sm font-medium text-gray-900">
+          What must be true
+          <InfoTip explanation={explainBreakEvenEffect()} />
+          <InfoTip explanation={explainBreakEvenCash()} />
+        </h2>
         <ul className="list-disc space-y-1 pl-5 text-sm text-gray-800">
           {sentences.map(sentence => (
             <li key={sentence}>{sentence}</li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-gray-500">Readiness gap: {readinessGap(inputs.readiness)} of 8.</p>
+        <p className="mt-3 text-xs text-gray-500">Readiness gap: {readinessGap(inputs.readiness)} of 8.
+          <InfoTip explanation={explainReadiness(inputs)} />
+        </p>
       </div>
     </section>
   );

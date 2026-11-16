@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react';
 import { compareAll, formatMoney } from '@ai-roi-calc/bizcase';
 import Field, { NumberInput, PercentInput } from '../components/Field';
+import InfoTip from '../components/InfoTip';
+import { explainInvestment } from '../explain';
 import { effectivePosture, useExecStore } from '../store';
 
 export default function Investment(): ReactElement {
@@ -54,7 +56,10 @@ export default function Investment(): ReactElement {
             ))}
           </ul>
           <div className="mt-3 flex justify-between border-t border-gray-200 pt-3 text-sm font-semibold">
-            <span className="text-gray-900">Total</span>
+            <span className="text-gray-900">
+              Total
+              <InfoTip explanation={explainInvestment(inputs, expected)} />
+            </span>
             <span className="text-gray-900">{formatMoney(expected.investment)}</span>
           </div>
         </div>
