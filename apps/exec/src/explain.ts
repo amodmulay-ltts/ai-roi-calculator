@@ -4,6 +4,7 @@ import {
   GAP_INVESTMENT_PER_POINT,
   MARGINAL_ROI_PERCENT,
   formatMoney,
+  optionCosts,
   phaseAiUse,
   readinessGap,
   type BusinessCaseInputs,
@@ -110,7 +111,7 @@ export function explainRunCost(inputs: BusinessCaseInputs, r: CaseResult, postur
     title: 'Run cost per month',
     lines: [
       `Usage: hours where AI is used × the usage cost per assisted hour of the model option. At full effect: ${formatMoney(r.usageCostPerMonth)}.`,
-      `Platform and governance: the monthly platform cost of each model option used, plus governance running cost (${formatMoney(inputs.governanceMonthly)}). Here: ${formatMoney(r.platformAndGovernancePerMonth)}.`,
+      `Platform and governance: the monthly platform cost of each model option used, plus governance running cost (${formatMoney(optionCosts(inputs, posture).governanceMonthly)}). Here: ${formatMoney(r.platformAndGovernancePerMonth)}.`,
       posture === 'hybrid'
         ? 'Hybrid uses the local model for routine work and the chosen stronger model for complex work, so both platforms are paid for.'
         : `All the work uses the ${POSTURE_NAME[posture]} option.`,

@@ -73,3 +73,9 @@ All questions raised during the build are resolved below. Each records the decis
 - The calculation uses effort share of a piece of work = its phase's effort share x its share of the phase. Templates were converted so that every golden number in EXEC_BUILD_SPEC.md section 6 is unchanged. Where that spec says a task's `share` is a share of all effort, read "phase effort share x share of phase".
 - Validation: phase effort adds to 100% ("Phase effort must add up to 100%."); each phase's work adds to 100% ("{phase}: work must add up to 100%."); a phase with no work is flagged. A new phase starts at 0% of effort with one piece of work at 100%, so the case stays valid.
 - Saved data from before this change resets to the defaults.
+
+## 14. Every cost figure editable for every option — Resolved, behaviour changed
+
+- Request: not all figures in "How each option's cost is built" were editable in all options (Hybrid was read-only, and shared figures had one box for all).
+- Decision: `BusinessCaseInputs.optionOverrides` (optional) holds per-option figures. An option uses its own figure when set and the shared one otherwise. For Hybrid the platform, setup and usage cost per assisted hour can also be set, replacing the local-plus-stronger-model figure. For local, enterprise and frontier those three stay in `tiers`. `optionCosts(inputs, posture)` gives the figures an option really uses; the calculation, the table and the tips all read it.
+- Old saved data is still valid (the field is optional). Figures on the Investment step are the defaults for options without their own.

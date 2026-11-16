@@ -9,6 +9,7 @@ import {
   recommendedPosture,
   validateInputs,
   type BusinessCaseInputs,
+  type OptionOverrides,
   type PostureId,
   type Readiness,
   type ReadinessAnswer,
@@ -57,6 +58,9 @@ export interface ExecState {
   nextSteps: string;
   setInputs: (partial: Partial<BusinessCaseInputs>) => void;
   setTier: (tierId: TierId, partial: Partial<TierAssumptions>) => void;
+  /** Sets figures for one option only; see OptionOverrides. */
+  setOptionOverride: (posture: PostureId, partial: OptionOverrides) => void;
+  clearOptionOverrides: () => void;
   setTask: (id: TaskMix['id'], partial: Partial<TaskMix>) => void;
   /** Replaces the phases and work with a ready-made template, keeping everything else entered. */
   applyTemplate: (templateId: string) => void;
@@ -108,6 +112,18 @@ export const useExecStore = create<ExecState>()(
       ask: DEFAULT_ASK,
       nextSteps: DEFAULT_NEXT_STEPS,
       setInputs: partial => set(state => ({ inputs: { ...state.inputs, ...partial } })),
+      setOptionOverride: (posture, partial) =>
+        set(state => ({
+          inputs: {
+            ...state.inputs,
+            optionOverrides: {
+              ...state.inputs.optionOverrides,
+              [posture]: { ...state.inputs.optionOverrides?.[posture], ...partial },
+            },
+          },
+        })),
+      clearOptionOverrides: () =>
+        set(state => ({ inputs: { ...state.inputs, optionOverrides: undefined } })),
       setTier: (tierId, partial) =>
         set(state => ({
           inputs: { ...state.inputs, tiers: { ...state.inputs.tiers, [tierId]: { ...state.inputs.tiers[tierId], ...partial } } },

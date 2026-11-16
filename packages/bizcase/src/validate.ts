@@ -86,6 +86,13 @@ export function validateInputs(inputs: BusinessCaseInputs): ValidationIssue[] {
     }
   }
 
+  // Per-option figures are optional, and none may be negative
+  for (const [postureId, ov] of Object.entries(inputs.optionOverrides ?? {})) {
+    for (const [field, value] of Object.entries(ov ?? {})) {
+      if (typeof value !== 'number' || !(value >= 0)) add(`optionOverrides.${postureId}.${field}`, `${postureId} option: "${field}" cannot be negative.`);
+    }
+  }
+
   return issues;
 }
 
@@ -147,6 +154,7 @@ export function isBusinessCaseInputs(value: unknown): value is BusinessCaseInput
       (t.difficulty === 'routine' || t.difficulty === 'complex'),
   );
   if (!tasksOk) return false;
+  if (value.optionOverrides !== undefined && !isRecord(value.optionOverrides)) return false;
 
   const tiers = value.tiers;
   if (!isRecord(tiers)) return false;

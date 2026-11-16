@@ -17,6 +17,7 @@ import type {
   TaskMix,
   TaskResult,
   TierId,
+  OptionOverrides,
   PostureId,
   Verdict,
 } from './types.js';
@@ -39,6 +40,43 @@ const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
 function tierForTask(inputs: BusinessCaseInputs, postureId: PostureId, task: TaskMix): TierId {
   if (postureId !== 'hybrid') return postureId;
   return task.difficulty === 'routine' ? 'local' : inputs.hybridComplexTier;
+}
+
+/** The figures an option really uses: the shared ones, unless this option has its own. */
+export interface OptionCosts {
+  governanceMonthly: number;
+  dataReadinessInvestment: number;
+  governanceSetup: number;
+  trainingPerFte: number;
+  retiredCostMonthly: number;
+  /** Monthly platform cost of the option. Hybrid: its own figure, or local plus the stronger model it uses. */
+  platformMonthly: number;
+  /** One-time platform setup of the option. Same rule as the platform cost. */
+  setup: number;
+  /** Hybrid only: one rate for all its assisted hours, when set. Null means each task uses its own model's rate. */
+  hybridUsageRate: number | null;
+  overrides: OptionOverrides;
+}
+
+export function optionCosts(inputs: BusinessCaseInputs, postureId: PostureId): OptionCosts {
+  const ov = inputs.optionOverrides?.[postureId] ?? {};
+  const used: TierId[] = [];
+  for (const task of inputs.tasks) {
+    const t = tierForTask(inputs, postureId, task);
+    if (!used.includes(t)) used.push(t);
+  }
+  const hybrid = postureId === 'hybrid';
+  return {
+    governanceMonthly: ov.governanceMonthly ?? inputs.governanceMonthly,
+    dataReadinessInvestment: ov.dataReadinessInvestment ?? inputs.dataReadinessInvestment,
+    governanceSetup: ov.governanceSetup ?? inputs.governanceSetup,
+    trainingPerFte: ov.trainingPerFte ?? inputs.trainingPerFte,
+    retiredCostMonthly: ov.retiredCostMonthly ?? inputs.retiredCostMonthly,
+    platformMonthly: hybrid && ov.platformMonthly !== undefined ? ov.platformMonthly : used.reduce((s, t) => s + inputs.tiers[t].platformMonthly, 0),
+    setup: hybrid && ov.setup !== undefined ? ov.setup : used.reduce((s, t) => s + inputs.tiers[t].setup, 0),
+    hybridUsageRate: hybrid && ov.usageCostPerAssistedHour !== undefined ? ov.usageCostPerAssistedHour : null,
+    overrides: ov,
+  };
 }
 
 /**
@@ -64,7 +102,7 @@ export function calculateCase(
   // 5.1 and 5.4: hours and usage, task by task
   const totalHours = inputs.teamSize * inputs.hoursPerFteMonth;
   const hourlyCost = inputs.loadedCostPerFteYear / 12 / inputs.hoursPerFteMonth;
-  const tiersUsed: TierId[] = [];
+  const costs = optionCosts(inputs, postureId);
   let netHoursSavedPerMonth = 0;
   let grossRemovedHoursPerMonth = 0;
   let usageCostPerMonth = 0;
@@ -74,7 +112,6 @@ export function calculateCase(
   for (const task of inputs.tasks) {
     const effort = (effortByPhase.get(task.phase) ?? 0) * task.share; // share of ALL in-scope effort
     const tierId = tierForTask(inputs, postureId, task);
-    if (!tiersUsed.includes(tierId)) tiersUsed.push(tierId);
     const tier = inputs.tiers[tierId];
     const routine = task.difficulty === 'routine';
     const aiUse = task.aiUse;
@@ -87,7 +124,7 @@ export function calculateCase(
     const netSaved = removed * (1 - review);
     netHoursSavedPerMonth += netSaved;
     grossRemovedHoursPerMonth += removed;
-    usageCostPerMonth += assisted * tier.usageCostPerAssistedHour;
+    usageCostPerMonth += assisted * (costs.hybridUsageRate ?? tier.usageCostPerAssistedHour);
     tasks.push({
       id: task.id,
       name: task.name,
@@ -131,17 +168,17 @@ export function calculateCase(
   const investmentLines = [
     {
       label: 'Platform setup',
-      amount: tiersUsed.reduce((sum, t) => sum + inputs.tiers[t].setup, 0) * invMult,
+      amount: costs.setup * invMult,
     },
-    { label: 'Data readiness', amount: inputs.dataReadinessInvestment * invMult },
-    { label: 'Governance setup', amount: inputs.governanceSetup * invMult },
-    { label: 'Training', amount: inputs.trainingPerFte * inputs.teamSize * invMult },
+    { label: 'Data readiness', amount: costs.dataReadinessInvestment * invMult },
+    { label: 'Governance setup', amount: costs.governanceSetup * invMult },
+    { label: 'Training', amount: costs.trainingPerFte * inputs.teamSize * invMult },
   ];
   const investment = investmentLines.reduce((sum, line) => sum + line.amount, 0);
   const platformAndGovernancePerMonth =
-    tiersUsed.reduce((sum, t) => sum + inputs.tiers[t].platformMonthly, 0) + inputs.governanceMonthly;
+    costs.platformMonthly + costs.governanceMonthly;
   const steadyNetPerMonth =
-    countedSavingPerMonth + inputs.retiredCostMonthly - usageCostPerMonth - platformAndGovernancePerMonth;
+    countedSavingPerMonth + costs.retiredCostMonthly - usageCostPerMonth - platformAndGovernancePerMonth;
 
   // 5.7: timeline over the horizon
   let running = -investment;
@@ -150,7 +187,7 @@ export function calculateCase(
   for (let m = 1; m <= HORIZON_MONTHS; m++) {
     const factor = Math.min(1, m / ramp);
     const net =
-      (countedSavingPerMonth + inputs.retiredCostMonthly) * factor -
+      (countedSavingPerMonth + costs.retiredCostMonthly) * factor -
       usageCostPerMonth * factor -
       platformAndGovernancePerMonth;
     running += net;
@@ -182,7 +219,7 @@ export function calculateCase(
     capacityFte,
     capacityValuePerMonth,
     countedSavingPerMonth,
-    retiredCostPerMonth: inputs.retiredCostMonthly,
+    retiredCostPerMonth: costs.retiredCostMonthly,
     redeployedValuePerMonth,
     usageCostPerMonth,
     platformAndGovernancePerMonth,
